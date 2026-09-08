@@ -18,10 +18,12 @@ function billingConfig(overrides = {}) {
     SESSION_SECRET: 's'.repeat(32),
     AUDIT_HMAC_KEY: 'a'.repeat(32),
     BILLING_ENABLED: 'true',
+    BILLING_PORTAL_ENABLED: 'true',
     STRIPE_ENVIRONMENT: 'test',
     STRIPE_SECRET_KEY: 'sk_test_fake',
     STRIPE_WEBHOOK_SECRET: 'whsec_fake',
     STRIPE_ADDITIONAL_PERSON_PRICE_ID: 'price_additional_person_test',
+    STRIPE_PORTAL_CONFIGURATION_ID: 'bpc_test_approved',
     ...overrides,
   });
 }
@@ -56,8 +58,25 @@ async function billingPool() {
   return pool;
 }
 
-function fakeStripe({ listedCustomers = [], listedSubscriptions = [], listedInvoices = [] } = {}) {
-  const calls = { customers: [], checkouts: [] };
+function fakeStripe({
+  listedCustomers = [],
+  listedSubscriptions = [],
+  listedInvoices = [],
+  portalConfiguration = {
+    id: 'bpc_test_approved',
+    active: true,
+    livemode: false,
+    features: {
+      customer_update: { enabled: false, allowed_updates: [] },
+      invoice_history: { enabled: true },
+      payment_method_update: { enabled: true },
+      subscription_cancel: { enabled: true, mode: 'at_period_end', proration_behavior: 'none' },
+      subscription_update: { enabled: false, default_allowed_updates: [] },
+      subscription_pause: { enabled: false },
+    },
+  },
+} = {}) {
+  const calls = { customers: [], checkouts: [], portalConfigurations: [], portals: [] };
   return {
     calls,
     prices: {
@@ -90,6 +109,20 @@ function fakeStripe({ listedCustomers = [], listedSubscriptions = [], listedInvo
         async create(input, options) {
           calls.checkouts.push({ input, options });
           return { id: 'cs_test_membership', url: 'https://checkout.stripe.com/c/pay/test', status: 'open' };
+        },
+      },
+    },
+    billingPortal: {
+      configurations: {
+        async retrieve(id) {
+          calls.portalConfigurations.push(id);
+          return portalConfiguration;
+        },
+      },
+      sessions: {
+        async create(input) {
+          calls.portals.push(input);
+          return { id: 'bps_test_membership', url: 'https://billing.stripe.com/p/session/test' };
         },
       },
     },
@@ -148,6 +181,7 @@ test('checkout creates one journey-scoped monthly subscription with a fixed quan
   assert.equal(status.enabled, true);
   assert.equal(status.environment, 'test');
   assert.equal(status.journey.name, 'A wider circle');
+  assert.equal(status.portalEnabled, false);
   assert.deepEqual(status.offers, [{
     id: 'additional-person-monthly', label: 'Another person', cadence: 'month', currency: 'USD', unitAmount: 100,
   }]);
@@ -200,6 +234,42 @@ test('test-mode webhooks grant access once and reject live events', async (t) =>
   assert.equal(status.entitlement.quantity, 1);
   assert.equal(status.subscription.offerId, 'additional-person-monthly');
   assert.equal(status.subscription.paidCapacity, 1);
+  assert.equal(status.portalEnabled, true);
+
+  const portal = await billing.createPortalSession(userId, journeyId);
+  assert.equal(portal.url, 'https://billing.stripe.com/p/session/test');
+  assert.deepEqual(stripe.calls.portalConfigurations, ['bpc_test_approved']);
+  assert.deepEqual(stripe.calls.portals, [{
+    customer: 'cus_test_member',
+    configuration: 'bpc_test_approved',
+    return_url: 'https://together-ledger.example.test/?billing=portal',
+  }]);
+  await assert.rejects(
+    billing.createPortalSession('99999999-9999-4999-8999-999999999999', journeyId),
+    (error) => error.code === 'forbidden',
+  );
+  const broadPortal = new StripeBillingService({
+    pool,
+    config: billingConfig(),
+    stripe: fakeStripe({
+      portalConfiguration: {
+        id: 'bpc_test_approved',
+        active: true,
+        livemode: false,
+        features: {
+          invoice_history: { enabled: true },
+          payment_method_update: { enabled: true },
+          subscription_cancel: { enabled: true, mode: 'at_period_end', proration_behavior: 'none' },
+          subscription_update: { enabled: true, default_allowed_updates: ['quantity'] },
+        },
+      },
+    }),
+    now: () => now,
+  });
+  await assert.rejects(
+    broadPortal.createPortalSession(userId, journeyId),
+    (error) => error.code === 'billing_portal_policy_mismatch',
+  );
   await assert.rejects(
     billing.createCheckoutSession(userId, journeyId, {
       offerId: 'additional-person-monthly',
@@ -555,6 +625,42 @@ test('the Stripe webhook route preserves the raw request body', async (t) => {
   assert.ok(Buffer.isBuffer(received.rawBody));
   assert.equal(received.signature, 'test-signature');
   assert.deepEqual(JSON.parse(received.rawBody.toString('utf8')), { id: 'evt_raw_body' });
+});
+
+test('the Portal route preserves the authenticated journey boundary', async (t) => {
+  const config = loadConfig({
+    NODE_ENV: 'test',
+    PUBLIC_ORIGIN: 'http://127.0.0.1:4174',
+    SESSION_SECRET: 's'.repeat(32),
+    AUDIT_HMAC_KEY: 'a'.repeat(32),
+  });
+  let received;
+  const platform = {
+    async session(token) {
+      assert.equal(token, 'session-token');
+      return { userId, csrfToken: 'csrf-token', user: { id: userId } };
+    },
+  };
+  const billing = {
+    async createPortalSession(receivedUserId, receivedJourneyId) {
+      received = { receivedUserId, receivedJourneyId };
+      return { url: 'https://billing.stripe.com/p/session/test', environment: 'test', journeyId: receivedJourneyId };
+    },
+  };
+  const app = await buildApp({ platform, billing, config });
+  t.after(async () => app.close());
+  const response = await app.inject({
+    method: 'POST',
+    url: `/api/v1/journeys/${journeyId}/billing/portal-sessions`,
+    headers: {
+      origin: 'http://127.0.0.1:4174',
+      cookie: 'tl_session=session-token',
+      'x-together-csrf': 'csrf-token',
+    },
+    payload: {},
+  });
+  assert.equal(response.statusCode, 201, response.body);
+  assert.deepEqual(received, { receivedUserId: userId, receivedJourneyId: journeyId });
 });
 
 test('the official Stripe SDK verifies the exact raw payload signature', async (t) => {

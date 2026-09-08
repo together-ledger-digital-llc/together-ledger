@@ -22,15 +22,20 @@ const ConfigSchema = z.object({
   MAIL_FROM_RECOVERY: z.string().default(''),
   JOURNEY_CAPACITY_MODE: z.enum(['two-person', 'test-groups', 'billing']).default('two-person'),
   BILLING_ENABLED: z.enum(['true', 'false']).default('false'),
+  BILLING_PORTAL_ENABLED: z.enum(['true', 'false']).default('false'),
   STRIPE_ENVIRONMENT: z.enum(['test', 'live']).default('test'),
   STRIPE_SECRET_KEY: z.string().default(''),
   STRIPE_WEBHOOK_SECRET: z.string().default(''),
   STRIPE_ADDITIONAL_PERSON_PRICE_ID: z.string().default(''),
+  STRIPE_PORTAL_CONFIGURATION_ID: z.string().default(''),
   STRIPE_TAX_ENABLED: z.enum(['true', 'false']).default('false'),
   BILLING_GRACE_DAYS: z.coerce.number().int().min(0).max(90).default(7),
 });
 
 function assertStripeConfiguration(config) {
+  if (config.BILLING_PORTAL_ENABLED === 'true' && config.BILLING_ENABLED !== 'true') {
+    throw new Error('Stripe Customer Portal requires Stripe billing to be enabled.');
+  }
   if (config.BILLING_ENABLED !== 'true') return;
   if (!config.STRIPE_SECRET_KEY || !config.STRIPE_WEBHOOK_SECRET) {
     throw new Error('Stripe billing requires a secret key and webhook signing secret.');
@@ -50,6 +55,9 @@ function assertStripeConfiguration(config) {
     throw new Error('Stripe billing requires a webhook signing secret.');
   }
   if (!config.STRIPE_ADDITIONAL_PERSON_PRICE_ID.startsWith('price_')) throw new Error('Stripe billing Price IDs must begin with price_.');
+  if (config.BILLING_PORTAL_ENABLED === 'true' && !config.STRIPE_PORTAL_CONFIGURATION_ID.startsWith('bpc_')) {
+    throw new Error('Stripe Customer Portal requires an allow-listed configuration ID beginning with bpc_.');
+  }
 }
 
 export function loadConfig(overrides = {}) {
@@ -76,6 +84,7 @@ export function loadConfig(overrides = {}) {
     trustProxy: config.TRUST_PROXY === 'true',
     journeyCapacityMode: config.JOURNEY_CAPACITY_MODE,
     billingEnabled: config.BILLING_ENABLED === 'true',
+    billingPortalEnabled: config.BILLING_PORTAL_ENABLED === 'true',
     stripeEnvironment: config.STRIPE_ENVIRONMENT,
     stripeTaxEnabled: config.STRIPE_TAX_ENABLED === 'true',
     billingGraceDays: config.BILLING_GRACE_DAYS,

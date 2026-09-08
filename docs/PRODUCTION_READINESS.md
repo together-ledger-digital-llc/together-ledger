@@ -35,7 +35,7 @@ This checklist records what must be true before Together Ledger's private-sync A
 
 - [ ] Every key that appeared in chat, screenshots, logs, or shell history has been rotated; completed values exist only in the managed secret store and root-owned environment file.
 - [ ] Checkout, Billing, Invoicing, and webhook behavior pass the test-mode matrix in `docs/STRIPE.md` with synthetic accounts.
-- [ ] Customer Portal behavior passes its own test-mode matrix after issue 43 policies and Portal permissions are approved.
+- [ ] Customer Portal behavior passes its test-mode matrix with invoice history, payment-method update, and cancel-at-renewal available while every broader subscription control remains unavailable.
 - [ ] Public pricing, tax registrations, refund and dispute policy, grace period, entitlement ownership, and Portal permissions have written approval.
 - [ ] The live webhook has a distinct signing secret, the test endpoint rejects live events, and no test Price ID is present in the live configuration.
 - [ ] Periodic reconciliation and alerts for webhook age, processing failures, duplicate Customers, failed invoices, and entitlement drift are operating.

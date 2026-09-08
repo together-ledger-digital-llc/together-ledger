@@ -124,7 +124,9 @@ function renderBillingState() {
   const periodEnd = billingState.subscription?.currentPeriodEnd || entitlement?.expiresAt;
   const until = periodEnd ? ` through ${dateTimeLabel(periodEnd)}` : '';
   const paidCapacity = billingState.subscription?.paidCapacity || entitlement?.quantity || 0;
-  $('#billing-status').textContent = !entitlement
+  $('#billing-status').textContent = billingState.subscription?.cancelAtPeriodEnd
+    ? `Cancellation is set for renewal${until}. Existing people, shared history, and valid invitation reservations remain.`
+    : !entitlement
     ? `The first two people in ${billingState.journey.name} are included. Add another person for $1 USD each month.`
     : entitlement.state === 'active'
       ? `${paidCapacity} additional ${paidCapacity === 1 ? 'person is' : 'people are'} covered for this journey${until}.`
@@ -135,7 +137,9 @@ function renderBillingState() {
           : 'This journey does not currently have paid additional-person capacity.';
 
   const offers = $('#billing-offers');
-  offers.replaceChildren(...billingState.offers.map((offer) => {
+  const hasCurrentSubscription = billingState.subscription
+    && !['canceled', 'incomplete_expired'].includes(billingState.subscription.status);
+  offers.replaceChildren(...(!hasCurrentSubscription ? billingState.offers : []).map((offer) => {
     const button = document.createElement('button');
     button.className = 'button primary';
     button.type = 'button';
@@ -143,6 +147,7 @@ function renderBillingState() {
     button.textContent = `Add another person · $${(offer.unitAmount / 100).toFixed(2)} ${offer.currency} / month`;
     return button;
   }));
+  $('#billing-portal-button').hidden = !billingState.portalEnabled;
 }
 
 async function refreshBillingState() {
@@ -996,6 +1001,22 @@ $('#billing-offers').addEventListener('click', async (event) => {
     const checkout = new URL(result.url);
     if (checkout.protocol !== 'https:' || checkout.hostname !== 'checkout.stripe.com') throw new Error('Unexpected checkout destination.');
     window.location.assign(checkout.href);
+  } catch (error) {
+    showToast(accountMessage(error));
+    setButtonPending(button, false);
+  }
+});
+
+$('#billing-portal-button').addEventListener('click', async (event) => {
+  const button = event.currentTarget;
+  setButtonPending(button, true, 'Opening secure billing…');
+  try {
+    const journey = activeTrip(state);
+    if (!isCloudJourney(journey) || journey.role !== 'owner') throw new Error('Only a hosted journey owner can manage this billing relationship.');
+    const result = await api.mutate(`/journeys/${journey.id}/billing/portal-sessions`, 'POST', {});
+    const portal = new URL(result.url);
+    if (portal.protocol !== 'https:' || portal.hostname !== 'billing.stripe.com') throw new Error('Unexpected billing destination.');
+    window.location.assign(portal.href);
   } catch (error) {
     showToast(accountMessage(error));
     setButtonPending(button, false);

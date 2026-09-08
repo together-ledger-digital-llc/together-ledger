@@ -21,4 +21,20 @@ test('two-person capacity remains the default', () => {
   const config = loadConfig({ NODE_ENV: 'test' });
   assert.equal(config.journeyCapacityMode, 'two-person');
   assert.equal(config.billingEnabled, false);
+  assert.equal(config.billingPortalEnabled, false);
+});
+
+test('Customer Portal cannot be enabled without billing and an allow-listed configuration', () => {
+  assert.throws(() => loadConfig({
+    NODE_ENV: 'test',
+    BILLING_PORTAL_ENABLED: 'true',
+  }), /Customer Portal requires Stripe billing to be enabled/);
+  assert.throws(() => loadConfig({
+    NODE_ENV: 'test',
+    BILLING_ENABLED: 'true',
+    BILLING_PORTAL_ENABLED: 'true',
+    STRIPE_SECRET_KEY: 'sk_test_fake',
+    STRIPE_WEBHOOK_SECRET: 'whsec_fake',
+    STRIPE_ADDITIONAL_PERSON_PRICE_ID: 'price_test',
+  }), /allow-listed configuration ID beginning with bpc_/);
 });

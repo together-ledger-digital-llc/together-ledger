@@ -1,8 +1,8 @@
 # Stripe web billing
 
-Together Ledger uses Stripe only for purchases made directly on the web. Stripe-hosted Checkout collects payment details and Stripe Billing owns recurring invoices and recovery. Together Ledger stores no card details. Customer Portal remains unavailable until its policies and permissions are approved.
+Together Ledger uses Stripe only for purchases made directly on the web. Stripe-hosted Checkout collects payment details, Stripe Billing owns recurring invoices and recovery, and a narrowly configured Customer Portal lets an eligible journey owner view invoices, update a payment method, or cancel at renewal. Together Ledger stores no card details.
 
-This integration is test-mode code, not a live billing launch. The approved test offer is $1 USD per additional person each month, with the first two people in a journey included and one combined subscription and invoice per paid journey. Public release, tax registrations, refund policy, grace policy, Portal permissions, and mobile-store policy review remain gated decisions.
+This integration is test-mode code, not a live billing launch. The approved test offer is $1 USD per additional person each month, with the first two people in a journey included and one combined subscription and invoice per paid journey. Cancellation takes effect at renewal, customer-controlled quantity changes and proration remain unavailable, refunds are never automatic, and a seven-day payment grace blocks new invitations without removing anyone. Existing valid invitation reservations remain valid. Public release, tax registrations, refund operations, and mobile-store policy review remain gated work.
 
 ## Purchase boundary
 
@@ -22,10 +22,10 @@ Apple and Google transactions must never be recreated as Stripe charges. Native 
 ## What is implemented
 
 - Owner-only, CSRF-protected Checkout Session creation for one server allow-listed $1 USD monthly additional-person Stripe Price.
-- One subscription per paid journey, fixed at one additional person in this candidate; broader quantity policy remains in issue 43.
+- One subscription per paid journey, fixed at one additional person; customer-controlled quantity changes and proration are unavailable.
 - Stable idempotency keys derived from a client request UUID and internal account ID.
 - Reused Stripe Customers, linked to internal accounts without exposing Customer or Price IDs to the browser.
-- No Customer Portal route or browser action in this candidate.
+- A separately disabled owner-only Customer Portal route and browser action. Each Session rechecks an allow-listed configuration and fails closed unless invoice history, payment-method updates, and cancel-at-renewal are enabled while quantity changes, proration, pausing, and broader customer changes are disabled.
 - Raw-body Stripe webhook signature verification.
 - A hard test/live boundary: a test-configured service accepts only test keys and rejects live-mode webhook events before persistence.
 - Idempotent webhook records with bounded retry state.
@@ -42,7 +42,7 @@ Webhook processing is deliberately limited to local database work so the endpoin
 
 1. Rotate any test secret that has appeared in chat, screenshots, logs, or shell history. Create a new test or restricted test key with only the access this integration needs.
 2. In Stripe test mode, create one consumer software Product and one recurring Price: $1.00 USD per month, licensed quantity. Keep commercially used Prices immutable; create a new Price for a later pricing change.
-3. Customer Portal configuration is not required for the Checkout-and-webhook acceptance gate. Keep the Portal action unavailable until cancellation, upgrade, downgrade, proration, and promotion-code choices have written approval.
+3. Run `npm run configure:stripe-portal` with the rotated test key in the ignored local environment file. The test-only command safely reuses its matching dedicated configuration or creates one with invoice history, payment-method updates, and cancel-at-renewal enabled and subscription changes disabled. Do not reuse a broader default configuration.
 4. Create a test-mode webhook endpoint at `https://api.together-ledger.com/api/v1/billing/webhooks/stripe`, or forward locally with the Stripe CLI. Each new `stripe listen` process creates its own signing secret, so update the local ignored environment value before starting the application:
 
    ```bash
@@ -71,10 +71,12 @@ Webhook processing is deliberately limited to local database work so the endpoin
 
    ```dotenv
    BILLING_ENABLED=true
+   BILLING_PORTAL_ENABLED=true
    STRIPE_ENVIRONMENT=test
    STRIPE_SECRET_KEY=<rotated-test-secret>
    STRIPE_WEBHOOK_SECRET=<test-webhook-signing-secret>
    STRIPE_ADDITIONAL_PERSON_PRICE_ID=<test-additional-person-monthly-price-id>
+   STRIPE_PORTAL_CONFIGURATION_ID=<approved-test-portal-configuration-id>
    STRIPE_TAX_ENABLED=false
    BILLING_GRACE_DAYS=7
    ```
@@ -93,7 +95,7 @@ The Checkout success redirect is informational. It never grants access. Verified
 - Declines and required authentication.
 - Duplicate, delayed, and out-of-order webhooks.
 - Renewal, failed renewal, grace, and terminal cancellation with Billing Test Clocks.
-- Portal cancellation and payment-method update.
+- Portal invoice history, payment-method update, and cancel-at-renewal; confirm quantity editing, immediate cancellation, pausing, and promotion controls are absent.
 - Refund, dispute, and credit-note policy behavior.
 - Test webhook delivery to a test endpoint; live events must be rejected.
 - Account deletion with retained, pseudonymized financial history.
@@ -103,9 +105,9 @@ The Checkout success redirect is informational. It never grants access. Verified
 
 - Countries and localized pricing beyond the approved $1 USD monthly test offer.
 - Consumer digital-software tax code, registrations, evidence, and filing process.
-- Trial, refund, dispute, recovery, and access-grace policies.
+- Trial, manual-refund operations, dispute handling, and recovery operations beyond the approved seven-day access grace.
 - A complete paid-capacity acceptance pass that proves the implemented 3–99 person invitation gate against real test-mode entitlement changes.
-- Portal upgrade, downgrade, cancellation, proration, and promotion settings.
+- Operational review of the dedicated Portal configuration before any environment change or live enablement.
 - Apple App Store and Google Play storefront rules for sign-in, cross-platform access, and any app-to-web steering.
 - A protected reconciliation schedule and operational alerts using the implemented operator command.
 

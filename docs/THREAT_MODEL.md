@@ -27,7 +27,7 @@ authoritative PostgreSQL writer
         └──────── GCP object copy
 ```
 
-Payment credentials remain isolated in Stripe-hosted Checkout. The service accepts signed Stripe event payloads and stores bounded billing state; it never accepts or stores raw card details. A future Customer Portal and Apple or Google purchases remain separate, gated surfaces.
+Payment credentials remain isolated in Stripe-hosted Checkout and Customer Portal. The service accepts signed Stripe event payloads and stores bounded billing state; it never accepts or stores raw card details. Apple or Google purchases remain separate, gated surfaces.
 
 ## Required controls
 
@@ -46,6 +46,7 @@ Payment credentials remain isolated in Stripe-hosted Checkout. The service accep
 13. Billing defaults off. When enabled, startup rejects a key whose test/live prefix does not match the explicit Stripe environment, and the webhook rejects an event whose `livemode` flag does not match before writing it.
 14. Checkout accepts only internal offer names resolved to server-controlled Price IDs. Customer and Price IDs are not browser authority.
 15. Stripe webhook signatures are verified over the raw request bytes. Event IDs are idempotency boundaries, and the success redirect never grants an entitlement.
+16. Portal Session creation rechecks the named Stripe configuration against a fail-closed feature allowlist. It requires the verified journey owner, their mapped Stripe Customer, and that journey's non-terminal subscription; browser-supplied Customer, subscription, or configuration IDs are never accepted.
 
 ## Explicit limitations
 
