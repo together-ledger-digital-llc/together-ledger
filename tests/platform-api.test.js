@@ -10,7 +10,7 @@ import { PlatformService } from '../server/platform.js';
 const origin = 'http://127.0.0.1:4174';
 const apiOrigin = 'https://api.example.test';
 
-async function testPlatform({ mailer = new MemoryMailer() } = {}) {
+async function testPlatform({ mailer = new MemoryMailer(), configOverrides = {} } = {}) {
   const memory = newDb({ autoCreateForeignKeyIndices: true });
   memory.public.registerFunction({
     name: 'char_length',
@@ -26,6 +26,8 @@ async function testPlatform({ mailer = new MemoryMailer() } = {}) {
   await pool.query(await readFile(new URL('../server/migrations/005_make-shared-journeys-more-humane.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../server/migrations/006_expand-shared-moment-vocabulary.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../server/migrations/007_person_specific_moment_visibility.sql', import.meta.url), 'utf8'));
+  await pool.query(await readFile(new URL('../server/migrations/008_stripe_web_billing.sql', import.meta.url), 'utf8'));
+  await pool.query(await readFile(new URL('../server/migrations/009_reserve-group-places.sql', import.meta.url), 'utf8'));
   const config = loadConfig({
     NODE_ENV: 'test',
     PUBLIC_ORIGIN: origin,
@@ -33,6 +35,7 @@ async function testPlatform({ mailer = new MemoryMailer() } = {}) {
     ACCOUNT_ORIGIN: apiOrigin,
     SESSION_SECRET: 's'.repeat(32),
     AUDIT_HMAC_KEY: 'a'.repeat(32),
+    ...configOverrides,
   });
   const platform = new PlatformService({ pool, config, mailer, now: () => new Date('2026-08-02T12:00:00.000Z') });
   const app = await buildApp({ platform, config });
@@ -452,6 +455,13 @@ test('accounts share an authorized journey with conflicts, events, recovery, and
   const emailLogin = await app.inject({ method: 'POST', url: '/api/v1/auth/login', headers: { origin }, payload: { identifier: 'alice@example.test', password: 'a new correct horse battery staple' } });
   assert.equal(emailLogin.statusCode, 200, emailLogin.body);
   const newAlice = { cookie: cookieFrom(login), csrf: login.json().data.csrfToken };
+  const blockedOwnerDeletion = await app.inject({ method: 'DELETE', url: '/api/v1/account', headers: authHeaders(newAlice), payload: { password: 'a new correct horse battery staple', confirmation: 'DELETE' } });
+  assert.equal(blockedOwnerDeletion.statusCode, 409, blockedOwnerDeletion.body);
+  assert.equal(blockedOwnerDeletion.json().error.code, 'ownership_transfer_required');
+  const transferred = await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journey.id}/ownership`, headers: authHeaders(newAlice), payload: { userId: bob.user.id },
+  });
+  assert.equal(transferred.statusCode, 204, transferred.body);
   const deleted = await app.inject({ method: 'DELETE', url: '/api/v1/account', headers: authHeaders(newAlice), payload: { password: 'a new correct horse battery staple', confirmation: 'DELETE' } });
   assert.equal(deleted.statusCode, 204, deleted.body);
 
@@ -467,6 +477,57 @@ test('accounts share an authorized journey with conflicts, events, recovery, and
   assert.ok(bobAfterDeletion.json().data.events.some((event) => event.action === 'ownership_transferred'));
   assert.ok(bobAfterDeletion.json().data.events.some((event) => event.action === 'member_deleted_account'));
   assert.equal(JSON.stringify(bobAfterDeletion.json().data.events).includes('Alice'), false);
+});
+
+test('synthetic group mode reserves independent places without advertising its ceiling', async (t) => {
+  const { app, mailer, pool } = await testPlatform({ configOverrides: { JOURNEY_CAPACITY_MODE: 'test-groups' } });
+  t.after(async () => { await app.close(); await pool.end(); });
+  const owner = await register(app, mailer, { email: 'group-owner@example.test', username: 'group-owner' });
+  const second = await register(app, mailer, { email: 'group-second@example.test', username: 'group-second' });
+  const third = await register(app, mailer, { email: 'group-third@example.test', username: 'group-third' });
+  const created = await app.inject({
+    method: 'POST', url: '/api/v1/journeys', headers: authHeaders(owner),
+    payload: { name: 'A wider circle', location: '', startDateStatus: 'unknown', endDateStatus: 'forever', budgetCents: 0 },
+  });
+  const journeyId = created.json().data.journey.id;
+
+  for (const email of [second.user.email, third.user.email]) {
+    const invitation = await app.inject({ method: 'POST', url: `/api/v1/journeys/${journeyId}/invitations`, headers: authHeaders(owner), payload: { email } });
+    assert.equal(invitation.statusCode, 202, invitation.body);
+  }
+  let snapshot = (await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: { cookie: owner.cookie } })).json().data;
+  assert.equal(snapshot.invitations.filter((invitation) => invitation.status === 'pending').length, 2);
+  assert.deepEqual(snapshot.capacity, { peopleHere: 1, openInvitations: 2, canInvite: true, mode: 'test-groups' });
+  assert.equal(Object.hasOwn(snapshot.capacity, 'limit'), false);
+
+  for (const client of [second, third]) {
+    const token = mailer.messages.findLast((message) => message.type === 'invitation' && message.to === client.user.email).token;
+    const accepted = await app.inject({ method: 'POST', url: `/api/v1/invitations/${token}/accept`, headers: authHeaders(client) });
+    assert.equal(accepted.statusCode, 200, accepted.body);
+  }
+  snapshot = (await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: { cookie: owner.cookie } })).json().data;
+  assert.equal(snapshot.members.length, 3);
+  assert.equal(snapshot.capacity.peopleHere, 3);
+  assert.equal(snapshot.capacity.openInvitations, 0);
+
+  const existingMember = await app.inject({ method: 'POST', url: `/api/v1/journeys/${journeyId}/invitations`, headers: authHeaders(owner), payload: { email: second.user.email } });
+  assert.equal(existingMember.statusCode, 409);
+  assert.equal(existingMember.json().error.code, 'already_member');
+
+  for (let index = 0; index < 96; index += 1) {
+    const response = await app.inject({
+      method: 'POST', url: `/api/v1/journeys/${journeyId}/invitations`, headers: authHeaders(owner),
+      payload: { email: `waiting-${String(index).padStart(2, '0')}@example.test` },
+    });
+    assert.equal(response.statusCode, 202, `${index}: ${response.body}`);
+  }
+  const full = await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journeyId}/invitations`, headers: authHeaders(owner), payload: { email: 'one-too-many@example.test' },
+  });
+  assert.equal(full.statusCode, 409, full.body);
+  assert.equal(full.json().error.code, 'journey_full');
+  snapshot = (await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: { cookie: owner.cookie } })).json().data;
+  assert.deepEqual(snapshot.capacity, { peopleHere: 3, openInvitations: 96, canInvite: false, mode: 'test-groups' });
 });
 
 test('public service routes expose health and only the intended static app', async (t) => {

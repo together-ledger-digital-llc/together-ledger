@@ -6,16 +6,19 @@ import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
+import rawBody from 'fastify-raw-body';
+import { DisabledBillingService } from './billing.js';
 import { PlatformError } from './platform.js';
 
 const rootDirectory = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SESSION_COOKIE = 'tl_session';
 
-export async function buildApp({ platform, config, logger = false }) {
+export async function buildApp({ platform, config, billing = new DisabledBillingService(), logger = false }) {
   const app = Fastify({ logger, trustProxy: config.trustProxy, bodyLimit: 64 * 1024 });
   await app.register(cookie);
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(rateLimit, { max: 300, timeWindow: '1 minute' });
+  await app.register(rawBody, { field: 'rawBody', global: false, encoding: false, runFirst: true });
   app.addHook('onRequest', async (request, reply) => {
     const origin = request.headers.origin;
     if (origin && allowedOrigins.has(origin)) {
@@ -117,6 +120,16 @@ export async function buildApp({ platform, config, logger = false }) {
 
   app.get('/api/v1/session', { preHandler: authenticate }, async (request) => ({ data: { user: request.auth.user, csrfToken: request.auth.csrfToken } }));
 
+  app.get('/api/v1/journeys/:journeyId/billing', { preHandler: authenticate }, async (request) => ({ data: await billing.status(request.auth.userId, request.params.journeyId) }));
+  app.post('/api/v1/journeys/:journeyId/billing/checkout-sessions', { preHandler: protectMutation, config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } }, async (request, reply) => {
+    const session = await billing.createCheckoutSession(request.auth.userId, request.params.journeyId, request.body || {});
+    return reply.code(201).send({ data: session });
+  });
+  app.post('/api/v1/billing/webhooks/stripe', { config: { rawBody: true, rateLimit: { max: 600, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const result = await billing.handleWebhook(request.rawBody, request.headers['stripe-signature']);
+    return reply.code(200).send(result);
+  });
+
   app.post('/api/v1/recovery/request', { config: { rateLimit: { max: 5, timeWindow: '30 minutes' } } }, async (request, reply) => {
     await platform.requestRecovery(request.body?.email, accountOriginFor(request));
     return reply.code(202).send({ data: { accepted: true } });
@@ -131,6 +144,7 @@ export async function buildApp({ platform, config, logger = false }) {
 
   app.delete('/api/v1/account', { preHandler: protectMutation }, async (request, reply) => {
     if (request.body?.confirmation !== 'DELETE') throw new PlatformError(400, 'confirmation_required', 'Type DELETE to confirm account deletion.');
+    await billing.assertAccountDeletable(request.auth.userId);
     await platform.deleteAccount(request.auth.userId, request.body?.password);
     reply.clearCookie(SESSION_COOKIE, cookieOptions());
     return reply.code(204).send();
@@ -152,6 +166,10 @@ export async function buildApp({ platform, config, logger = false }) {
   app.post('/api/v1/invitations/:token/accept', { preHandler: protectMutation }, async (request) => ({ data: { journeyId: await platform.acceptInvitation(request.auth.userId, request.params.token) } }));
   app.delete('/api/v1/journeys/:journeyId/members/:userId', { preHandler: protectMutation }, async (request, reply) => {
     await platform.removeMember(request.auth.userId, request.params.journeyId, request.params.userId);
+    return reply.code(204).send();
+  });
+  app.post('/api/v1/journeys/:journeyId/ownership', { preHandler: protectMutation }, async (request, reply) => {
+    await platform.transferOwnership(request.auth.userId, request.params.journeyId, request.body?.userId);
     return reply.code(204).send();
   });
 

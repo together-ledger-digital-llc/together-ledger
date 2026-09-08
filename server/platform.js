@@ -30,6 +30,8 @@ const MONEY_CURRENCIES = new Set(['', 'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 
 const START_DATE_STATUSES = new Set(['exact', 'unknown']);
 const END_DATE_STATUSES = new Set(['date', 'unsure', 'forever']);
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const INCLUDED_JOURNEY_CAPACITY = 2;
+const MAX_JOURNEY_CAPACITY = 99;
 
 function cleanText(value, label, max) {
   const text = String(value || '').trim();
@@ -442,6 +444,41 @@ export class PlatformService {
     if (this.config.NODE_ENV !== 'test') await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [journeyId]);
   }
 
+  async capacityFor(client, journeyId) {
+    const [members, invitations] = await Promise.all([
+      client.query('SELECT count(*)::int AS count FROM journey_members WHERE journey_id=$1', [journeyId]),
+      client.query(
+        `SELECT count(*)::int AS count FROM invitations
+         WHERE journey_id=$1 AND reservation_active=true AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at>$2`,
+        [journeyId, this.now()],
+      ),
+    ]);
+    const peopleHere = Number(members.rows[0].count);
+    const openInvitations = Number(invitations.rows[0].count);
+    let availableCapacity = INCLUDED_JOURNEY_CAPACITY;
+    let entitlementState = null;
+    if (this.config.journeyCapacityMode === 'test-groups') availableCapacity = MAX_JOURNEY_CAPACITY;
+    if (this.config.journeyCapacityMode === 'billing') {
+      const entitlement = await client.query(
+        `SELECT state,quantity FROM billing_entitlements
+         WHERE journey_id=$1 AND capability='additional-journey-capacity' AND environment=$2
+           AND state IN ('active','grace') AND (expires_at IS NULL OR expires_at>$3)
+         ORDER BY updated_at DESC LIMIT 1`,
+        [journeyId, this.config.stripeEnvironment, this.now()],
+      );
+      entitlementState = entitlement.rows[0]?.state || null;
+      availableCapacity = Math.min(MAX_JOURNEY_CAPACITY, INCLUDED_JOURNEY_CAPACITY + Number(entitlement.rows[0]?.quantity || 0));
+    }
+    const occupiedCapacity = peopleHere + openInvitations;
+    const paymentAllowsInvitation = this.config.journeyCapacityMode !== 'billing' || entitlementState !== 'grace';
+    return {
+      peopleHere,
+      openInvitations,
+      canInvite: paymentAllowsInvitation && occupiedCapacity < availableCapacity,
+      mode: this.config.journeyCapacityMode,
+    };
+  }
+
   async listJourneys(userId) {
     const result = await this.pool.query(
       `SELECT j.*,jm.role FROM journeys j JOIN journey_members jm ON jm.journey_id=j.id WHERE jm.user_id=$1 ORDER BY j.updated_at DESC`,
@@ -498,9 +535,25 @@ export class PlatformService {
     await withTransaction(this.pool, async (client) => {
       await this.requireMember(client, userId, journeyId, { owner: true });
       await this.lockJourney(client, journeyId);
-      const capacity = await client.query('SELECT count(*)::int AS count FROM journey_members WHERE journey_id=$1', [journeyId]);
-      if (Number(capacity.rows[0].count) >= 2) throw new PlatformError(409, 'journey_full', 'This journey already has two members.');
-      await client.query('UPDATE invitations SET revoked_at=$1 WHERE journey_id=$2 AND accepted_at IS NULL AND revoked_at IS NULL', [this.now(), journeyId]);
+      await client.query(
+        `UPDATE invitations SET reservation_active=false
+         WHERE journey_id=$1 AND reservation_active=true
+           AND (accepted_at IS NOT NULL OR revoked_at IS NOT NULL OR expires_at<=$2)`,
+        [journeyId, this.now()],
+      );
+      const existingMember = await client.query(
+        `SELECT 1 FROM journey_members jm JOIN users u ON u.id=jm.user_id
+         WHERE jm.journey_id=$1 AND u.email_normalized=$2`,
+        [journeyId, emailNormalized],
+      );
+      if (existingMember.rowCount) throw new PlatformError(409, 'already_member', 'That person is already in this journey.');
+      const existingInvitation = await client.query(
+        'SELECT 1 FROM invitations WHERE journey_id=$1 AND email_normalized=$2 AND reservation_active=true',
+        [journeyId, emailNormalized],
+      );
+      if (existingInvitation.rowCount) throw new PlatformError(409, 'invitation_exists', 'An invitation for that person is already waiting.');
+      const capacity = await this.capacityFor(client, journeyId);
+      if (!capacity.canInvite) throw new PlatformError(409, 'journey_full', 'There is no open place in this journey right now.');
       await client.query(
         `INSERT INTO invitations (id,journey_id,invited_by_user_id,email_normalized,token_hash,expires_at) VALUES ($1,$2,$3,$4,$5,$6)`,
         [randomUUID(), journeyId, userId, emailNormalized, sha256(token), new Date(this.now().getTime() + this.config.TOKEN_MINUTES * 60 * 1000)],
@@ -508,7 +561,7 @@ export class PlatformService {
     });
     const delivered = await this.deliver('invitation', () => this.mailer.sendInvitation({ to: emailNormalized, journeyId, token, accountOrigin }));
     if (!delivered) {
-      await this.pool.query('UPDATE invitations SET revoked_at=$1 WHERE token_hash=$2 AND accepted_at IS NULL', [this.now(), sha256(token)]);
+      await this.pool.query('UPDATE invitations SET revoked_at=$1,reservation_active=false WHERE token_hash=$2 AND accepted_at IS NULL', [this.now(), sha256(token)]);
       throw new PlatformError(503, 'delivery_unavailable', 'The invitation could not be delivered. Try again later.');
     }
   }
@@ -518,20 +571,20 @@ export class PlatformService {
       const user = await client.query('SELECT * FROM users WHERE id=$1 AND deleted_at IS NULL', [userId]);
       if (!user.rowCount || !user.rows[0].email_verified_at) throw new PlatformError(403, 'email_unverified', 'Verify your email before accepting an invitation.');
       const candidate = await client.query(
-        `SELECT journey_id FROM invitations WHERE token_hash=$1 AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at>$2`,
+        `SELECT journey_id FROM invitations WHERE token_hash=$1 AND reservation_active=true AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at>$2`,
         [sha256(rawToken), this.now()],
       );
       if (!candidate.rowCount) throw new PlatformError(400, 'invalid_invitation', 'This invitation is invalid, expired, or belongs to another email address.');
       await this.lockJourney(client, candidate.rows[0].journey_id);
       const invitation = await client.query(
-        `SELECT * FROM invitations WHERE token_hash=$1 AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at>$2 FOR UPDATE`,
+        `SELECT * FROM invitations WHERE token_hash=$1 AND reservation_active=true AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at>$2 FOR UPDATE`,
         [sha256(rawToken), this.now()],
       );
       if (!invitation.rowCount || invitation.rows[0].email_normalized !== user.rows[0].email_normalized) throw new PlatformError(400, 'invalid_invitation', 'This invitation is invalid, expired, or belongs to another email address.');
       const members = await client.query('SELECT count(*)::int AS count FROM journey_members WHERE journey_id=$1', [invitation.rows[0].journey_id]);
-      if (Number(members.rows[0].count) >= 2) throw new PlatformError(409, 'journey_full', 'This journey already has two members.');
+      if (Number(members.rows[0].count) >= MAX_JOURNEY_CAPACITY) throw new PlatformError(409, 'journey_full', 'There is no open place in this journey right now.');
       await client.query(`INSERT INTO journey_members (journey_id,user_id,role) VALUES ($1,$2,'member') ON CONFLICT DO NOTHING`, [invitation.rows[0].journey_id, userId]);
-      await client.query('UPDATE invitations SET accepted_at=$1 WHERE id=$2', [this.now(), invitation.rows[0].id]);
+      await client.query('UPDATE invitations SET accepted_at=$1,reservation_active=false WHERE id=$2', [this.now(), invitation.rows[0].id]);
       await this.appendEvent(client, { journeyId: invitation.rows[0].journey_id, actorUserId: userId, action: 'member_joined', entityType: 'membership', entityId: userId, summary: 'Accepted journey invitation', after: { userId } });
       return invitation.rows[0].journey_id;
     });
@@ -549,6 +602,41 @@ export class PlatformService {
       await client.query("DELETE FROM journey_moments WHERE journey_id=$1 AND created_by_user_id=$2 AND visibility<>'shared-now'", [journeyId, memberUserId]);
       await this.appendEvent(client, { journeyId, actorUserId: userId, action: 'member_removed', entityType: 'membership', entityId: memberUserId, summary: `Removed journey member: ${member.rows[0].display_name}`, before: { userId: memberUserId, role: member.rows[0].role }, after: null });
       await client.query('DELETE FROM journey_members WHERE journey_id=$1 AND user_id=$2', [journeyId, memberUserId]);
+    });
+  }
+
+  async transferOwnership(userId, journeyId, memberUserId) {
+    if (userId === memberUserId) throw new PlatformError(400, 'invalid_member', 'Choose another person in this journey.');
+    return withTransaction(this.pool, async (client) => {
+      await this.requireMember(client, userId, journeyId, { owner: true });
+      await this.lockJourney(client, journeyId);
+      const member = await client.query(
+        `SELECT jm.*,u.display_name FROM journey_members jm JOIN users u ON u.id=jm.user_id
+         WHERE jm.journey_id=$1 AND jm.user_id=$2 FOR UPDATE`,
+        [journeyId, memberUserId],
+      );
+      if (!member.rowCount || member.rows[0].role !== 'member') throw notFound();
+      const subscription = await client.query(
+        `SELECT 1 FROM billing_subscriptions WHERE journey_id=$1
+         AND status NOT IN ('canceled','incomplete_expired') LIMIT 1`,
+        [journeyId],
+      );
+      if (subscription.rowCount) {
+        throw new PlatformError(409, 'billing_owner_transfer_required', 'End or transfer the journey billing relationship before changing its owner.');
+      }
+      await client.query("UPDATE journey_members SET role='member' WHERE journey_id=$1 AND user_id=$2", [journeyId, userId]);
+      await client.query("UPDATE journey_members SET role='owner' WHERE journey_id=$1 AND user_id=$2", [journeyId, memberUserId]);
+      await client.query('UPDATE journeys SET owner_user_id=$1,version=version+1,updated_at=$2 WHERE id=$3', [memberUserId, this.now(), journeyId]);
+      await this.appendEvent(client, {
+        journeyId,
+        actorUserId: userId,
+        action: 'ownership_transferred',
+        entityType: 'journey',
+        entityId: journeyId,
+        summary: `Transferred journey ownership to ${member.rows[0].display_name}`,
+        before: { ownerUserId: userId },
+        after: { ownerUserId: memberUserId },
+      });
     });
   }
 
@@ -737,7 +825,7 @@ export class PlatformService {
     try {
       if (this.config.NODE_ENV !== 'test') await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
       const journey = await this.requireMember(client, userId, journeyId);
-      const [members, invitations, expenses, moments, concerns, milestones, events] = await Promise.all([
+      const [members, invitations, expenses, moments, concerns, milestones, events, capacity] = await Promise.all([
         client.query(`SELECT u.id,u.display_name,jm.role,jm.joined_at FROM journey_members jm JOIN users u ON u.id=jm.user_id WHERE jm.journey_id=$1 ORDER BY jm.joined_at,jm.user_id`, [journeyId]),
         client.query(`SELECT i.*,u.display_name AS invited_by_display_name FROM invitations i JOIN users u ON u.id=i.invited_by_user_id WHERE i.journey_id=$1 ORDER BY i.created_at,i.id`, [journeyId]),
         client.query('SELECT * FROM expenses WHERE journey_id=$1 ORDER BY occurred_on,id', [journeyId]),
@@ -750,6 +838,7 @@ export class PlatformService {
         client.query('SELECT * FROM concerns WHERE journey_id=$1 ORDER BY updated_at DESC', [journeyId]),
         client.query('SELECT key,completed,updated_at FROM journey_milestones WHERE journey_id=$1', [journeyId]),
         client.query('SELECT * FROM journey_events WHERE journey_id=$1 AND sequence>$2 ORDER BY sequence', [journeyId, Number(afterSequence) || 0]),
+        this.capacityFor(client, journeyId),
       ]);
       const publicEvents = events.rows.map(publicEvent);
       let previousHash = '0'.repeat(64);
@@ -769,6 +858,7 @@ export class PlatformService {
         milestones: milestones.rows.map((row) => ({ key: row.key, completed: row.completed, updatedAt: row.updated_at })),
         events: publicEvents,
         eventChainValid: Number(afterSequence) > 0 ? null : eventChainValid,
+        capacity,
       };
       if (this.config.NODE_ENV !== 'test') await client.query('COMMIT');
       return snapshot;
@@ -786,13 +876,19 @@ export class PlatformService {
     await withTransaction(this.pool, async (client) => {
       const memberships = await client.query('SELECT jm.*,j.owner_user_id FROM journey_members jm JOIN journeys j ON j.id=jm.journey_id WHERE jm.user_id=$1', [userId]);
       for (const membership of memberships.rows) {
+        if (membership.owner_user_id !== userId) continue;
+        const others = await client.query('SELECT 1 FROM journey_members WHERE journey_id=$1 AND user_id<>$2 LIMIT 1', [membership.journey_id, userId]);
+        if (others.rowCount) {
+          throw new PlatformError(409, 'ownership_transfer_required', 'Transfer each shared journey to another person before deleting this account.');
+        }
+      }
+      for (const membership of memberships.rows) {
         await this.lockJourney(client, membership.journey_id);
         const others = await client.query('SELECT * FROM journey_members WHERE journey_id=$1 AND user_id<>$2 ORDER BY joined_at LIMIT 1', [membership.journey_id, userId]);
         if (!others.rowCount) {
           if (this.config.NODE_ENV !== 'test') await client.query(`SET LOCAL together.allow_event_purge='on'`);
           await client.query('DELETE FROM journeys WHERE id=$1', [membership.journey_id]);
         } else {
-          const successor = others.rows[0].user_id;
           await client.query('DELETE FROM private_moment_events WHERE journey_id=$1 AND owner_user_id=$2', [membership.journey_id, userId]);
           await client.query("DELETE FROM journey_moments WHERE journey_id=$1 AND created_by_user_id=$2 AND visibility<>'shared-now'", [membership.journey_id, userId]);
           const attributedExpenses = await client.query('SELECT * FROM expenses WHERE journey_id=$1 AND paid_by_user_id=$2 FOR UPDATE', [membership.journey_id, userId]);
@@ -803,11 +899,6 @@ export class PlatformService {
               [this.now(), row.id],
             );
             await this.appendEvent(client, { journeyId: membership.journey_id, actorUserId: userId, action: 'expense_payer_pseudonymized', entityType: 'expense', entityId: row.id, summary: 'Removed deleted account from expense payer attribution', before: auditExpense(before), after: auditExpense(publicExpense(updated.rows[0])) });
-          }
-          if (membership.owner_user_id === userId) {
-            await client.query(`UPDATE journey_members SET role='owner' WHERE journey_id=$1 AND user_id=$2`, [membership.journey_id, successor]);
-            await client.query('UPDATE journeys SET owner_user_id=$1,version=version+1,updated_at=$2 WHERE id=$3', [successor, this.now(), membership.journey_id]);
-            await this.appendEvent(client, { journeyId: membership.journey_id, actorUserId: userId, action: 'ownership_transferred', entityType: 'journey', entityId: membership.journey_id, summary: 'Transferred journey ownership during account deletion', before: { ownerUserId: userId }, after: { ownerUserId: successor } });
           }
           await this.appendEvent(client, { journeyId: membership.journey_id, actorUserId: userId, action: 'member_deleted_account', entityType: 'membership', entityId: userId, summary: 'A journey member deleted their account', before: { userId }, after: null });
           await client.query('DELETE FROM journey_members WHERE journey_id=$1 AND user_id=$2', [membership.journey_id, userId]);

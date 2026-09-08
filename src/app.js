@@ -24,6 +24,7 @@ import { ApiError, TogetherApi } from './api.js';
 let state = loadState();
 const api = new TogetherApi();
 let accountUser = null;
+let billingState = null;
 let cloudJourneyIds = new Set();
 let filter = 'All';
 let selectedDay = null;
@@ -67,7 +68,7 @@ function snapshotToState(snapshots) {
     const createdByDisplayName = membersById[createdByUserId] || (creationEvent ? 'Former journeyer' : fallbackCreator?.displayName || 'Journey member');
     const milestones = { reviewedPicture: false, chosePrompt: false, agreedNextAction: false };
     snapshot.milestones.forEach((item) => { milestones[item.key] = item.completed; });
-    trips.push({ ...snapshot.journey, members: snapshot.members.map((member) => member.displayName), memberRecords: snapshot.members, invitationRecords: snapshot.invitations || [], createdByUserId, createdByDisplayName, createdAt: creationEvent?.createdAt || snapshot.journey.createdAt, milestones, archivedAt: '' });
+    trips.push({ ...snapshot.journey, members: snapshot.members.map((member) => member.displayName), memberRecords: snapshot.members, invitationRecords: snapshot.invitations || [], capacity: snapshot.capacity, createdByUserId, createdByDisplayName, createdAt: creationEvent?.createdAt || snapshot.journey.createdAt, milestones, archivedAt: '' });
     entries.push(...snapshot.expenses.map((expense) => ({ ...expense, tripId: expense.journeyId, paidBy: expense.payerLabel })));
     moments.push(...snapshot.moments.map((moment) => ({ ...moment, tripId: moment.journeyId })));
     concerns.push(...snapshot.concerns.map((concern) => ({ ...concern, tripId: concern.journeyId, updatedBy: 'Journey member', updatedAt: new Date(concern.updatedAt).toISOString() })));
@@ -109,6 +110,57 @@ async function refreshCloudState({ announce = false } = {}) {
   if (announce) showToast('Private journeys refreshed.');
 }
 
+function renderBillingState() {
+  const panel = $('#billing-panel');
+  if (!panel) return;
+  const visible = Boolean(accountUser && billingState?.enabled);
+  panel.hidden = !visible;
+  if (!visible) return;
+
+  const testMode = billingState.environment === 'test';
+  $('#billing-environment').hidden = !testMode;
+  $('#billing-environment').textContent = testMode ? 'Test mode — checkout cannot create a real charge.' : '';
+  const entitlement = billingState.entitlement;
+  const periodEnd = billingState.subscription?.currentPeriodEnd || entitlement?.expiresAt;
+  const until = periodEnd ? ` through ${dateTimeLabel(periodEnd)}` : '';
+  const paidCapacity = billingState.subscription?.paidCapacity || entitlement?.quantity || 0;
+  $('#billing-status').textContent = !entitlement
+    ? `The first two people in ${billingState.journey.name} are included. Add another person for $1 USD each month.`
+    : entitlement.state === 'active'
+      ? `${paidCapacity} additional ${paidCapacity === 1 ? 'person is' : 'people are'} covered for this journey${until}.`
+      : entitlement.state === 'grace'
+        ? `This journey's paid capacity needs payment attention${until}. No person or shared history is removed automatically.`
+        : entitlement.state === 'pending'
+          ? 'This journey is waiting for payment confirmation.'
+          : 'This journey does not currently have paid additional-person capacity.';
+
+  const offers = $('#billing-offers');
+  offers.replaceChildren(...billingState.offers.map((offer) => {
+    const button = document.createElement('button');
+    button.className = 'button primary';
+    button.type = 'button';
+    button.dataset.billingOffer = offer.id;
+    button.textContent = `Add another person · $${(offer.unitAmount / 100).toFixed(2)} ${offer.currency} / month`;
+    return button;
+  }));
+}
+
+async function refreshBillingState() {
+  const journey = activeTrip(state);
+  if (!accountUser || !isCloudJourney(journey) || journey.role !== 'owner') {
+    billingState = null;
+    renderBillingState();
+    return;
+  }
+  try {
+    billingState = await api.request(`/journeys/${journey.id}/billing`);
+  } catch (error) {
+    if (![403, 404, 503].includes(error.status)) throw error;
+    billingState = null;
+  }
+  renderBillingState();
+}
+
 function renderAccountState() {
   const signedIn = Boolean(accountUser);
   const accountsAvailable = api.accountsAvailable;
@@ -123,17 +175,19 @@ function renderAccountState() {
   $('#account-email').textContent = signedIn ? accountUser.email : '';
   $('#verification-status').textContent = signedIn ? (accountUser.emailVerified ? 'Email verified' : 'Email verification is still required before accepting an invitation.') : '';
   $('#resend-verification-button').hidden = !signedIn || accountUser.emailVerified;
-  $('#account-sync-copy').textContent = isCloudJourney() ? 'Private journey sync is active. Moment visibility is enforced by the account service; shared threads and practical context remain visible to both journeyers.' : 'Your account is ready. Create a private journey when you are ready to invite another journeyer.';
+  $('#account-sync-copy').textContent = isCloudJourney() ? 'Private journey sync is active. Moment visibility is enforced by the account service; shared threads and practical context remain visible to people in this journey.' : 'Your account is ready. Create a private journey when you are ready to invite another journeyer.';
   $('#settings-storage-copy').textContent = isCloudJourney() ? 'This signed-in journey is loaded from the private service. Sign out to return to your browser-only journey.' : 'Browser-only journeys stay on this device unless you download a backup.';
   $('#sync-badge').textContent = isCloudJourney() ? 'Private sync' : signedIn ? 'Account ready' : accountsAvailable ? 'Browser only' : 'Accounts soon';
   $('#sync-badge').classList.toggle('cloud', signedIn);
+  renderBillingState();
   $('#actor-control').hidden = isCloudJourney();
   const sharing = isCloudJourney();
   const needsPrivateJourney = signedIn && !sharing;
-  $('#invite-form').hidden = !sharing || activeTrip(state).members.length >= 2 || activeTrip(state).role !== 'owner';
+  const canInvite = activeTrip(state)?.capacity?.canInvite ?? activeTrip(state)?.members.length < 2;
+  $('#invite-form').hidden = !sharing || !canInvite || activeTrip(state).role !== 'owner';
   $('#sharing-create-journey-button').hidden = !needsPrivateJourney;
   $('#sharing-copy').textContent = sharing
-    ? `${activeTrip(state).members.length} of 2 journey seats are active. Each journeyer signs in separately.`
+    ? `${activeTrip(state).members.length} ${activeTrip(state).members.length === 1 ? 'person is' : 'people are'} here. ${canInvite ? 'There is room to add another person.' : 'There is no open place right now.'} Each person signs in separately.`
     : needsPrivateJourney
       ? 'Your account is ready. Create a private journey to invite another journeyer.'
       : 'Sign in and create a private journey to invite another journeyer.';
@@ -141,10 +195,17 @@ function renderAccountState() {
   if (sharing) {
     const trip = activeTrip(state);
     const members = trip.memberRecords || [];
-    const createdByCurrentUser = trip.createdByUserId === accountUser.id;
-    const creatorRow = `<div class="journey-record-row"><div><strong>Created by ${escapeHtml(trip.createdByDisplayName)}</strong><small>Created <time datetime="${escapeHtml(trip.createdAt)}">${escapeHtml(dateTimeLabel(trip.createdAt))}</time></small></div><span class="journey-role">Creator${createdByCurrentUser ? ' · You' : ''}</span></div>`;
-    const joinedRows = members.filter((member) => member.id !== trip.createdByUserId).map((member) => `<div class="journey-record-row"><div><strong>${escapeHtml(member.displayName)} joined the journey</strong><small>Joined <time datetime="${escapeHtml(member.joinedAt)}">${escapeHtml(dateTimeLabel(member.joinedAt))}</time></small></div><span class="journey-role">${member.role === 'owner' ? 'Owner' : 'Journeyer'}${member.id === accountUser.id ? ' · You' : ''}</span></div>`).join('');
-    $('#member-list').innerHTML = creatorRow + joinedRows;
+    const memberActions = (member) => trip.role === 'owner' && member.id !== accountUser.id
+      ? `<div class="journey-member-actions"><button class="button quiet" type="button" data-transfer-owner="${escapeHtml(member.id)}" data-member-name="${escapeHtml(member.displayName)}">Make owner</button><button class="button danger" type="button" data-remove-member="${escapeHtml(member.id)}" data-member-name="${escapeHtml(member.displayName)}">Remove</button></div>`
+      : '';
+    $('#member-list').innerHTML = members.map((member) => {
+      const createdJourney = member.id === trip.createdByUserId;
+      const timestamp = createdJourney ? trip.createdAt : member.joinedAt;
+      const description = createdJourney ? `Created by ${escapeHtml(member.displayName)}` : `${escapeHtml(member.displayName)} joined the journey`;
+      const timing = createdJourney ? 'Created' : 'Joined';
+      const role = member.role === 'owner' ? 'Owner' : createdJourney ? 'Creator' : 'Journeyer';
+      return `<div class="journey-record-row"><div><strong>${description}</strong><small>${timing} <time datetime="${escapeHtml(timestamp)}">${escapeHtml(dateTimeLabel(timestamp))}</time></small>${memberActions(member)}</div><span class="journey-role">${role}${member.id === accountUser.id ? ' · You' : ''}</span></div>`;
+    }).join('');
     const invitations = trip.invitationRecords || [];
     $('#invitation-history').hidden = !invitations.length;
     $('#invitation-list').innerHTML = invitations.map((invitation) => `<div class="journey-record-row"><div><strong>Invitation sent to ${escapeHtml(invitation.email)}</strong><small>Sent by ${escapeHtml(invitation.invitedByDisplayName)} · <time datetime="${escapeHtml(invitation.sentAt)}">${escapeHtml(dateTimeLabel(invitation.sentAt))}</time></small></div><span class="invitation-status ${escapeHtml(invitation.status)}">${escapeHtml(invitationStatusLabel(invitation.status))}</span></div>`).join('');
@@ -681,6 +742,7 @@ $('#journey-select').addEventListener('change', (event) => {
   selectedCategory = null;
   guidanceIndex = 0;
   persistAndRender('Journey switched.');
+  refreshBillingState().catch((error) => showToast(accountMessage(error)));
 });
 
 $('#new-journey-button').addEventListener('click', () => openJourney());
@@ -815,6 +877,7 @@ $('#sharing-create-journey-button').addEventListener('click', () => {
 function openAccountDialog() {
   renderAccountState();
   $('#account-dialog').showModal();
+  if (accountUser) refreshBillingState().catch((error) => showToast(accountMessage(error)));
 }
 
 $('#account-button').addEventListener('click', openAccountDialog);
@@ -830,6 +893,7 @@ $('#login-form').addEventListener('submit', async (event) => {
   try {
     accountUser = await api.login(Object.fromEntries(new FormData(event.currentTarget)));
     await refreshCloudState({ announce: true });
+    refreshBillingState().catch((error) => showToast(accountMessage(error)));
     showLedgerSurface({ persist: true });
     renderAccountState();
     $('#account-dialog').close();
@@ -847,6 +911,7 @@ $('#register-form').addEventListener('submit', async (event) => {
   try {
     accountUser = await api.register(Object.fromEntries(new FormData(event.currentTarget)));
     await refreshCloudState();
+    refreshBillingState().catch((error) => showToast(accountMessage(error)));
     showLedgerSurface({ persist: true });
     renderAccountState();
     showToast(api.lastVerificationSent ? 'Account created. Check your email to verify it.' : 'Account created, but email is delayed. Use resend verification shortly.');
@@ -885,6 +950,7 @@ $('#recovery-confirm-form').addEventListener('submit', async (event) => {
   try {
     await api.request('/recovery/confirm', { method: 'POST', body: { token: input.token, password: input.password } });
     accountUser = null;
+    billingState = null;
     cloudJourneyIds = new Set();
     state = loadState();
     $('#recovery-confirm-dialog').close();
@@ -898,6 +964,7 @@ $('#recovery-confirm-form').addEventListener('submit', async (event) => {
 $('#logout-button').addEventListener('click', async () => {
   try { await api.logout(); } catch (error) { showToast(accountMessage(error)); return; }
   accountUser = null;
+  billingState = null;
   cloudJourneyIds = new Set();
   state = loadState();
   $('#account-dialog').close();
@@ -908,7 +975,31 @@ $('#logout-button').addEventListener('click', async () => {
 });
 
 $('#refresh-sync-button').addEventListener('click', async () => {
-  try { await refreshCloudState({ announce: true }); } catch (error) { showToast(accountMessage(error)); }
+  try {
+    await refreshCloudState({ announce: true });
+    refreshBillingState().catch((error) => showToast(accountMessage(error)));
+  } catch (error) { showToast(accountMessage(error)); }
+});
+
+$('#billing-offers').addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-billing-offer]');
+  if (!button) return;
+  setButtonPending(button, true, 'Opening secure checkout…');
+  try {
+    const journey = activeTrip(state);
+    if (!isCloudJourney(journey) || journey.role !== 'owner') throw new Error('Only a hosted journey owner can add another person.');
+    const result = await api.mutate(`/journeys/${journey.id}/billing/checkout-sessions`, 'POST', {
+      offerId: button.dataset.billingOffer,
+      paidCapacity: 1,
+      requestId: crypto.randomUUID(),
+    });
+    const checkout = new URL(result.url);
+    if (checkout.protocol !== 'https:' || checkout.hostname !== 'checkout.stripe.com') throw new Error('Unexpected checkout destination.');
+    window.location.assign(checkout.href);
+  } catch (error) {
+    showToast(accountMessage(error));
+    setButtonPending(button, false);
+  }
 });
 
 $('#resend-verification-button').addEventListener('click', async () => {
@@ -927,6 +1018,7 @@ $('#delete-account-form').addEventListener('submit', async (event) => {
   try {
     await api.mutate('/account', 'DELETE', input);
     accountUser = null;
+    billingState = null;
     cloudJourneyIds = new Set();
     state = loadState();
     $('#account-dialog').close();
@@ -950,6 +1042,28 @@ $('#invite-form').addEventListener('submit', async (event) => {
     showToast(accountMessage(error));
   } finally {
     setButtonPending(button, false);
+  }
+});
+
+$('#member-list').addEventListener('click', async (event) => {
+  const transferButton = event.target.closest('[data-transfer-owner]');
+  const removeButton = event.target.closest('[data-remove-member]');
+  const button = transferButton || removeButton;
+  if (!button) return;
+  const memberName = button.dataset.memberName || 'this person';
+  try {
+    if (transferButton) {
+      if (!window.confirm(`Make ${memberName} the journey owner? You will remain here as a journeyer.`)) return;
+      await api.mutate(`/journeys/${activeTrip(state).id}/ownership`, 'POST', { userId: button.dataset.transferOwner });
+      showToast(`${memberName} is now the journey owner.`);
+    } else {
+      if (!window.confirm(`Remove ${memberName} from this journey? Their private moments will be removed, while already shared history remains.`)) return;
+      await api.mutate(`/journeys/${activeTrip(state).id}/members/${button.dataset.removeMember}`, 'DELETE', {});
+      showToast(`${memberName} was removed from this journey.`);
+    }
+    await refreshCloudState();
+  } catch (error) {
+    showToast(accountMessage(error));
   }
 });
 
@@ -1115,6 +1229,7 @@ async function initializeAccount() {
     }
     if (accountUser) {
       await refreshCloudState();
+      refreshBillingState().catch((error) => showToast(accountMessage(error)));
       showLedgerSurface({ persist: true });
       if (params.has('invite')) {
         await api.mutate(`/invitations/${encodeURIComponent(params.get('invite'))}/accept`, 'POST', {});
@@ -1124,10 +1239,17 @@ async function initializeAccount() {
       $('#account-dialog').showModal();
       showToast('Sign in with the invited email, then reopen the invitation link.');
     }
+    if (params.get('billing') === 'success') {
+      showToast(accountUser ? 'Payment received. Paid capacity will appear after Stripe confirms it.' : 'Payment received. Sign in to see the journey’s paid capacity.');
+    } else if (params.get('billing') === 'canceled') {
+      showToast('Checkout closed without changing this journey’s paid capacity.');
+    } else if (params.get('billing') === 'portal') {
+      showToast('Billing settings closed. Stripe updates may take a moment to appear.');
+    }
   } catch (error) {
     showToast(accountMessage(error));
   } finally {
-    if ([...params.keys()].some((key) => ['verify', 'recovery', 'invite'].includes(key))) {
+    if ([...params.keys()].some((key) => ['verify', 'recovery', 'invite', 'billing', 'session_id'].includes(key))) {
       window.history.replaceState({}, '', `${window.location.pathname}${window.location.hash}`);
     }
     renderAccountState();

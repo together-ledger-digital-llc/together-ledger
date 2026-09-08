@@ -84,7 +84,7 @@ function actionUrl(accountOrigin, action, token) {
 }
 
 function email0010Text(invitationUrl) {
-  return `Together Ledger\n\nYou have been invited to a shared journey.\n\nTogether Ledger is a private place for two people to hold what happened, return to what matters, and make room for repair.\n\nOpen your invitation: ${invitationUrl}\n\nSign in with your own account to accept. This short-lived link works once.\n\nDid not expect this? You can safely ignore this email.\n\nTogether Ledger`;
+  return `Together Ledger\n\nYou have been invited to a shared journey.\n\nTogether Ledger is a private place for people to hold what happened, return to what matters, and make room for repair.\n\nOpen your invitation: ${invitationUrl}\n\nSign in with your own account to accept. This short-lived link works once.\n\nDid not expect this? You can safely ignore this email.\n\nTogether Ledger`;
 }
 
 function email0010Invitation(invitationUrl) {
@@ -118,7 +118,7 @@ function email0010Invitation(invitationUrl) {
                 <p style="margin:0 0 12px;color:#816469;font-size:13px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;">A private shared journey</p>
                 <h1 style="margin:0 0 18px;color:#2c2531;font-size:30px;line-height:1.18;letter-spacing:-0.6px;">You have been invited.</h1>
                 <p style="margin:0 0 16px;color:#4b404a;font-size:17px;line-height:1.55;">Someone you trust has made room for you in a Together Ledger journey.</p>
-                <p style="margin:0 0 28px;color:#4b404a;font-size:17px;line-height:1.55;">It is a private place for two people to hold what happened, return to what matters, and make room for repair.</p>
+                <p style="margin:0 0 28px;color:#4b404a;font-size:17px;line-height:1.55;">It is a private place for people to hold what happened, return to what matters, and make room for repair.</p>
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 28px;">
                   <tr>
                     <td bgcolor="#5b355f" style="border-radius:9px;">

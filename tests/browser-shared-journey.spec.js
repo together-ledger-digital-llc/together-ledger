@@ -210,3 +210,44 @@ test('Journey settings keeps creation, joining, and invitation history visible',
   await expect(page.locator('#member-list')).toContainText('journey-member joined the journey');
   await expect(page.locator('.invitation-status')).toHaveText('Accepted');
 });
+
+test('Journey settings welcomes a group without exposing an internal ceiling', async ({ page }) => {
+  let ownershipRequest = null;
+  const owner = { id: 'group-owner', username: 'group-owner', displayName: 'group-owner', email: 'owner@example.test', emailVerified: true };
+  const members = [
+    { id: owner.id, displayName: owner.displayName, role: 'owner', joinedAt: '2026-09-07T14:00:00.000Z' },
+    { id: 'group-two', displayName: 'second-person', role: 'member', joinedAt: '2026-09-07T15:00:00.000Z' },
+    { id: 'group-three', displayName: 'third-person', role: 'member', joinedAt: '2026-09-07T16:00:00.000Z' },
+  ];
+  await page.route('https://api.together-ledger.com/api/v1/session', (route) => route.fulfill({
+    contentType: 'application/json', body: JSON.stringify({ data: { user: owner, csrfToken: 'csrf-test' } }),
+  }));
+  await page.route('https://api.together-ledger.com/api/v1/journeys', (route) => route.fulfill({
+    contentType: 'application/json', body: JSON.stringify({ data: { journeys: [{ id: 'group-journey' }] } }),
+  }));
+  await page.route('https://api.together-ledger.com/api/v1/journeys/group-journey/snapshot', (route) => route.fulfill({
+    contentType: 'application/json', body: JSON.stringify({ data: {
+      journey: { id: 'group-journey', name: 'A wider circle', location: '', startDate: '', startDateStatus: 'unknown', endDate: '', endDateStatus: 'forever', budgetCents: 0, version: 1, role: 'owner', createdAt: '2026-09-07T14:00:00.000Z', updatedAt: '2026-09-07T16:00:00.000Z' },
+      members, invitations: [], expenses: [], moments: [], concerns: [], milestones: [], events: [], eventChainValid: true,
+      capacity: { peopleHere: 3, openInvitations: 0, canInvite: true, mode: 'test-groups' },
+    } }),
+  }));
+  await page.route('https://api.together-ledger.com/api/v1/journeys/group-journey/ownership', async (route) => {
+    ownershipRequest = route.request().postDataJSON();
+    await route.fulfill({ status: 204, body: '' });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Journey settings' }).click();
+  await expect(page.locator('#sharing-copy')).toHaveText('3 people are here. There is room to add another person. Each person signs in separately.');
+  await expect(page.locator('#invite-form')).toBeVisible();
+  await expect(page.locator('#member-list')).toContainText('third-person joined the journey');
+  await expect(page.getByRole('button', { name: 'Make owner' })).toHaveCount(2);
+  await expect(page.getByRole('button', { name: 'Remove' })).toHaveCount(2);
+  await expect(page.locator('#sharing-settings')).not.toContainText(/99|seat|license/i);
+  const accessibilityScan = await new AxeBuilder({ page }).include('#sharing-settings').analyze();
+  expect(accessibilityScan.violations).toEqual([]);
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.locator('.journey-record-row').filter({ hasText: 'second-person' }).getByRole('button', { name: 'Make owner' }).click();
+  await expect.poll(() => ownershipRequest).toEqual({ userId: 'group-two' });
+});

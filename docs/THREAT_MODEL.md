@@ -10,6 +10,7 @@ Together Ledger must let separately authenticated people share only the journeys
 - Journey membership, invitations, budgets, expenses, concerns, milestones, and exports.
 - The ordered event history used to explain who changed what and when.
 - Encrypted database and backup material in AWS and GCP.
+- Stripe Customer mappings, subscription and invoice state, webhook signing material, and normalized entitlements.
 
 ## Trust boundaries
 
@@ -26,7 +27,7 @@ authoritative PostgreSQL writer
         └──────── GCP object copy
 ```
 
-Payment rails remain isolated from this service. PR#0003 does not accept payment credentials.
+Payment credentials remain isolated in Stripe-hosted Checkout. The service accepts signed Stripe event payloads and stores bounded billing state; it never accepts or stores raw card details. A future Customer Portal and Apple or Google purchases remain separate, gated surfaces.
 
 ## Required controls
 
@@ -36,12 +37,15 @@ Payment rails remain isolated from this service. PR#0003 does not accept payment
 4. Authentication and recovery endpoints are rate limited. Recovery requests return the same response whether an account exists or not.
 5. Verification, invitation, and recovery tokens are random, single-use, expiration-bound, and stored only as hashes. Their email links may use only the configured public or API origin that already passed request-origin validation; arbitrary host and forwarding headers never choose a link destination.
 6. Authorization is checked inside the same transaction as every read or mutation. A journey ID alone grants nothing.
-7. A journey has a hard maximum of two people. A shared login is prohibited.
+7. The production-safe default allows two people. Synthetic group mode is rejected in production, and every mode enforces the unadvertised internal ceiling by counting active members plus live invitation reservations under a per-journey database lock. A shared login is prohibited.
 8. Event sequence allocation is serialized per journey. The event HMAC includes the previous hash, canonical mutation data, actor ID, and timestamp.
 9. PostgreSQL rejects event updates and deletes. Corrections append a new event; deletion creates a tombstone.
-10. Account deletion revokes sessions/tokens, removes memberships, deletes sole-member journeys, and pseudonymizes identity without rewriting immutable events.
+10. Account deletion revokes sessions/tokens, removes memberships, deletes sole-member journeys, requires deliberate ownership transfer for shared journeys, and pseudonymizes identity without rewriting immutable events.
 11. Production logs exclude passwords, raw tokens, cookies, expense notes, concern text, and database URLs.
 12. Production refuses to boot with development secrets, a non-TLS public origin, insecure cookies, missing audit/session secrets, or missing SMTP delivery.
+13. Billing defaults off. When enabled, startup rejects a key whose test/live prefix does not match the explicit Stripe environment, and the webhook rejects an event whose `livemode` flag does not match before writing it.
+14. Checkout accepts only internal offer names resolved to server-controlled Price IDs. Customer and Price IDs are not browser authority.
+15. Stripe webhook signatures are verified over the raw request bytes. Event IDs are idempotency boundaries, and the success redirect never grants an entitlement.
 
 ## Explicit limitations
 
@@ -50,6 +54,7 @@ Payment rails remain isolated from this service. PR#0003 does not accept payment
 - Downloaded exports are plaintext private backups. Internal account IDs are replaced with per-export aliases, but journey content, display names, invitation metadata, and timestamps remain and require careful storage.
 - The static GitHub Pages origin remains browser-only; account requests cannot succeed until DNS is intentionally routed to the private service.
 - No clinical, relationship-health, fairness, or financial-outcome inference is made from event history.
+- Refund, dispute, tax, store-policy, and cross-provider reconciliation rules are not complete enough for live billing.
 
 ## Abuse and failure cases to test
 
@@ -58,3 +63,4 @@ Payment rails remain isolated from this service. PR#0003 does not accept payment
 - Concurrent edits, duplicate event sequences, partial transaction failure, and stale optimistic versions.
 - Deleted-account access, revoked-session reuse, recovery-token reuse, and export after deletion.
 - Database outage, email outage, backup corruption, failed restore, and AWS-to-GCP recovery.
+- Forged or replayed Stripe events, test/live crossover, arbitrary browser Price IDs, duplicate Checkout requests, missed billing events, and stale entitlements.

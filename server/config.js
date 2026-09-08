@@ -20,10 +20,47 @@ const ConfigSchema = z.object({
   MAIL_FROM_INVITATION: z.string().default(''),
   MAIL_FROM_VERIFICATION: z.string().default(''),
   MAIL_FROM_RECOVERY: z.string().default(''),
+  JOURNEY_CAPACITY_MODE: z.enum(['two-person', 'test-groups', 'billing']).default('two-person'),
+  BILLING_ENABLED: z.enum(['true', 'false']).default('false'),
+  STRIPE_ENVIRONMENT: z.enum(['test', 'live']).default('test'),
+  STRIPE_SECRET_KEY: z.string().default(''),
+  STRIPE_WEBHOOK_SECRET: z.string().default(''),
+  STRIPE_ADDITIONAL_PERSON_PRICE_ID: z.string().default(''),
+  STRIPE_TAX_ENABLED: z.enum(['true', 'false']).default('false'),
+  BILLING_GRACE_DAYS: z.coerce.number().int().min(0).max(90).default(7),
 });
+
+function assertStripeConfiguration(config) {
+  if (config.BILLING_ENABLED !== 'true') return;
+  if (!config.STRIPE_SECRET_KEY || !config.STRIPE_WEBHOOK_SECRET) {
+    throw new Error('Stripe billing requires a secret key and webhook signing secret.');
+  }
+  if (!config.STRIPE_ADDITIONAL_PERSON_PRICE_ID) {
+    throw new Error('Stripe billing requires the allow-listed additional-person Price ID.');
+  }
+  const testKey = /^(?:sk|rk)_test_/.test(config.STRIPE_SECRET_KEY);
+  const liveKey = /^(?:sk|rk)_live_/.test(config.STRIPE_SECRET_KEY);
+  if (config.STRIPE_ENVIRONMENT === 'test' && !testKey) {
+    throw new Error('Test Stripe billing accepts test-mode keys only.');
+  }
+  if (config.STRIPE_ENVIRONMENT === 'live' && !liveKey) {
+    throw new Error('Live Stripe billing accepts live-mode keys only.');
+  }
+  if (!config.STRIPE_WEBHOOK_SECRET.startsWith('whsec_')) {
+    throw new Error('Stripe billing requires a webhook signing secret.');
+  }
+  if (!config.STRIPE_ADDITIONAL_PERSON_PRICE_ID.startsWith('price_')) throw new Error('Stripe billing Price IDs must begin with price_.');
+}
 
 export function loadConfig(overrides = {}) {
   const config = ConfigSchema.parse({ ...process.env, ...overrides });
+  assertStripeConfiguration(config);
+  if (config.NODE_ENV === 'production' && config.JOURNEY_CAPACITY_MODE === 'test-groups') {
+    throw new Error('Synthetic group capacity cannot be enabled in production.');
+  }
+  if (config.JOURNEY_CAPACITY_MODE === 'billing' && config.BILLING_ENABLED !== 'true') {
+    throw new Error('Billing-backed journey capacity requires Stripe billing to be enabled.');
+  }
   if (config.NODE_ENV === 'production') {
     if (!config.PUBLIC_ORIGIN.startsWith('https://')) throw new Error('Production PUBLIC_ORIGIN must use HTTPS.');
     if (!config.API_ORIGIN.startsWith('https://')) throw new Error('Production API_ORIGIN must use HTTPS.');
@@ -37,5 +74,10 @@ export function loadConfig(overrides = {}) {
     databaseSsl: config.DATABASE_SSL === 'true',
     cookieSecure: config.COOKIE_SECURE === 'true',
     trustProxy: config.TRUST_PROXY === 'true',
+    journeyCapacityMode: config.JOURNEY_CAPACITY_MODE,
+    billingEnabled: config.BILLING_ENABLED === 'true',
+    stripeEnvironment: config.STRIPE_ENVIRONMENT,
+    stripeTaxEnabled: config.STRIPE_TAX_ENABLED === 'true',
+    billingGraceDays: config.BILLING_GRACE_DAYS,
   };
 }

@@ -461,6 +461,12 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .account-identity dt { color: var(--muted); font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
 .account-identity dd { font-size: 17px; margin: 0; overflow-wrap: anywhere; }
 .account-panel hr { border: 0; border-top: 1px solid var(--line); margin: 8px 0; width: 100%; }
+.billing-panel { display: grid; gap: 13px; }
+.billing-panel > hr { margin-bottom: 4px; }
+.billing-panel .eyebrow { color: var(--accent); }
+.billing-mode { background: var(--soft); border: 1px solid var(--line); border-radius: 15px; color: var(--muted); margin: 0; padding: 15px 17px; }
+.billing-offers { display: flex; flex-wrap: wrap; gap: 8px; }
+.billing-boundary { color: var(--muted); font-size: 13px; line-height: 1.55; }
 .inline-form { align-items: end; display: flex; gap: 8px; }
 .inline-form .field { flex: 1; }
 .inline-form .button { flex: 0 0 auto; min-width: 190px; }
@@ -471,6 +477,8 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .journey-record-row { align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 12px; display: flex; gap: 14px; justify-content: space-between; padding: 11px 12px; }
 .journey-record-row strong, .journey-record-row small { display: block; overflow-wrap: anywhere; }
 .journey-record-row small { color: var(--muted); font-size: 11px; margin-top: 4px; }
+.journey-member-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+.journey-member-actions .button { font-size: 11px; min-height: 34px; padding: 7px 10px; }
 .journey-role, .invitation-status { border: 1px solid var(--line); border-radius: 999px; flex: 0 0 auto; font-size: 10px; font-weight: 900; letter-spacing: .06em; padding: 5px 8px; text-transform: uppercase; }
 .invitation-status.pending { background: var(--teal); border-color: var(--teal); color: var(--on-accent); }
 .invitation-status.accepted { background: color-mix(in srgb, var(--teal) 18%, var(--card)); border-color: var(--teal); color: var(--ink); }

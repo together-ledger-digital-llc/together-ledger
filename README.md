@@ -35,6 +35,7 @@ This is not couples therapy, financial advice, surveillance software, or a relat
 - An explicit browser-only mode that never uploads existing local journey data.
 - Private sync for separate accounts, verified-email invitations, PostgreSQL journeys, recovery, deletion, conflict protection, server-authoritative shared moments, and HMAC-chained events.
 - A portable container and active/passive AWS-primary/GCP-standby operations plan.
+- A test-mode paid-journey-capacity candidate using Stripe-hosted Checkout, Billing, verified webhooks, and provider-neutral entitlements; it models $1 USD monthly for one person beyond the first two, remains disabled by default, and does not claim live billing or self-service subscription management.
 
 ## Try it locally
 
@@ -50,6 +51,8 @@ npm run dev
 Open `http://127.0.0.1:4173` for browser-only mode.
 
 No account, cloud database, environment variable, or API key is required for browser-only mode. To exercise private sync, use the container procedure in [docs/OPERATIONS.md](docs/OPERATIONS.md).
+
+The web-billing candidate is documented in [docs/STRIPE.md](docs/STRIPE.md). Never paste Stripe secrets into source, commits, issue text, logs, screenshots, or chat; rotate any key that has been exposed before configuring a local test environment.
 
 ## Brand themes
 
