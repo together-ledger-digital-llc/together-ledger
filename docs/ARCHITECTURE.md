@@ -35,7 +35,7 @@ Signing in never uploads an existing browser ledger. A signed-in person delibera
 
 Direct web purchases use Stripe-hosted Checkout and Stripe Billing. The first two people in a journey are included; one $1 USD monthly subscription per paid journey holds an integer quantity for additional-person capacity. The application never accepts raw payment credentials and never grants capacity from a browser redirect. A signed webhook updates Stripe subscription and invoice records, then projects the provider state into a journey-scoped entitlement used for capacity decisions.
 
-Apple App Store and future Google Play purchases remain separate provider transactions. Their verified notifications will feed the same entitlement shape without becoming Stripe charges. The provider record remains auditable even when multiple valid sources overlap. The current code implements the Stripe adapter only; store adapters and scheduled reconciliation are explicit non-live boundaries.
+Apple App Store and future Google Play purchases remain separate provider transactions. Their verified notifications will feed the same entitlement shape without becoming Stripe charges. The provider record remains auditable even when multiple valid sources overlap. The current code implements the Stripe adapter and an operator-invoked current-object reconciliation path; store adapters and an operating protected reconciliation schedule remain explicit non-live boundaries.
 
 ## Account and sharing boundary
 

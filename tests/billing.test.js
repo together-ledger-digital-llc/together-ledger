@@ -36,7 +36,7 @@ async function billingPool() {
   });
   const adapter = memory.adapters.createPg();
   const pool = new adapter.Pool();
-  for (const migration of ['001_platform.sql', '003_private_usernames.sql', '008_stripe_web_billing.sql']) {
+  for (const migration of ['001_platform.sql', '003_private_usernames.sql', '008_stripe_web_billing.sql', '010_stripe_reconciliation_runs.sql']) {
     await pool.query(await readFile(new URL(`../server/migrations/${migration}`, import.meta.url), 'utf8'));
   }
   await pool.query(
@@ -56,7 +56,7 @@ async function billingPool() {
   return pool;
 }
 
-function fakeStripe() {
+function fakeStripe({ listedCustomers = [], listedSubscriptions = [], listedInvoices = [] } = {}) {
   const calls = { customers: [], checkouts: [] };
   return {
     calls,
@@ -70,6 +70,19 @@ function fakeStripe() {
       async create(input, options) {
         calls.customers.push({ input, options });
         return { id: 'cus_test_member' };
+      },
+      async list() {
+        return { data: listedCustomers, has_more: false };
+      },
+    },
+    subscriptions: {
+      async list() {
+        return { data: listedSubscriptions, has_more: false };
+      },
+    },
+    invoices: {
+      async list() {
+        return { data: listedInvoices, has_more: false };
       },
     },
     checkout: {
@@ -382,6 +395,138 @@ test('delayed invoice events cannot restore stale payment state or paid capacity
      WHERE source_record_id='sub_test_ordering'`,
   )).rows[0];
   assert.deepEqual(entitlement, { state: 'expired', quantity: 1 });
+});
+
+test('reconciliation repairs a missed lifecycle once and reports aggregate attention safely', async (t) => {
+  const pool = await billingPool();
+  t.after(async () => pool.end());
+  const base = Math.floor(now.getTime() / 1000);
+  const metadata = {
+    together_user_id: userId,
+    together_journey_id: journeyId,
+    together_offer_id: 'additional-person-monthly',
+    together_paid_capacity: '1',
+  };
+  const stripe = fakeStripe({
+    listedCustomers: [
+      { id: 'cus_test_member', livemode: false, metadata: { together_user_id: userId, together_environment: 'test' } },
+      { id: 'cus_test_duplicate', livemode: false, metadata: { together_user_id: userId, together_environment: 'test' } },
+    ],
+    listedSubscriptions: [{
+      id: 'sub_missed_webhook',
+      customer: 'cus_test_member',
+      livemode: false,
+      status: 'active',
+      created: base,
+      current_period_start: base,
+      current_period_end: base + 2_592_000,
+      cancel_at_period_end: false,
+      metadata,
+      items: { data: [{ quantity: 1, price: { id: 'price_additional_person_test' } }] },
+    }],
+    listedInvoices: [{
+      id: 'in_missed_webhook',
+      object: 'invoice',
+      customer: 'cus_test_member',
+      livemode: false,
+      status: 'paid',
+      created: base,
+      amount_due: 100,
+      amount_paid: 100,
+      currency: 'usd',
+      parent: { subscription_details: { subscription: 'sub_missed_webhook', metadata } },
+      lines: { data: [{ period: { end: base + 2_592_000 } }] },
+    }],
+  });
+  const billing = new StripeBillingService({ pool, config: billingConfig(), stripe, now: () => now });
+  await billing.createCheckoutSession(userId, journeyId, {
+    offerId: 'additional-person-monthly',
+    paidCapacity: 1,
+    requestId: '99999999-9999-4999-8999-999999999999',
+  });
+
+  const first = await billing.reconcile();
+  assert.deepEqual(first, {
+    environment: 'test',
+    trigger: 'manual',
+    customersScanned: 1,
+    subscriptionsScanned: 1,
+    invoicesScanned: 1,
+    entitlementDriftRepaired: 1,
+    duplicateCustomers: 1,
+    webhookFailures: 0,
+  });
+  const status = await billing.status(userId, journeyId);
+  assert.equal(status.subscription.status, 'active');
+  assert.equal(status.entitlement.state, 'active');
+  assert.equal(status.entitlement.quantity, 1);
+  assert.equal(status.invoices[0].status, 'paid');
+
+  const second = await billing.reconcile({ trigger: 'scheduled' });
+  assert.equal(second.entitlementDriftRepaired, 0);
+  const runs = await pool.query(
+    'SELECT run_trigger,processing_state,duplicate_customers FROM billing_reconciliation_runs ORDER BY run_trigger',
+  );
+  assert.deepEqual(runs.rows, [
+    { run_trigger: 'manual', processing_state: 'succeeded', duplicate_customers: 1 },
+    { run_trigger: 'scheduled', processing_state: 'succeeded', duplicate_customers: 1 },
+  ]);
+});
+
+test('repeated reconciliation does not silently extend an existing payment grace window', async (t) => {
+  const pool = await billingPool();
+  t.after(async () => pool.end());
+  let clock = new Date(now);
+  const base = Math.floor(now.getTime() / 1000);
+  const subscription = {
+    id: 'sub_past_due_reconciliation',
+    customer: 'cus_test_member',
+    livemode: false,
+    status: 'past_due',
+    created: base,
+    current_period_start: base,
+    current_period_end: base + 2_592_000,
+    cancel_at_period_end: false,
+    metadata: {
+      together_user_id: userId,
+      together_journey_id: journeyId,
+      together_offer_id: 'additional-person-monthly',
+      together_paid_capacity: '1',
+    },
+    items: { data: [{ quantity: 1, price: { id: 'price_additional_person_test' } }] },
+  };
+  const stripe = fakeStripe({
+    listedCustomers: [{ id: 'cus_test_member', livemode: false, metadata: { together_user_id: userId, together_environment: 'test' } }],
+    listedSubscriptions: [subscription],
+    listedInvoices: [{
+      id: 'in_historical_paid_before_past_due',
+      object: 'invoice',
+      customer: 'cus_test_member',
+      livemode: false,
+      status: 'paid',
+      created: base - 2_592_000,
+      amount_due: 100,
+      amount_paid: 100,
+      currency: 'usd',
+      parent: { subscription_details: { subscription: subscription.id, metadata: subscription.metadata } },
+      lines: { data: [{ period: { end: base } }] },
+    }],
+  });
+  const billing = new StripeBillingService({ pool, config: billingConfig(), stripe, now: () => clock });
+  await billing.createCheckoutSession(userId, journeyId, {
+    offerId: 'additional-person-monthly',
+    paidCapacity: 1,
+    requestId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  });
+
+  await billing.reconcile();
+  const firstStatus = await billing.status(userId, journeyId);
+  assert.equal(firstStatus.entitlement.state, 'grace');
+  const firstExpiry = firstStatus.entitlement.expiresAt;
+  clock = new Date(clock.getTime() + 24 * 60 * 60 * 1000);
+  await billing.reconcile();
+  const secondExpiry = (await billing.status(userId, journeyId)).entitlement.expiresAt;
+  assert.equal(new Date(secondExpiry).toISOString(), new Date(firstExpiry).toISOString());
 });
 
 test('the Stripe webhook route preserves the raw request body', async (t) => {

@@ -85,7 +85,7 @@ Webhook processing is deliberately limited to local database work so the endpoin
 
 The Checkout success redirect is informational. It never grants access. Verified Stripe webhooks update the internal entitlement ledger, and application access reads that ledger.
 
-`invoice.paid` confirms a settled renewal. Subscription events carry current status, cancellation timing, and period boundaries. Duplicate delivery is normal, and event ordering is not trusted. A periodic Stripe reconciliation job is still required before live launch to repair missed or out-of-order delivery.
+`invoice.paid` confirms a settled renewal. Subscription events carry current status, cancellation timing, and period boundaries. Duplicate delivery is normal, and event ordering is not trusted. The aggregate-only operator reconciliation in [STRIPE_RECONCILIATION.md](STRIPE_RECONCILIATION.md) repairs current Stripe state after missed or out-of-order delivery; its protected production schedule must still be operating before live launch.
 
 ## Minimum release tests
 
@@ -107,6 +107,6 @@ The Checkout success redirect is informational. It never grants access. Verified
 - A complete paid-capacity acceptance pass that proves the implemented 3–99 person invitation gate against real test-mode entitlement changes.
 - Portal upgrade, downgrade, cancellation, proration, and promotion settings.
 - Apple App Store and Google Play storefront rules for sign-in, cross-platform access, and any app-to-web steering.
-- A durable reconciliation worker and operational alerts.
+- A protected reconciliation schedule and operational alerts using the implemented operator command.
 
 Relevant Stripe guidance: [Checkout](https://docs.stripe.com/payments/checkout), [subscriptions](https://docs.stripe.com/billing/subscriptions/designing-integration), [Customer Portal](https://docs.stripe.com/customer-management/integrate-customer-portal), [webhooks](https://docs.stripe.com/webhooks), [Invoicing](https://docs.stripe.com/invoicing/integration), [mobile digital goods](https://docs.stripe.com/mobile/digital-goods/checkout), and [go-live checklist](https://docs.stripe.com/get-started/checklist/go-live).

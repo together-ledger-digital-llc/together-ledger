@@ -20,7 +20,20 @@ test('real PostgreSQL enforces migrations, event immutability, and deletion purg
   await runMigrations(pool);
 
   const migrations = await pool.query('SELECT name FROM schema_migrations ORDER BY name');
-  assert.deepEqual(migrations.rows.map((row) => row.name), ['001_platform.sql', '002_append_only_events.sql', '003_private_usernames.sql', '004_shared_moments.sql', '005_make-shared-journeys-more-humane.sql', '006_expand-shared-moment-vocabulary.sql', '007_person_specific_moment_visibility.sql', '008_stripe_web_billing.sql', '009_reserve-group-places.sql']);
+  assert.deepEqual(migrations.rows.map((row) => row.name), ['001_platform.sql', '002_append_only_events.sql', '003_private_usernames.sql', '004_shared_moments.sql', '005_make-shared-journeys-more-humane.sql', '006_expand-shared-moment-vocabulary.sql', '007_person_specific_moment_visibility.sql', '008_stripe_web_billing.sql', '009_reserve-group-places.sql', '010_stripe_reconciliation_runs.sql']);
+
+  const firstLockClient = await pool.connect();
+  const secondLockClient = await pool.connect();
+  try {
+    const firstLock = await firstLockClient.query("SELECT pg_try_advisory_lock(hashtextextended('stripe-billing-reconciliation-test',0)) AS locked");
+    const secondLock = await secondLockClient.query("SELECT pg_try_advisory_lock(hashtextextended('stripe-billing-reconciliation-test',0)) AS locked");
+    assert.equal(firstLock.rows[0].locked, true);
+    assert.equal(secondLock.rows[0].locked, false);
+    await firstLockClient.query("SELECT pg_advisory_unlock(hashtextextended('stripe-billing-reconciliation-test',0))");
+  } finally {
+    firstLockClient.release();
+    secondLockClient.release();
+  }
 
   const mailer = new MemoryMailer();
   const platform = new PlatformService({ pool, config, mailer });
