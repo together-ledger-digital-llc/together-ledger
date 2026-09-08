@@ -68,8 +68,8 @@ if (existsSync(touchIconPath)) {
   }
 }
 const pagesWorkflow = readFileSync(join(root, '.github/workflows/pages.yml'), 'utf8');
-if (!pagesWorkflow.includes('cp -R public/. _site/')) {
-  violations.push('Pages workflow does not publish the social and icon assets');
+if (!pagesWorkflow.includes('node scripts/build-public-site.mjs')) {
+  violations.push('Pages workflow does not use the shared public-site build');
 }
 const shareCardPath = join(root, 'public/social/together-ledger-card.png');
 if (existsSync(shareCardPath)) {
