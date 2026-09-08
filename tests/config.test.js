@@ -38,3 +38,11 @@ test('Customer Portal cannot be enabled without billing and an allow-listed conf
     STRIPE_ADDITIONAL_PERSON_PRICE_ID: 'price_test',
   }), /allow-listed configuration ID beginning with bpc_/);
 });
+
+test('dual-host app origins are parsed and deduplicated', () => {
+  const config = loadConfig({
+    NODE_ENV: 'test',
+    APP_ORIGINS: ' https://app.together-ledger.com,https://legacy.example,https://app.together-ledger.com ',
+  });
+  assert.deepEqual(config.appOrigins, ['https://app.together-ledger.com', 'https://legacy.example']);
+});

@@ -5,6 +5,7 @@ const ConfigSchema = z.object({
   HOST: z.string().default('127.0.0.1'),
   PORT: z.coerce.number().int().min(1).max(65535).default(4174),
   PUBLIC_ORIGIN: z.string().url().default('http://127.0.0.1:4174'),
+  APP_ORIGINS: z.string().default(''),
   API_ORIGIN: z.string().url().or(z.literal('')).default(''),
   ACCOUNT_ORIGIN: z.string().url().or(z.literal('')).default(''),
   DATABASE_URL: z.string().min(1).default('postgres://together@127.0.0.1:5432/together_ledger'),
@@ -77,8 +78,10 @@ export function loadConfig(overrides = {}) {
     if (config.SESSION_SECRET.startsWith('development-') || config.AUDIT_HMAC_KEY.startsWith('development-')) throw new Error('Production secrets must not use development defaults.');
     if (!config.SMTP_URL) throw new Error('Production SMTP delivery must be configured.');
   }
+  const appOrigins = [...new Set(config.APP_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean))];
   return {
     ...config,
+    appOrigins,
     databaseSsl: config.DATABASE_SSL === 'true',
     cookieSecure: config.COOKIE_SECURE === 'true',
     trustProxy: config.TRUST_PROXY === 'true',
