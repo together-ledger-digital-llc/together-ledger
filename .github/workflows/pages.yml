@@ -24,11 +24,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
       - name: Assemble public site
-        run: |
-          mkdir -p _site/src
-          cp index.html _site/
-          cp src/api.js src/app.js src/model.js src/store.js src/styles.css src/themes.js _site/src/
-          cp -R public/. _site/
+        run: node scripts/build-public-site.mjs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
