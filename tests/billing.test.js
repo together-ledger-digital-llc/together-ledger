@@ -1,0 +1,440 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { newDb } from 'pg-mem';
+import Stripe from 'stripe';
+import { buildApp } from '../server/app.js';
+import { STRIPE_API_VERSION, StripeBillingService } from '../server/billing.js';
+import { loadConfig } from '../server/config.js';
+
+const userId = '11111111-1111-4111-8111-111111111111';
+const journeyId = '22222222-2222-4222-8222-222222222222';
+const now = new Date('2026-09-07T19:00:00.000Z');
+
+function billingConfig(overrides = {}) {
+  return loadConfig({
+    NODE_ENV: 'test',
+    PUBLIC_ORIGIN: 'https://together-ledger.example.test',
+    SESSION_SECRET: 's'.repeat(32),
+    AUDIT_HMAC_KEY: 'a'.repeat(32),
+    BILLING_ENABLED: 'true',
+    STRIPE_ENVIRONMENT: 'test',
+    STRIPE_SECRET_KEY: 'sk_test_fake',
+    STRIPE_WEBHOOK_SECRET: 'whsec_fake',
+    STRIPE_ADDITIONAL_PERSON_PRICE_ID: 'price_additional_person_test',
+    ...overrides,
+  });
+}
+
+async function billingPool() {
+  const memory = newDb({ autoCreateForeignKeyIndices: true });
+  memory.public.registerFunction({
+    name: 'char_length',
+    args: ['text'],
+    returns: 'integer',
+    implementation: (value) => value.length,
+  });
+  const adapter = memory.adapters.createPg();
+  const pool = new adapter.Pool();
+  for (const migration of ['001_platform.sql', '003_private_usernames.sql', '008_stripe_web_billing.sql']) {
+    await pool.query(await readFile(new URL(`../server/migrations/${migration}`, import.meta.url), 'utf8'));
+  }
+  await pool.query(
+    `INSERT INTO users (id,email_normalized,username,display_name,password_hash,email_verified_at,created_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$6)`,
+    [userId, 'member@example.test', 'member-one', 'member-one', 'not-used-in-this-test', now],
+  );
+  await pool.query(
+    `INSERT INTO journeys (id,owner_user_id,name,location,start_date,end_date,budget_cents,created_at,updated_at)
+     VALUES ($1,$2,$3,$4,$5,$6,0,$7,$7)`,
+    [journeyId, userId, 'A wider circle', 'Together', '2026-09-01', '2026-09-30', now],
+  );
+  await pool.query(
+    `INSERT INTO journey_members (journey_id,user_id,role,joined_at) VALUES ($1,$2,'owner',$3)`,
+    [journeyId, userId, now],
+  );
+  return pool;
+}
+
+function fakeStripe() {
+  const calls = { customers: [], checkouts: [] };
+  return {
+    calls,
+    prices: {
+      async retrieve(id) {
+        assert.equal(id, 'price_additional_person_test');
+        return { id, active: true, livemode: false, type: 'recurring', currency: 'usd', unit_amount: 100, recurring: { interval: 'month', usage_type: 'licensed' } };
+      },
+    },
+    customers: {
+      async create(input, options) {
+        calls.customers.push({ input, options });
+        return { id: 'cus_test_member' };
+      },
+    },
+    checkout: {
+      sessions: {
+        async create(input, options) {
+          calls.checkouts.push({ input, options });
+          return { id: 'cs_test_membership', url: 'https://checkout.stripe.com/c/pay/test', status: 'open' };
+        },
+      },
+    },
+    webhooks: {
+      constructEvent(rawBody, signature, secret) {
+        assert.ok(Buffer.isBuffer(rawBody));
+        assert.equal(signature, 'valid-signature');
+        assert.equal(secret, 'whsec_fake');
+        return JSON.parse(rawBody.toString('utf8'));
+      },
+    },
+  };
+}
+
+test('billing configuration refuses keys from the wrong Stripe environment', () => {
+  assert.throws(
+    () => billingConfig({ STRIPE_SECRET_KEY: 'sk_live_fake' }),
+    /Test Stripe billing accepts test-mode keys only/,
+  );
+  assert.throws(
+    () => billingConfig({ STRIPE_ENVIRONMENT: 'live', STRIPE_SECRET_KEY: 'sk_test_fake' }),
+    /Live Stripe billing accepts live-mode keys only/,
+  );
+});
+
+test('checkout creates one journey-scoped monthly subscription with a fixed quantity', async (t) => {
+  const pool = await billingPool();
+  t.after(async () => pool.end());
+  const stripe = fakeStripe();
+  const billing = new StripeBillingService({ pool, config: billingConfig(), stripe, now: () => now });
+  const requestId = '33333333-3333-4333-8333-333333333333';
+
+  const checkout = await billing.createCheckoutSession(userId, journeyId, {
+    offerId: 'additional-person-monthly', paidCapacity: 1, requestId,
+  });
+  assert.equal(checkout.url, 'https://checkout.stripe.com/c/pay/test');
+  assert.equal(checkout.environment, 'test');
+  assert.equal(stripe.calls.checkouts[0].input.line_items[0].price, 'price_additional_person_test');
+  assert.equal(stripe.calls.checkouts[0].input.line_items[0].quantity, 1);
+  assert.equal(stripe.calls.checkouts[0].input.line_items[0].adjustable_quantity, undefined);
+  assert.equal(stripe.calls.checkouts[0].input.mode, 'subscription');
+  assert.equal(stripe.calls.checkouts[0].input.metadata.together_user_id, userId);
+  assert.equal(stripe.calls.checkouts[0].input.metadata.together_journey_id, journeyId);
+  assert.equal(stripe.calls.checkouts[0].input.metadata.together_paid_capacity, '1');
+  assert.match(stripe.calls.checkouts[0].options.idempotencyKey, new RegExp(requestId));
+  await assert.rejects(
+    billing.createCheckoutSession(userId, journeyId, { offerId: 'price_from_browser', paidCapacity: 1, requestId }),
+    (error) => error.code === 'invalid_billing_offer',
+  );
+  await assert.rejects(
+    billing.createCheckoutSession(userId, journeyId, { offerId: 'additional-person-monthly', paidCapacity: 2, requestId }),
+    (error) => error.code === 'invalid_paid_capacity',
+  );
+
+  const status = await billing.status(userId, journeyId);
+  assert.equal(status.enabled, true);
+  assert.equal(status.environment, 'test');
+  assert.equal(status.journey.name, 'A wider circle');
+  assert.deepEqual(status.offers, [{
+    id: 'additional-person-monthly', label: 'Another person', cadence: 'month', currency: 'USD', unitAmount: 100,
+  }]);
+  assert.equal(JSON.stringify(status).includes('price_additional_person_test'), false);
+});
+
+test('test-mode webhooks grant access once and reject live events', async (t) => {
+  const pool = await billingPool();
+  t.after(async () => pool.end());
+  const stripe = fakeStripe();
+  const billing = new StripeBillingService({ pool, config: billingConfig(), stripe, now: () => now });
+  await billing.createCheckoutSession(userId, journeyId, {
+    offerId: 'additional-person-monthly',
+    paidCapacity: 1,
+    requestId: '44444444-4444-4444-8444-444444444444',
+  });
+
+  const subscriptionEvent = {
+    id: 'evt_test_subscription',
+    type: 'customer.subscription.updated',
+    created: 1788807600,
+    livemode: false,
+    data: {
+      object: {
+        id: 'sub_test_membership',
+        customer: 'cus_test_member',
+        status: 'active',
+        created: 1788807600,
+        current_period_start: 1788807600,
+        current_period_end: 1791399600,
+        cancel_at_period_end: false,
+        metadata: {
+          together_user_id: userId,
+          together_journey_id: journeyId,
+          together_offer_id: 'additional-person-monthly',
+          together_paid_capacity: '1',
+        },
+        items: { data: [{ quantity: 1, price: { id: 'price_additional_person_test' } }] },
+      },
+    },
+  };
+  const first = await billing.handleWebhook(Buffer.from(JSON.stringify(subscriptionEvent)), 'valid-signature');
+  const duplicate = await billing.handleWebhook(Buffer.from(JSON.stringify(subscriptionEvent)), 'valid-signature');
+  assert.deepEqual(first, { received: true, duplicate: false });
+  assert.deepEqual(duplicate, { received: true, duplicate: true });
+  assert.equal((await pool.query('SELECT count(*)::int AS count FROM billing_webhook_events')).rows[0].count, 1);
+  const status = await billing.status(userId, journeyId);
+  assert.equal(status.entitlement.state, 'active');
+  assert.equal(status.entitlement.source, 'stripe');
+  assert.equal(status.entitlement.quantity, 1);
+  assert.equal(status.subscription.offerId, 'additional-person-monthly');
+  assert.equal(status.subscription.paidCapacity, 1);
+  await assert.rejects(
+    billing.createCheckoutSession(userId, journeyId, {
+      offerId: 'additional-person-monthly',
+      paidCapacity: 1,
+      requestId: '55555555-5555-4555-8555-555555555555',
+    }),
+    (error) => error.code === 'billing_subscription_exists',
+  );
+  await assert.rejects(
+    billing.assertAccountDeletable(userId),
+    (error) => error.code === 'billing_subscription_active',
+  );
+
+  const liveEvent = { ...subscriptionEvent, id: 'evt_live_wrong_place', livemode: true };
+  await assert.rejects(
+    billing.handleWebhook(Buffer.from(JSON.stringify(liveEvent)), 'valid-signature'),
+    (error) => error.code === 'stripe_environment_mismatch',
+  );
+  assert.equal((await pool.query("SELECT count(*)::int AS count FROM billing_webhook_events WHERE provider_event_id='evt_live_wrong_place'")).rows[0].count, 0);
+});
+
+test('webhooks reject subscriptions outside the approved owner, customer, and price boundary', async (t) => {
+  const pool = await billingPool();
+  t.after(async () => pool.end());
+  const billing = new StripeBillingService({ pool, config: billingConfig(), stripe: fakeStripe(), now: () => now });
+  await billing.createCheckoutSession(userId, journeyId, {
+    offerId: 'additional-person-monthly',
+    paidCapacity: 1,
+    requestId: '66666666-6666-4666-8666-666666666666',
+  });
+  const event = {
+    id: 'evt_wrong_price',
+    type: 'customer.subscription.created',
+    created: 1788807600,
+    livemode: false,
+    data: {
+      object: {
+        id: 'sub_wrong_price',
+        customer: 'cus_test_member',
+        status: 'active',
+        metadata: {
+          together_user_id: userId,
+          together_journey_id: journeyId,
+          together_offer_id: 'additional-person-monthly',
+          together_paid_capacity: '1',
+        },
+        items: { data: [{ quantity: 1, price: { id: 'price_not_approved' } }] },
+      },
+    },
+  };
+  await assert.rejects(
+    billing.handleWebhook(Buffer.from(JSON.stringify(event)), 'valid-signature'),
+    /does not match the approved Together Ledger offer/,
+  );
+  assert.equal((await pool.query('SELECT count(*)::int AS count FROM billing_subscriptions')).rows[0].count, 0);
+  assert.equal((await pool.query('SELECT count(*)::int AS count FROM billing_entitlements')).rows[0].count, 0);
+});
+
+test('an invoice cannot grant capacity before its approved subscription is known', async (t) => {
+  const pool = await billingPool();
+  t.after(async () => pool.end());
+  const billing = new StripeBillingService({ pool, config: billingConfig(), stripe: fakeStripe(), now: () => now });
+  await billing.createCheckoutSession(userId, journeyId, {
+    offerId: 'additional-person-monthly',
+    paidCapacity: 1,
+    requestId: '77777777-7777-4777-8777-777777777777',
+  });
+  const event = {
+    id: 'evt_invoice_before_subscription',
+    type: 'invoice.paid',
+    created: 1788807600,
+    livemode: false,
+    data: {
+      object: {
+        id: 'in_before_subscription',
+        object: 'invoice',
+        customer: 'cus_test_member',
+        status: 'paid',
+        amount_due: 100,
+        amount_paid: 100,
+        currency: 'usd',
+        parent: {
+          subscription_details: {
+            subscription: 'sub_not_yet_known',
+            metadata: {
+              together_user_id: userId,
+              together_journey_id: journeyId,
+              together_paid_capacity: '1',
+            },
+          },
+        },
+      },
+    },
+  };
+  await billing.handleWebhook(Buffer.from(JSON.stringify(event)), 'valid-signature');
+  assert.equal((await pool.query('SELECT count(*)::int AS count FROM billing_invoices')).rows[0].count, 1);
+  assert.equal((await pool.query('SELECT count(*)::int AS count FROM billing_entitlements')).rows[0].count, 0);
+});
+
+test('delayed invoice events cannot restore stale payment state or paid capacity', async (t) => {
+  const pool = await billingPool();
+  t.after(async () => pool.end());
+  const billing = new StripeBillingService({ pool, config: billingConfig(), stripe: fakeStripe(), now: () => now });
+  await billing.createCheckoutSession(userId, journeyId, {
+    offerId: 'additional-person-monthly',
+    paidCapacity: 1,
+    requestId: '88888888-8888-4888-8888-888888888888',
+  });
+  const base = Math.floor(now.getTime() / 1000);
+  const subscription = (id, created, status, quantity) => ({
+    id,
+    type: 'customer.subscription.updated',
+    created,
+    livemode: false,
+    data: {
+      object: {
+        id: 'sub_test_ordering',
+        customer: 'cus_test_member',
+        status,
+        created: base,
+        current_period_start: base,
+        current_period_end: base + 2_592_000,
+        cancel_at_period_end: false,
+        metadata: {
+          together_user_id: userId,
+          together_journey_id: journeyId,
+          together_offer_id: 'additional-person-monthly',
+          together_paid_capacity: '1',
+        },
+        items: { data: [{ quantity, price: { id: 'price_additional_person_test' } }] },
+      },
+    },
+  });
+  const invoice = (id, created, type, status = 'paid') => ({
+    id,
+    type,
+    created,
+    livemode: false,
+    data: {
+      object: {
+        id: `in_${id}`,
+        object: 'invoice',
+        customer: 'cus_test_member',
+        status,
+        created,
+        amount_due: 400,
+        amount_paid: status === 'paid' ? 400 : 0,
+        currency: 'usd',
+        parent: {
+          subscription_details: {
+            subscription: 'sub_test_ordering',
+            metadata: {
+              together_user_id: userId,
+              together_journey_id: journeyId,
+              together_paid_capacity: '2',
+            },
+          },
+        },
+        lines: { data: [{ period: { end: base + 2_592_000 } }] },
+      },
+    },
+  });
+  const deliver = (event) => billing.handleWebhook(Buffer.from(JSON.stringify(event)), 'valid-signature');
+
+  await deliver(subscription('evt_subscription_initial', base + 10, 'active', 1));
+  await deliver(subscription('evt_subscription_current', base + 30, 'active', 1));
+  await deliver(invoice('evt_invoice_paid_delayed', base + 20, 'invoice.paid'));
+
+  let entitlement = (await pool.query(
+    `SELECT state,quantity FROM billing_entitlements
+     WHERE source_record_id='sub_test_ordering'`,
+  )).rows[0];
+  assert.deepEqual(entitlement, { state: 'active', quantity: 1 });
+
+  await deliver(invoice('evt_invoice_paid_current', base + 40, 'invoice.paid'));
+  entitlement = (await pool.query(
+    `SELECT state,quantity FROM billing_entitlements
+     WHERE source_record_id='sub_test_ordering'`,
+  )).rows[0];
+  assert.deepEqual(entitlement, { state: 'active', quantity: 1 });
+
+  await deliver(invoice('evt_invoice_failure_delayed', base + 35, 'invoice.payment_failed', 'open'));
+  entitlement = (await pool.query(
+    `SELECT state,quantity FROM billing_entitlements
+     WHERE source_record_id='sub_test_ordering'`,
+  )).rows[0];
+  assert.deepEqual(entitlement, { state: 'active', quantity: 1 });
+
+  await deliver(subscription('evt_subscription_canceled', base + 50, 'canceled', 1));
+  await deliver(invoice('evt_invoice_paid_after_cancellation', base + 60, 'invoice.paid'));
+  entitlement = (await pool.query(
+    `SELECT state,quantity FROM billing_entitlements
+     WHERE source_record_id='sub_test_ordering'`,
+  )).rows[0];
+  assert.deepEqual(entitlement, { state: 'expired', quantity: 1 });
+});
+
+test('the Stripe webhook route preserves the raw request body', async (t) => {
+  const config = loadConfig({
+    NODE_ENV: 'test',
+    PUBLIC_ORIGIN: 'http://127.0.0.1:4174',
+    SESSION_SECRET: 's'.repeat(32),
+    AUDIT_HMAC_KEY: 'a'.repeat(32),
+  });
+  let received;
+  const billing = {
+    async handleWebhook(rawBody, signature) {
+      received = { rawBody, signature };
+      return { received: true, duplicate: false };
+    },
+  };
+  const app = await buildApp({ platform: {}, billing, config });
+  t.after(async () => app.close());
+  const response = await app.inject({
+    method: 'POST',
+    url: '/api/v1/billing/webhooks/stripe',
+    headers: { 'stripe-signature': 'test-signature', 'content-type': 'application/json' },
+    payload: { id: 'evt_raw_body' },
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  assert.ok(Buffer.isBuffer(received.rawBody));
+  assert.equal(received.signature, 'test-signature');
+  assert.deepEqual(JSON.parse(received.rawBody.toString('utf8')), { id: 'evt_raw_body' });
+});
+
+test('the official Stripe SDK verifies the exact raw payload signature', async (t) => {
+  const pool = await billingPool();
+  t.after(async () => pool.end());
+  const stripe = new Stripe('sk_test_fake', { apiVersion: STRIPE_API_VERSION });
+  const billing = new StripeBillingService({ pool, config: billingConfig(), stripe, now: () => now });
+  const payload = JSON.stringify({
+    id: 'evt_signed_payload',
+    object: 'event',
+    type: 'ping.unhandled',
+    created: Math.floor(now.getTime() / 1000),
+    livemode: false,
+    data: { object: {} },
+  });
+  const signatureTimestamp = Math.floor(Date.now() / 1000);
+  const signature = stripe.webhooks.generateTestHeaderString({
+    payload,
+    secret: 'whsec_fake',
+    timestamp: signatureTimestamp,
+  });
+  const result = await billing.handleWebhook(Buffer.from(payload), signature);
+  assert.deepEqual(result, { received: true, duplicate: false });
+  await assert.rejects(
+    billing.handleWebhook(Buffer.from(`${payload} `), signature),
+    (error) => error.code === 'stripe_signature_invalid',
+  );
+});

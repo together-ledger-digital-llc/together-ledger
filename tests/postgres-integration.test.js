@@ -10,6 +10,7 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 test('real PostgreSQL enforces migrations, event immutability, and deletion purge', { skip: !databaseUrl }, async (t) => {
   const config = loadConfig({
     NODE_ENV: 'development',
+    JOURNEY_CAPACITY_MODE: 'test-groups',
     DATABASE_URL: databaseUrl,
     SESSION_SECRET: 's'.repeat(32),
     AUDIT_HMAC_KEY: 'a'.repeat(32),
@@ -19,7 +20,7 @@ test('real PostgreSQL enforces migrations, event immutability, and deletion purg
   await runMigrations(pool);
 
   const migrations = await pool.query('SELECT name FROM schema_migrations ORDER BY name');
-  assert.deepEqual(migrations.rows.map((row) => row.name), ['001_platform.sql', '002_append_only_events.sql', '003_private_usernames.sql', '004_shared_moments.sql', '005_make-shared-journeys-more-humane.sql', '006_expand-shared-moment-vocabulary.sql', '007_person_specific_moment_visibility.sql']);
+  assert.deepEqual(migrations.rows.map((row) => row.name), ['001_platform.sql', '002_append_only_events.sql', '003_private_usernames.sql', '004_shared_moments.sql', '005_make-shared-journeys-more-humane.sql', '006_expand-shared-moment-vocabulary.sql', '007_person_specific_moment_visibility.sql', '008_stripe_web_billing.sql', '009_reserve-group-places.sql']);
 
   const mailer = new MemoryMailer();
   const platform = new PlatformService({ pool, config, mailer });
@@ -43,6 +44,31 @@ test('real PostgreSQL enforces migrations, event immutability, and deletion purg
     pool.query('DELETE FROM journey_events WHERE journey_id=$1', [journey.id]),
     /journey events are append-only/,
   );
+
+  await pool.query(
+    `INSERT INTO invitations (id,journey_id,invited_by_user_id,email_normalized,token_hash,expires_at)
+     SELECT (
+       substr(md5(series::text),1,8) || '-' || substr(md5(series::text),9,4) || '-' ||
+       substr(md5(series::text),13,4) || '-' || substr(md5(series::text),17,4) || '-' ||
+       substr(md5(series::text),21,12)
+     )::uuid, $1, $2, 'reserved-' || series || '@example.test', md5('a-' || series) || md5('b-' || series), now() + interval '1 hour'
+     FROM generate_series(1,97) AS series`,
+    [journey.id, registration.user.id],
+  );
+  const concurrentInvitations = await Promise.allSettled([
+    platform.createInvitation(registration.user.id, journey.id, 'boundary-a@example.test'),
+    platform.createInvitation(registration.user.id, journey.id, 'boundary-b@example.test'),
+  ]);
+  assert.equal(concurrentInvitations.filter((result) => result.status === 'fulfilled').length, 1);
+  const rejectedInvitation = concurrentInvitations.find((result) => result.status === 'rejected');
+  assert.equal(rejectedInvitation.reason.code, 'journey_full');
+  const capacity = await pool.query(
+    `SELECT
+       (SELECT count(*)::int FROM journey_members WHERE journey_id=$1) AS members,
+       (SELECT count(*)::int FROM invitations WHERE journey_id=$1 AND reservation_active=true AND expires_at>now()) AS reservations`,
+    [journey.id],
+  );
+  assert.deepEqual(capacity.rows[0], { members: 1, reservations: 98 });
 
   await platform.deleteAccount(registration.user.id, 'correct horse battery staple');
   assert.equal((await pool.query('SELECT count(*)::int AS count FROM journeys WHERE id=$1', [journey.id])).rows[0].count, 0);

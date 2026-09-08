@@ -1,4 +1,5 @@
 import { buildApp } from './app.js';
+import { createBillingService } from './billing.js';
 import { loadConfig } from './config.js';
 import { createPool, runMigrations } from './db.js';
 import { ConsoleBlockedMailer, SmtpMailer } from './mailer.js';
@@ -23,7 +24,13 @@ const platform = new PlatformService({
   mailer,
   onDeliveryFailure: ({ kind, errorName }) => process.stderr.write(`${JSON.stringify({ level: 'error', message: 'email delivery failed', kind, errorName })}\n`),
 });
-const app = await buildApp({ platform, config, logger: { redact: ['req.headers.cookie', 'req.headers.authorization', 'req.body.password', 'req.body.token'] } });
+const billing = createBillingService({ pool, config });
+const app = await buildApp({
+  platform,
+  billing,
+  config,
+  logger: { redact: ['req.headers.cookie', 'req.headers.authorization', 'req.headers.stripe-signature', 'req.body.password', 'req.body.token'] },
+});
 
 async function shutdown(signal) {
   app.log.info({ signal }, 'shutting down');

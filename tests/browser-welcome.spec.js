@@ -123,6 +123,51 @@ test('a pending account action is announced and cannot be submitted twice', asyn
   await expect(page.locator('#account-dialog')).not.toBeVisible();
 });
 
+test('a journey owner sees the test-only additional-person billing boundary', async ({ page }) => {
+  const owner = { id: 'user-1', username: 'journeyer', displayName: 'Journeyer', email: 'journeyer@example.test', emailVerified: true };
+  await page.route('https://api.together-ledger.com/api/v1/session', (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ data: { user: owner, csrfToken: 'csrf-test' } }),
+  }));
+  await page.route('https://api.together-ledger.com/api/v1/journeys', (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ data: { journeys: [{ id: 'journey-billing' }] } }),
+  }));
+  await page.route('https://api.together-ledger.com/api/v1/journeys/journey-billing/snapshot', (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ data: {
+      journey: { id: 'journey-billing', name: 'A wider circle', location: '', startDate: '', startDateStatus: 'unknown', endDate: '', endDateStatus: 'forever', budgetCents: 0, version: 1, role: 'owner', createdAt: '2026-09-07T18:00:00.000Z', updatedAt: '2026-09-07T18:00:00.000Z' },
+      members: [{ id: owner.id, displayName: owner.displayName, role: 'owner', joinedAt: '2026-09-07T18:00:00.000Z' }],
+      invitations: [], expenses: [], moments: [], concerns: [], milestones: [],
+      events: [{ id: 'event-1', sequence: 1, actorUserId: owner.id, action: 'journey_created', entityType: 'journey', entityId: 'journey-billing', summary: 'Created journey', before: null, after: null, previousHash: '', eventHash: '', createdAt: '2026-09-07T18:00:00.000Z' }],
+      eventChainValid: true,
+    } }),
+  }));
+  await page.route('https://api.together-ledger.com/api/v1/journeys/journey-billing/billing', (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ data: {
+      enabled: true,
+      environment: 'test',
+      journey: { id: 'journey-billing', name: 'A wider circle' },
+      offers: [{ id: 'additional-person-monthly', label: 'Another person', cadence: 'month', currency: 'USD', unitAmount: 100 }],
+      entitlement: null,
+      subscription: null,
+      invoices: [],
+    } }),
+  }));
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Account settings', exact: true }).first().click();
+  await expect(page.locator('#billing-panel')).toBeVisible();
+  await expect(page.locator('#billing-environment')).toContainText('Test mode — checkout cannot create a real charge.');
+  await expect(page.locator('#billing-status')).toContainText('first two people in A wider circle are included');
+  await expect(page.getByRole('button', { name: 'Add another person · $1.00 USD / month' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Manage billing and invoices' })).toHaveCount(0);
+  await expect(page.locator('.billing-boundary')).toContainText('Apple App Store and future Google Play purchases remain with those stores');
+  const accessibilityScan = await new AxeBuilder({ page }).include('#account-dialog').analyze();
+  expect(accessibilityScan.violations).toEqual([]);
+});
+
 test('beginning locally keeps the account and hosted privacy boundaries separate', async ({ page }) => {
   const mutations = [];
   page.on('request', (request) => {

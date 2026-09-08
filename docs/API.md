@@ -23,9 +23,12 @@ All endpoints are versioned under `/api/v1`. JSON responses use `{ "data": ... }
 | GET/POST | `/journeys` | List authorized journeys or create one. |
 | PATCH | `/journeys/:journeyId` | Version-check and update journey details. |
 | POST | `/journeys/:journeyId/invitations` | Owner creates a hashed, expiring invitation token. |
-| POST | `/invitations/:token/accept` | Authenticated matching account accepts one seat. |
+| POST | `/invitations/:token/accept` | Authenticated matching account accepts one reserved place. |
 | DELETE | `/journeys/:journeyId/members/:userId` | Owner removes a member; the removed member cannot be the owner. |
-| GET | `/journeys/:journeyId/snapshot?after=0` | Return authorized state, membership join times, invitation history without tokens, and ordered events after a sequence cursor. A full snapshot includes `eventChainValid`. |
+| POST | `/journeys/:journeyId/ownership` | Owner deliberately transfers the journey to another active member. A non-terminal web subscription blocks transfer until its billing relationship is resolved. |
+| GET | `/journeys/:journeyId/snapshot?after=0` | Return authorized state, membership join times, invitation history without tokens, current capacity availability, and ordered events after a sequence cursor. A full snapshot includes `eventChainValid`. Capacity reports people, live reservations, whether another invitation is allowed, and the active mode; it does not expose the internal ceiling. |
+
+An unexpired invitation reserves its own place. Creating or accepting an invitation takes the journey lock so concurrent requests cannot exceed capacity. The default and production-safe mode remains two-person. `test-groups` permits synthetic 3–99 person verification outside production only; `billing` requires billing to be explicitly enabled and derives additional capacity from the current journey entitlement.
 
 ## Journey records
 
@@ -36,6 +39,20 @@ All endpoints are versioned under `/api/v1`. JSON responses use `{ "data": ... }
 | POST/PATCH/DELETE | `/journeys/:journeyId/moments[/momentId]` | Create or mutate a private, shared-now, or share-later moment with creator-aware authorization. |
 | PATCH | `/journeys/:journeyId/milestones/:key` | Set a bounded action milestone. |
 | GET | `/journeys/:journeyId/events?after=0` | Read the authoritative event stream. |
+
+## Web billing
+
+Stripe billing is disabled unless the server has an explicit, mode-matched configuration. Checkout creation requires an authenticated, verified journey owner, an allowed browser origin, and the session CSRF token.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/journeys/:journeyId/billing` | For the journey owner, return the approved additional-person offer, current paid-capacity entitlement, subscription state, and recent journey invoices. Provider Customer and Price IDs are never returned. |
+| POST | `/journeys/:journeyId/billing/checkout-sessions` | Create Stripe-hosted subscription Checkout for the allow-listed $1 USD monthly additional-person Price. This candidate accepts only `paidCapacity: 1`; browser-supplied amounts, other quantities, and Price IDs are rejected. |
+| POST | `/billing/webhooks/stripe` | Verify Stripe's signature over the raw body, reject the wrong environment, and idempotently project supported events into billing records and entitlements. This route uses Stripe authentication rather than a browser session. |
+
+The Checkout success redirect never grants access. Verified provider events update the entitlement ledger. See [STRIPE.md](STRIPE.md) for setup, event coverage, and remaining release boundaries.
+
+Account deletion returns `409 billing_subscription_active` while the person pays for, or owns a journey with, a non-terminal web subscription. The billing relationship must be resolved before deletion; the service never silently leaves a recurring charge behind. Self-service cancellation remains outside this non-live candidate until issue 43 is decided.
 
 ## Conflict contract
 

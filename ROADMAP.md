@@ -40,6 +40,8 @@ PR#0003 remains a candidate until production secrets, SMTP, PostgreSQL, backup r
 - Installable PWA metadata and icons
 - Durable offline sync and explicit merge UX
 - Independent security review and disaster-recovery exercise
+- Test-mode Stripe Checkout, Billing, webhook, and entitlement acceptance matrix; Customer Portal waits for the policy decisions tracked in issue 43
+- Billing reconciliation, refund/dispute policy, tax decisions, and live-mode release gate
 
 ## Later — subscription and native apps
 
@@ -47,7 +49,7 @@ PR#0003 remains a candidate until production secrets, SMTP, PostgreSQL, backup r
 - Android packaging after the web/iOS launch exception
 - Additional journeyers are planned, but the current private service still enforces its live membership limit
 - Public pricing remains undecided until the additional-journeyer experience, billing boundary, and launch evidence are implementation-ready
-- External payment processor only; accounts and journey data stay in the owner-controlled platform
+- Stripe for direct web purchases only; Apple and Google purchases remain separate store transactions while accounts, journeys, and normalized entitlements stay in the owner-controlled platform
 
 ## Not planned
 

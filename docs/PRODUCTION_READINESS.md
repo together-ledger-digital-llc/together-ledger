@@ -28,8 +28,19 @@ This checklist records what must be true before Together Ledger's private-sync A
 - [ ] The root-only offsite upload receipt matches the current encrypted backup, and `verify-production-recovery.sh` passes.
 - [ ] The daily recovery timer is enabled and its most recent successful run is reviewed.
 - [ ] A synthetic-data restore succeeds into an isolated PostgreSQL database.
-- [ ] Registration, verification, invitation, recovery, deletion, conflict protection, two-person limit, and Event Manager integrity pass using synthetic accounts.
+- [ ] Registration, verification, invitation, recovery, deliberate ownership transfer, deletion, conflict protection, two-person production default, group-capacity race boundary, and Event Manager integrity pass using synthetic accounts.
 - [ ] The rollback procedure in `docs/OPERATIONS.md` has been rehearsed without production user data.
+
+## Web billing
+
+- [ ] Every key that appeared in chat, screenshots, logs, or shell history has been rotated; completed values exist only in the managed secret store and root-owned environment file.
+- [ ] Checkout, Billing, Invoicing, and webhook behavior pass the test-mode matrix in `docs/STRIPE.md` with synthetic accounts.
+- [ ] Customer Portal behavior passes its own test-mode matrix after issue 43 policies and Portal permissions are approved.
+- [ ] Public pricing, tax registrations, refund and dispute policy, grace period, entitlement ownership, and Portal permissions have written approval.
+- [ ] The live webhook has a distinct signing secret, the test endpoint rejects live events, and no test Price ID is present in the live configuration.
+- [ ] Periodic reconciliation and alerts for webhook age, processing failures, duplicate Customers, failed invoices, and entitlement drift are operating.
+- [ ] Apple App Store and Google Play rules have been reviewed for every target storefront before any native purchase or app-to-web path is offered.
+- [ ] Rollback disables new Checkout and Portal sessions while preserving webhook ingestion, reconciliation, refunds, and existing subscription handling.
 
 ## Public release decision
 
