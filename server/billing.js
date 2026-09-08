@@ -46,6 +46,20 @@ function errorMessage(error) {
   return String(error?.message || error?.name || 'Webhook processing failed.').slice(0, 500);
 }
 
+async function listStripeObjects(listPage, params = {}) {
+  const objects = [];
+  let startingAfter;
+  for (let pageNumber = 0; pageNumber < 100; pageNumber += 1) {
+    const page = await listPage({ ...params, limit: 100, ...(startingAfter ? { starting_after: startingAfter } : {}) });
+    const data = Array.isArray(page?.data) ? page.data : [];
+    objects.push(...data);
+    if (!page?.has_more) return objects;
+    if (!data.length || !data[data.length - 1]?.id) throw new Error('Stripe pagination did not provide a safe continuation cursor.');
+    startingAfter = data[data.length - 1].id;
+  }
+  throw new Error('Stripe reconciliation exceeded its bounded pagination limit.');
+}
+
 export class DisabledBillingService {
   async status() {
     return { enabled: false, environment: 'test', offers: [], entitlement: null, subscription: null, invoices: [] };
@@ -59,6 +73,10 @@ export class DisabledBillingService {
 
   async handleWebhook() {
     throw new PlatformError(503, 'billing_unavailable', 'Membership billing is not available yet.');
+  }
+
+  async reconcile() {
+    throw new PlatformError(503, 'billing_unavailable', 'Membership billing reconciliation is not available.');
   }
 }
 
@@ -277,6 +295,139 @@ export class StripeBillingService {
     };
   }
 
+  async entitlementSnapshot(subscriptionId) {
+    const result = await this.pool.query(
+      `SELECT state,quantity,effective_at,expires_at,reason
+       FROM billing_entitlements
+       WHERE source='stripe' AND environment=$1 AND source_record_id=$2 AND capability=$3`,
+      [this.environment, subscriptionId, CAPABILITY],
+    );
+    const row = result.rows[0];
+    return row ? {
+      state: row.state,
+      quantity: Number(row.quantity),
+      effectiveAt: row.effective_at ? new Date(row.effective_at).toISOString() : null,
+      expiresAt: row.expires_at ? new Date(row.expires_at).toISOString() : null,
+      reason: row.reason || null,
+    } : null;
+  }
+
+  async reconcile({ trigger = 'manual' } = {}) {
+    if (!['manual', 'scheduled'].includes(trigger)) throw new PlatformError(400, 'invalid_reconciliation_trigger', 'Choose a supported reconciliation trigger.');
+    const runId = randomUUID();
+    const startedAt = this.now();
+    const expectedLiveMode = this.environment === 'live';
+    let lockClient;
+    let lockHeld = false;
+    if (this.config.NODE_ENV !== 'test') {
+      lockClient = await this.pool.connect();
+      const lock = await lockClient.query(
+        'SELECT pg_try_advisory_lock(hashtextextended($1,0)) AS locked',
+        [`stripe-billing-reconciliation-${this.environment}`],
+      );
+      lockHeld = Boolean(lock.rows[0]?.locked);
+      if (!lockHeld) {
+        lockClient.release();
+        throw new PlatformError(409, 'billing_reconciliation_in_progress', 'Another billing reconciliation is already running.');
+      }
+    }
+
+    const summary = {
+      environment: this.environment,
+      trigger,
+      customersScanned: 0,
+      subscriptionsScanned: 0,
+      invoicesScanned: 0,
+      entitlementDriftRepaired: 0,
+      duplicateCustomers: 0,
+      webhookFailures: 0,
+    };
+    try {
+      await this.pool.query(
+        `INSERT INTO billing_reconciliation_runs
+         (id,provider,environment,run_trigger,processing_state,started_at)
+         VALUES ($1,'stripe',$2,$3,'running',$4)`,
+        [runId, this.environment, trigger, startedAt],
+      );
+      await this.assertOfferPrice();
+
+      const taggedCustomers = await listStripeObjects(
+        (params) => this.stripe.customers.list(params),
+      );
+      const customerCounts = new Map();
+      for (const customer of taggedCustomers) {
+        if (customer.deleted || Boolean(customer.livemode) !== expectedLiveMode) continue;
+        const taggedEnvironment = customer.metadata?.together_environment;
+        const taggedUserId = customer.metadata?.together_user_id;
+        if (taggedEnvironment !== this.environment || !REQUEST_ID.test(String(taggedUserId || ''))) continue;
+        customerCounts.set(taggedUserId, (customerCounts.get(taggedUserId) || 0) + 1);
+      }
+      summary.duplicateCustomers = [...customerCounts.values()].reduce((count, value) => count + Math.max(0, value - 1), 0);
+
+      const localCustomers = await this.pool.query(
+        `SELECT provider_customer_id FROM billing_customers
+         WHERE provider='stripe' AND environment=$1 ORDER BY created_at,provider_customer_id`,
+        [this.environment],
+      );
+      summary.customersScanned = localCustomers.rowCount;
+      for (const row of localCustomers.rows) {
+        const subscriptions = await listStripeObjects(
+          (params) => this.stripe.subscriptions.list(params),
+          { customer: row.provider_customer_id, status: 'all' },
+        );
+        for (const subscription of subscriptions) {
+          if (subscription.metadata?.together_offer_id !== OFFER_ID) continue;
+          if (Boolean(subscription.livemode) !== expectedLiveMode) throw new Error('Stripe reconciliation received a subscription from the wrong environment.');
+          summary.subscriptionsScanned += 1;
+          const before = await this.entitlementSnapshot(subscription.id);
+          await withTransaction(this.pool, (client) => this.processSubscription(client, subscription, this.now()));
+          const after = await this.entitlementSnapshot(subscription.id);
+          if (JSON.stringify(before) !== JSON.stringify(after)) summary.entitlementDriftRepaired += 1;
+        }
+
+        const invoices = await listStripeObjects(
+          (params) => this.stripe.invoices.list(params),
+          { customer: row.provider_customer_id },
+        );
+        for (const invoice of invoices) {
+          if (Boolean(invoice.livemode) !== expectedLiveMode) throw new Error('Stripe reconciliation received an invoice from the wrong environment.');
+          const subscriptionId = invoiceSubscriptionId(invoice);
+          if (!subscriptionId) continue;
+          summary.invoicesScanned += 1;
+          await withTransaction(this.pool, (client) => this.processInvoice(client, invoice, 'invoice.reconciled', this.now()));
+        }
+      }
+
+      const failures = await this.pool.query(
+        `SELECT count(*)::int AS count FROM billing_webhook_events
+         WHERE environment=$1 AND processing_state='failed'`,
+        [this.environment],
+      );
+      summary.webhookFailures = Number(failures.rows[0]?.count || 0);
+      await this.pool.query(
+        `UPDATE billing_reconciliation_runs
+         SET processing_state='succeeded',completed_at=$1,customers_scanned=$2,subscriptions_scanned=$3,
+             invoices_scanned=$4,entitlement_drift_repaired=$5,duplicate_customers=$6,webhook_failures=$7
+         WHERE id=$8`,
+        [this.now(), summary.customersScanned, summary.subscriptionsScanned, summary.invoicesScanned,
+          summary.entitlementDriftRepaired, summary.duplicateCustomers, summary.webhookFailures, runId],
+      );
+      return summary;
+    } catch (error) {
+      await this.pool.query(
+        `UPDATE billing_reconciliation_runs SET processing_state='failed',completed_at=$1,last_error=$2 WHERE id=$3`,
+        [this.now(), errorMessage(error), runId],
+      ).catch(() => {});
+      throw error;
+    } finally {
+      if (lockHeld) await lockClient.query(
+        'SELECT pg_advisory_unlock(hashtextextended($1,0))',
+        [`stripe-billing-reconciliation-${this.environment}`],
+      ).catch(() => {});
+      lockClient?.release();
+    }
+  }
+
   async handleWebhook(rawBody, signature) {
     if (!signature) throw new PlatformError(400, 'stripe_signature_missing', 'The Stripe signature is missing.');
     let event;
@@ -444,9 +595,17 @@ export class StripeBillingService {
     const paidCapacity = this.paidCapacityFor(subscription, context.paidCapacity);
     const period = subscriptionPeriod(subscription);
     const state = this.entitlementState(subscription);
-    const graceExpiry = state === 'grace'
-      ? new Date(this.now().getTime() + this.config.billingGraceDays * 24 * 60 * 60 * 1000)
-      : null;
+    let graceExpiry = null;
+    if (state === 'grace') {
+      const existingEntitlement = await client.query(
+        `SELECT state,expires_at FROM billing_entitlements
+         WHERE source='stripe' AND environment=$1 AND source_record_id=$2 AND capability=$3`,
+        [this.environment, subscription.id, CAPABILITY],
+      );
+      graceExpiry = existingEntitlement.rows[0]?.state === 'grace' && existingEntitlement.rows[0]?.expires_at
+        ? new Date(existingEntitlement.rows[0].expires_at)
+        : new Date(this.now().getTime() + this.config.billingGraceDays * 24 * 60 * 60 * 1000);
+    }
     const expiresAt = state === 'expired' ? (unixDate(subscription.canceled_at) || this.now()) : graceExpiry || period.end;
     const savedSubscription = await client.query(
       `INSERT INTO billing_subscriptions
