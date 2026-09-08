@@ -8,6 +8,7 @@ import { MemoryMailer } from '../server/mailer.js';
 import { PlatformService } from '../server/platform.js';
 
 const origin = 'http://127.0.0.1:4174';
+const appOrigin = 'https://app.together-ledger.com';
 const apiOrigin = 'https://api.example.test';
 
 async function testPlatform({ mailer = new MemoryMailer(), configOverrides = {} } = {}) {
@@ -31,6 +32,7 @@ async function testPlatform({ mailer = new MemoryMailer(), configOverrides = {} 
   const config = loadConfig({
     NODE_ENV: 'test',
     PUBLIC_ORIGIN: origin,
+    APP_ORIGINS: appOrigin,
     API_ORIGIN: apiOrigin,
     ACCOUNT_ORIGIN: apiOrigin,
     SESSION_SECRET: 's'.repeat(32),
@@ -70,6 +72,9 @@ test('hosted API bridge allows the configured frontend and API origins only', as
   assert.equal(allowed.statusCode, 204);
   assert.equal(allowed.headers['access-control-allow-origin'], origin);
   assert.equal(allowed.headers['access-control-allow-credentials'], 'true');
+  const secondFrontendAllowed = await app.inject({ method: 'OPTIONS', url: '/api/v1/session', headers: { origin: appOrigin } });
+  assert.equal(secondFrontendAllowed.statusCode, 204);
+  assert.equal(secondFrontendAllowed.headers['access-control-allow-origin'], appOrigin);
   const apiAllowed = await app.inject({ method: 'OPTIONS', url: '/api/v1/session', headers: { origin: apiOrigin } });
   assert.equal(apiAllowed.statusCode, 204);
   assert.equal(apiAllowed.headers['access-control-allow-origin'], apiOrigin);
@@ -88,6 +93,19 @@ test('hosted API bridge allows the configured frontend and API origins only', as
   });
   assert.equal(rejectedRegistration.statusCode, 403);
   assert.equal(mailer.messages.length, messageCount);
+});
+
+test('dual-host frontend can start an account lifecycle', async (t) => {
+  const { app, mailer, pool } = await testPlatform();
+  t.after(async () => { await app.close(); await pool.end(); });
+  const response = await app.inject({
+    method: 'POST',
+    url: '/api/v1/auth/register',
+    headers: { origin: appOrigin },
+    payload: { email: 'dual-host@example.test', username: 'dual-host', password: 'correct horse battery staple' },
+  });
+  assert.equal(response.statusCode, 201, response.body);
+  assert.equal(mailer.messages.findLast((message) => message.type === 'verification').accountOrigin, appOrigin);
 });
 
 function authHeaders(client) {

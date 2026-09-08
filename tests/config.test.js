@@ -22,3 +22,11 @@ test('two-person capacity remains the default', () => {
   assert.equal(config.journeyCapacityMode, 'two-person');
   assert.equal(config.billingEnabled, false);
 });
+
+test('dual-host app origins are parsed and deduplicated', () => {
+  const config = loadConfig({
+    NODE_ENV: 'test',
+    APP_ORIGINS: ' https://app.together-ledger.com,https://legacy.example,https://app.together-ledger.com ',
+  });
+  assert.deepEqual(config.appOrigins, ['https://app.together-ledger.com', 'https://legacy.example']);
+});

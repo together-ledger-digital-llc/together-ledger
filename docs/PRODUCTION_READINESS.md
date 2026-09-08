@@ -18,7 +18,7 @@ This checklist records what must be true before Together Ledger's private-sync A
 - [ ] The PostgreSQL role is application-only and the database has no public port.
 - [ ] Caddy receives only ports `80` and `443`; it proxies privately to the application.
 - [ ] A Caddy domain and Cloudflare DNS record are configured only after private health checks pass.
-- [ ] `PUBLIC_ORIGIN` is exactly `https://together-ledger.com`, cookies are secure, and proxy trust is enabled.
+- [ ] `PUBLIC_ORIGIN` is exactly `https://app.together-ledger.com`, `APP_ORIGINS` contains the legacy app origin during dual-host rollout, cookies are secure, and proxy trust is enabled.
 
 ## Recoverability
 
