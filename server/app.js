@@ -125,6 +125,10 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
     const session = await billing.createCheckoutSession(request.auth.userId, request.params.journeyId, request.body || {});
     return reply.code(201).send({ data: session });
   });
+  app.post('/api/v1/journeys/:journeyId/billing/portal-sessions', { preHandler: protectMutation, config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } }, async (request, reply) => {
+    const session = await billing.createPortalSession(request.auth.userId, request.params.journeyId);
+    return reply.code(201).send({ data: session });
+  });
   app.post('/api/v1/billing/webhooks/stripe', { config: { rawBody: true, rateLimit: { max: 600, timeWindow: '1 minute' } } }, async (request, reply) => {
     const result = await billing.handleWebhook(request.rawBody, request.headers['stripe-signature']);
     return reply.code(200).send(result);

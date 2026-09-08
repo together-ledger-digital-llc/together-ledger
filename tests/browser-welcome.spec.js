@@ -123,7 +123,7 @@ test('a pending account action is announced and cannot be submitted twice', asyn
   await expect(page.locator('#account-dialog')).not.toBeVisible();
 });
 
-test('a journey owner sees the test-only additional-person billing boundary', async ({ page }) => {
+test('a journey owner sees only the approved test billing controls', async ({ page }) => {
   const owner = { id: 'user-1', username: 'journeyer', displayName: 'Journeyer', email: 'journeyer@example.test', emailVerified: true };
   await page.route('https://api.together-ledger.com/api/v1/session', (route) => route.fulfill({
     contentType: 'application/json',
@@ -147,11 +147,12 @@ test('a journey owner sees the test-only additional-person billing boundary', as
     contentType: 'application/json',
     body: JSON.stringify({ data: {
       enabled: true,
+      portalEnabled: true,
       environment: 'test',
       journey: { id: 'journey-billing', name: 'A wider circle' },
       offers: [{ id: 'additional-person-monthly', label: 'Another person', cadence: 'month', currency: 'USD', unitAmount: 100 }],
-      entitlement: null,
-      subscription: null,
+      entitlement: { state: 'active', quantity: 1, expiresAt: '2026-10-07T18:00:00.000Z' },
+      subscription: { status: 'active', paidCapacity: 1, currentPeriodEnd: '2026-10-07T18:00:00.000Z', cancelAtPeriodEnd: false },
       invoices: [],
     } }),
   }));
@@ -160,9 +161,9 @@ test('a journey owner sees the test-only additional-person billing boundary', as
   await page.getByRole('button', { name: 'Account settings', exact: true }).first().click();
   await expect(page.locator('#billing-panel')).toBeVisible();
   await expect(page.locator('#billing-environment')).toContainText('Test mode — checkout cannot create a real charge.');
-  await expect(page.locator('#billing-status')).toContainText('first two people in A wider circle are included');
-  await expect(page.getByRole('button', { name: 'Add another person · $1.00 USD / month' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Manage billing and invoices' })).toHaveCount(0);
+  await expect(page.locator('#billing-status')).toContainText('1 additional person is covered');
+  await expect(page.getByRole('button', { name: 'Add another person · $1.00 USD / month' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Manage payment and cancellation' })).toBeVisible();
   await expect(page.locator('.billing-boundary')).toContainText('Apple App Store and future Google Play purchases remain with those stores');
   const accessibilityScan = await new AxeBuilder({ page }).include('#account-dialog').analyze();
   expect(accessibilityScan.violations).toEqual([]);

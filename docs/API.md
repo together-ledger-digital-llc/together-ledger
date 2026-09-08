@@ -42,17 +42,18 @@ An unexpired invitation reserves its own place. Creating or accepting an invitat
 
 ## Web billing
 
-Stripe billing is disabled unless the server has an explicit, mode-matched configuration. Checkout creation requires an authenticated, verified journey owner, an allowed browser origin, and the session CSRF token.
+Stripe billing is disabled unless the server has an explicit, mode-matched configuration. Checkout and Customer Portal Session creation require an authenticated, verified journey owner, an allowed browser origin, and the session CSRF token. Portal Sessions also require a separately enabled, allow-listed Stripe configuration that passes the approved-policy check on every request.
 
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/journeys/:journeyId/billing` | For the journey owner, return the approved additional-person offer, current paid-capacity entitlement, subscription state, and recent journey invoices. Provider Customer and Price IDs are never returned. |
 | POST | `/journeys/:journeyId/billing/checkout-sessions` | Create Stripe-hosted subscription Checkout for the allow-listed $1 USD monthly additional-person Price. This candidate accepts only `paidCapacity: 1`; browser-supplied amounts, other quantities, and Price IDs are rejected. |
+| POST | `/journeys/:journeyId/billing/portal-sessions` | For the verified journey owner with the mapped Customer and non-terminal journey subscription, create a Stripe-hosted Portal Session. The server first verifies that the allow-listed configuration permits invoice history, payment-method updates, and cancel-at-renewal only. |
 | POST | `/billing/webhooks/stripe` | Verify Stripe's signature over the raw body, reject the wrong environment, and idempotently project supported events into billing records and entitlements. This route uses Stripe authentication rather than a browser session. |
 
 The Checkout success redirect never grants access. Verified provider events update the entitlement ledger. See [STRIPE.md](STRIPE.md) for setup, event coverage, and remaining release boundaries.
 
-Account deletion returns `409 billing_subscription_active` while the person pays for, or owns a journey with, a non-terminal web subscription. The billing relationship must be resolved before deletion; the service never silently leaves a recurring charge behind. Self-service cancellation remains outside this non-live candidate until issue 43 is decided.
+Account deletion returns `409 billing_subscription_active` while the person pays for, or owns a journey with, a non-terminal web subscription. The billing relationship must be resolved before deletion; the service never silently leaves a recurring charge behind. Portal cancellation takes effect at renewal and does not remove an existing person, shared history, or a valid invitation reservation.
 
 ## Conflict contract
 

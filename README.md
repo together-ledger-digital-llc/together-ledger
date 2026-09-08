@@ -35,7 +35,7 @@ This is not couples therapy, financial advice, surveillance software, or a relat
 - An explicit browser-only mode that never uploads existing local journey data.
 - Private sync for separate accounts, verified-email invitations, PostgreSQL journeys, recovery, deletion, conflict protection, server-authoritative shared moments, and HMAC-chained events.
 - A portable container and active/passive AWS-primary/GCP-standby operations plan.
-- A test-mode paid-journey-capacity candidate using Stripe-hosted Checkout, Billing, verified webhooks, and provider-neutral entitlements; it models $1 USD monthly for one person beyond the first two, remains disabled by default, and does not claim live billing or self-service subscription management.
+- A disabled-by-default test-mode paid-journey-capacity candidate using Stripe-hosted Checkout and a tightly restricted Customer Portal, Billing, verified webhooks, and provider-neutral entitlements; it models $1 USD monthly for one person beyond the first two and does not claim live billing.
 
 ## Try it locally
 

@@ -62,11 +62,15 @@ async function listStripeObjects(listPage, params = {}) {
 
 export class DisabledBillingService {
   async status() {
-    return { enabled: false, environment: 'test', offers: [], entitlement: null, subscription: null, invoices: [] };
+    return { enabled: false, portalEnabled: false, environment: 'test', offers: [], entitlement: null, subscription: null, invoices: [] };
   }
 
   async createCheckoutSession() {
     throw new PlatformError(503, 'billing_unavailable', 'Membership billing is not available yet.');
+  }
+
+  async createPortalSession() {
+    throw new PlatformError(503, 'billing_portal_unavailable', 'Billing settings are not available yet.');
   }
 
   async assertAccountDeletable() {}
@@ -133,6 +137,31 @@ export class StripeBillingService {
       && price.recurring?.usage_type === 'licensed';
     if (!valid) {
       throw new PlatformError(503, 'billing_price_mismatch', 'The test price does not match the approved $1 monthly additional-person offer.');
+    }
+  }
+
+  async assertPortalConfiguration() {
+    const configuration = await this.stripe.billingPortal.configurations.retrieve(
+      this.config.STRIPE_PORTAL_CONFIGURATION_ID,
+    );
+    const features = configuration.features || {};
+    const valid = configuration.active
+      && Boolean(configuration.livemode) === (this.environment === 'live')
+      && features.invoice_history?.enabled === true
+      && features.payment_method_update?.enabled === true
+      && features.subscription_cancel?.enabled === true
+      && features.subscription_cancel?.mode === 'at_period_end'
+      && features.subscription_cancel?.proration_behavior === 'none'
+      && features.subscription_update?.enabled === false
+      && (features.subscription_update?.default_allowed_updates || []).length === 0
+      && (!features.subscription_pause || features.subscription_pause.enabled === false)
+      && (!features.customer_update || (
+        features.customer_update.enabled === false
+        && (features.customer_update.allowed_updates || []).length === 0
+      ))
+      && configuration.login_page?.enabled !== true;
+    if (!valid) {
+      throw new PlatformError(503, 'billing_portal_policy_mismatch', 'Billing settings do not match the approved journey policy.');
     }
   }
 
@@ -220,6 +249,34 @@ export class StripeBillingService {
     return { id: session.id, url: session.url, environment: this.environment, journeyId };
   }
 
+  async createPortalSession(userId, journeyId) {
+    if (!this.config.billingPortalEnabled) {
+      throw new PlatformError(503, 'billing_portal_unavailable', 'Billing settings are not available yet.');
+    }
+    await this.requireJourneyOwner(userId, journeyId);
+    const result = await this.pool.query(
+      `SELECT bs.provider_customer_id
+       FROM billing_subscriptions bs
+       JOIN billing_customers bc ON bc.user_id=bs.payer_user_id
+         AND bc.provider='stripe' AND bc.environment=bs.environment
+         AND bc.provider_customer_id=bs.provider_customer_id
+       WHERE bs.journey_id=$1 AND bs.payer_user_id=$2 AND bs.environment=$3
+         AND bs.offer_id=$4 AND bs.status NOT IN ('canceled','incomplete_expired')
+       ORDER BY bs.updated_at DESC LIMIT 1`,
+      [journeyId, userId, this.environment, OFFER_ID],
+    );
+    if (!result.rowCount) {
+      throw new PlatformError(409, 'billing_subscription_missing', 'This journey has no active web billing relationship to manage.');
+    }
+    await this.assertPortalConfiguration();
+    const session = await this.stripe.billingPortal.sessions.create({
+      customer: result.rows[0].provider_customer_id,
+      configuration: this.config.STRIPE_PORTAL_CONFIGURATION_ID,
+      return_url: `${this.config.PUBLIC_ORIGIN}/?billing=portal`,
+    });
+    return { url: session.url, environment: this.environment, journeyId };
+  }
+
   async assertAccountDeletable(userId) {
     const subscription = await this.pool.query(
       `SELECT 1 FROM billing_subscriptions bs
@@ -268,6 +325,8 @@ export class StripeBillingService {
     const subscription = subscriptions.rows[0];
     return {
       enabled: true,
+      portalEnabled: Boolean(this.config.billingPortalEnabled && subscription
+        && !['canceled', 'incomplete_expired'].includes(subscription.status)),
       environment: this.environment,
       journey: { id: journeyId, name: owner.journey_name },
       offers: this.publicOffers(),
