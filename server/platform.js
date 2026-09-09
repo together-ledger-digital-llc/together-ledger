@@ -188,7 +188,18 @@ function publicMoment(row) {
 }
 
 function publicMomentImage(row) {
-  return { id: row.id, momentId: row.moment_id, contentType: row.content_type, createdAt: dateTime(row.created_at) };
+  return { id: row.id, momentId: row.moment_id, filename: row.original_filename || 'Image', contentType: row.content_type, createdAt: dateTime(row.created_at) };
+}
+
+function cleanImageFilename(value, contentType) {
+  const fallback = { 'image/jpeg': 'Image.jpg', 'image/png': 'Image.png', 'image/webp': 'Image.webp' }[contentType] || 'Image';
+  try {
+    const decoded = decodeURIComponent(String(value || ''));
+    const name = decoded.replace(/[/\\\u0000-\u001f\u007f]/g, ' ').trim().replace(/\s+/g, ' ');
+    return name.slice(0, 160) || fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function auditMoment(moment) {
@@ -765,7 +776,7 @@ export class PlatformService {
     });
   }
 
-  async uploadMomentImage(userId, journeyId, momentId, contentType, bytes, paidSlotId = null) {
+  async uploadMomentImage(userId, journeyId, momentId, contentType, bytes, paidSlotId = null, originalFilename = '') {
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(contentType)) throw new PlatformError(400, 'unsupported_image', 'Choose a JPEG, PNG, or WebP image.');
     if (!Buffer.isBuffer(bytes) || bytes.length < 1 || bytes.length > 25 * 1024 * 1024) throw new PlatformError(400, 'invalid_image', 'Choose an image no larger than 25 MB.');
     return withTransaction(this.pool, async (client) => {
@@ -775,7 +786,7 @@ export class PlatformService {
       if (!moment.rowCount) throw notFound();
       const existing = await client.query('SELECT id FROM moment_images WHERE moment_id=$1 FOR UPDATE', [momentId]);
       if (existing.rowCount && !paidSlotId) throw new PlatformError(409, 'included_image_already_used', 'This moment already holds its included image. Another image needs the monthly image add-on.');
-      const image = await client.query(`INSERT INTO moment_images (id,journey_id,moment_id,uploaded_by_user_id,content_type,content_length,bytes,paid_slot_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`, [randomUUID(), journeyId, momentId, userId, contentType, bytes.length, bytes, paidSlotId]);
+      const image = await client.query(`INSERT INTO moment_images (id,journey_id,moment_id,uploaded_by_user_id,content_type,content_length,bytes,paid_slot_id,original_filename) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`, [randomUUID(), journeyId, momentId, userId, contentType, bytes.length, bytes, paidSlotId, cleanImageFilename(originalFilename, contentType)]);
       return publicMomentImage(image.rows[0]);
     });
   }
@@ -860,7 +871,7 @@ export class PlatformService {
           LEFT JOIN users editor ON editor.id=m.updated_by_user_id
           WHERE m.journey_id=$1 AND (m.visibility='shared-now' OR m.created_by_user_id=$2)
           ORDER BY m.occurred_on,m.created_at,m.id`, [journeyId, userId]),
-        client.query(`SELECT mi.id,mi.moment_id,mi.content_type,mi.created_at FROM moment_images mi JOIN journey_moments m ON m.id=mi.moment_id WHERE mi.journey_id=$1 AND (m.visibility='shared-now' OR m.created_by_user_id=$2) ORDER BY mi.created_at,mi.id`, [journeyId, userId]),
+        client.query(`SELECT mi.id,mi.moment_id,mi.original_filename,mi.content_type,mi.created_at FROM moment_images mi JOIN journey_moments m ON m.id=mi.moment_id WHERE mi.journey_id=$1 AND (m.visibility='shared-now' OR m.created_by_user_id=$2) ORDER BY mi.created_at,mi.id`, [journeyId, userId]),
         client.query('SELECT * FROM concerns WHERE journey_id=$1 ORDER BY updated_at DESC', [journeyId]),
         client.query('SELECT key,completed,updated_at FROM journey_milestones WHERE journey_id=$1', [journeyId]),
         client.query('SELECT * FROM journey_events WHERE journey_id=$1 AND sequence>$2 ORDER BY sequence', [journeyId, Number(afterSequence) || 0]),
