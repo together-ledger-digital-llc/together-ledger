@@ -207,6 +207,10 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
     const image = await platform.momentImage(request.auth.userId, request.params.journeyId, request.params.momentId, request.params.imageId);
     return reply.header('Cache-Control', 'private, max-age=300').type(image.content_type).send(image.bytes);
   });
+  app.delete('/api/v1/journeys/:journeyId/moments/:momentId/images/:imageId', { preHandler: protectMutation }, async (request, reply) => {
+    await platform.deleteMomentImage(request.auth.userId, request.params.journeyId, request.params.momentId, request.params.imageId);
+    return reply.code(204).send();
+  });
 
   app.post('/api/v1/journeys/:journeyId/concerns', { preHandler: protectMutation }, async (request, reply) => reply.code(201).send({ data: { concern: await platform.createConcern(request.auth.userId, request.params.journeyId, request.body || {}) } }));
   app.patch('/api/v1/journeys/:journeyId/concerns/:concernId', { preHandler: protectMutation }, async (request) => ({ data: { concern: await platform.mutateConcern(request.auth.userId, request.params.journeyId, request.params.concernId, request.body || {}) } }));
