@@ -31,6 +31,7 @@ async function testPlatform({ mailer = new MemoryMailer(), configOverrides = {} 
   await pool.query(await readFile(new URL('../server/migrations/009_reserve-group-places.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../server/migrations/011_hold-one-image-with-each-moment.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../server/migrations/012_bill-additional-moment-images.sql', import.meta.url), 'utf8'));
+  await pool.query(await readFile(new URL('../server/migrations/013_name-moment-image-attachments.sql', import.meta.url), 'utf8'));
   const config = loadConfig({
     NODE_ENV: 'test',
     PUBLIC_ORIGIN: origin,
