@@ -394,9 +394,12 @@ function updateMomentKindField(form) {
 
 function openMoment(id = '', initialKind = '') {
   const form = $('#moment-form');
-  const moment = state.moments.find((item) => item.id === id);
+  const trip = activeTrip(state);
+  const moment = state.moments.find((item) => item.id === id && item.tripId === trip?.id);
   const hosted = isCloudJourney();
   form.reset();
+  // A new moment must never inherit an ID from a dialog that previously edited one.
+  form.elements.id.value = '';
   form.elements.kind.innerHTML = MOMENT_TYPES.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
   form.elements.occurredOn.value = new Date().toISOString().slice(0, 10);
   form.elements.visibility.value = 'shared-now';
@@ -859,17 +862,18 @@ $('#guidance-done').addEventListener('click', () => endGuidanceForToday('Check-i
 
 $('#moment-form').addEventListener('submit', async (event) => {
   event.preventDefault();
+  const form = event.currentTarget;
   try {
-    const input = Object.fromEntries(new FormData(event.currentTarget));
-    const existingIndex = state.moments.findIndex((moment) => moment.id === input.id);
-    const before = existingIndex >= 0 ? structuredClone(state.moments[existingIndex]) : null;
+    const input = Object.fromEntries(new FormData(form));
     const trip = activeTrip(state);
+    const existingIndex = state.moments.findIndex((moment) => moment.id === input.id && moment.tripId === trip?.id);
+    const before = existingIndex >= 0 ? structuredClone(state.moments[existingIndex]) : null;
     if (isCloudJourney(trip)) {
       const moneyCents = input.money === '' ? null : Math.round(Number(input.money) * 100);
       const payload = { kind: input.kind, kindLabel: input.kindLabel || '', title: input.title, detail: input.detail, occurredOn: input.occurredOn, visibility: input.visibility, moneyCents, moneyCurrency: input.moneyCurrency || '', ...(before ? { version: before.version } : {}) };
       const result = before ? await api.mutate(`/journeys/${trip.id}/moments/${before.id}`, 'PATCH', payload) : await api.mutate(`/journeys/${trip.id}/moments`, 'POST', payload);
-      const image = event.currentTarget.elements.image.files[0];
-      if (image) await api.uploadMomentImage(trip.id, result.moment.id, image, event.currentTarget.dataset.paidSlotId || '');
+      const image = form.elements.image.files[0];
+      if (image) await api.uploadMomentImage(trip.id, result.moment.id, image, form.dataset.paidSlotId || '');
       $('#moment-dialog').close();
       await refreshCloudState();
       showToast(before ? 'Moment updated.' : input.visibility === 'shared-now' ? 'Moment shared.' : 'Moment held with you.');
