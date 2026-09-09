@@ -25,7 +25,7 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
     if (origin && allowedOrigins.has(origin)) {
       reply.header('Access-Control-Allow-Origin', origin);
       reply.header('Access-Control-Allow-Credentials', 'true');
-      reply.header('Access-Control-Allow-Headers', 'Content-Type, X-Together-CSRF');
+      reply.header('Access-Control-Allow-Headers', 'Content-Type, X-Together-CSRF, X-Together-Image-Name');
       reply.header('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
       reply.header('Vary', 'Origin');
     }
@@ -201,7 +201,7 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
   app.post('/api/v1/journeys/:journeyId/moments/:momentId/images', { preHandler: protectMutation, bodyLimit: 25 * 1024 * 1024 }, async (request, reply) => {
     const paidSlotId = request.query?.paidSlotId || null;
     if (paidSlotId) await billing.assertImageSlot(request.auth.userId, request.params.journeyId, request.params.momentId, paidSlotId);
-    return reply.code(201).send({ data: { image: await platform.uploadMomentImage(request.auth.userId, request.params.journeyId, request.params.momentId, request.headers['content-type'], request.body, paidSlotId) } });
+    return reply.code(201).send({ data: { image: await platform.uploadMomentImage(request.auth.userId, request.params.journeyId, request.params.momentId, request.headers['content-type'], request.body, paidSlotId, request.headers['x-together-image-name']) } });
   });
   app.get('/api/v1/journeys/:journeyId/moments/:momentId/images/:imageId', { preHandler: authenticate }, async (request, reply) => {
     const image = await platform.momentImage(request.auth.userId, request.params.journeyId, request.params.momentId, request.params.imageId);

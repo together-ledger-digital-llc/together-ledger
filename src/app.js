@@ -372,10 +372,11 @@ function renderSharedJourney(trip, moments, isEmptyStart) {
   $('#moment-timeline').innerHTML = visible.length ? visible.map((moment) => {
     const attribution = `<span>Held by ${escapeHtml(moment.createdBy || 'Journey member')}</span>${moment.shapedByBoth ? '<span class="moment-collaboration-badge">Shaped by both journeyers</span>' : ''}`;
     const shareAction = isCloudJourney(trip) && moment.visibility === 'share-later' ? `<button data-share-moment="${escapeHtml(moment.id)}">Share now</button>` : '';
-    const gallery = moment.images?.length ? `<div class="moment-gallery">${moment.images.map((image) => `<img src="${escapeHtml(api.imageUrl(trip.id, moment.id, image.id))}" crossorigin="use-credentials" alt="A photo held with ${escapeHtml(moment.title)}" />`).join('')}</div>` : '';
-    return `<article class="moment-card ${moment.visibility}"><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn)}</span><span class="visibility-chip ${moment.visibility}">${escapeHtml(moment.visibility.replaceAll('-', ' '))}</span></div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${gallery}${moment.moneyCents != null ? `<details class="money-context"><summary>Practical money context</summary><p>${money(moment.moneyCents, moment.moneyCurrency)} is held here as context, not a score.</p></details>` : ''}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">Edit</button></div></article>`;
+    const attachments = moment.images?.length ? `<div class="moment-attachments">${moment.images.map((image) => `<button type="button" class="moment-image-attachment" data-open-moment-image="${escapeHtml(image.id)}"><span>Photo</span><strong>${escapeHtml(image.filename || 'Image')}</strong></button>`).join('')}</div>` : '';
+    return `<article class="moment-card ${moment.visibility}"><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn)}</span><span class="visibility-chip ${moment.visibility}">${escapeHtml(moment.visibility.replaceAll('-', ' '))}</span></div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${attachments}${moment.moneyCents != null ? `<details class="money-context"><summary>Practical money context</summary><p>${money(moment.moneyCents, moment.moneyCurrency)} is held here as context, not a score.</p></details>` : ''}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">Edit</button></div></article>`;
   }).join('') : isEmptyStart ? `<div class="log-types"><p>There are no examples here—only possibilities:</p><div>${MOMENT_TYPES.filter(([value]) => value !== 'other').map(([, label]) => `<span>${escapeHtml(label)}</span>`).join('')}<button type="button" data-open-custom-moment>＋ Add your own moment</button></div></div>` : '<p class="empty">No moments in this view yet. A small truth is enough to begin.</p>';
   $$('[data-edit-moment]').forEach((button) => button.addEventListener('click', () => openMoment(button.dataset.editMoment)));
+  $$('[data-open-moment-image]').forEach((button) => button.addEventListener('click', () => openMomentImage(button.dataset.openMomentImage)));
   $$('[data-share-moment]').forEach((button) => button.addEventListener('click', () => shareMoment(button.dataset.shareMoment)));
   $$('[data-open-custom-moment]').forEach((button) => button.addEventListener('click', () => {
     if (accountUser && !isCloudJourney(trip)) { openJourney(); return; }
@@ -383,6 +384,18 @@ function renderSharedJourney(trip, moments, isEmptyStart) {
   }));
   $('#open-threads').innerHTML = threads.length ? threads.map((thread) => `<article class="thread-row"><div><span class="status-chip open">open</span><strong>${escapeHtml(thread.title)}</strong>${thread.detail ? `<p>${escapeHtml(thread.detail)}</p>` : ''}</div><button data-edit-thread="${escapeHtml(thread.id)}">Open</button></article>`).join('') : '<p class="empty compact">No open threads. That can be a good place to rest.</p>';
   $$('[data-edit-thread]').forEach((button) => button.addEventListener('click', () => openConcern(button.dataset.editThread)));
+}
+
+function openMomentImage(imageId) {
+  const trip = activeTrip(state);
+  const moment = activeMoments(state).find((item) => item.images?.some((image) => image.id === imageId));
+  const image = moment?.images.find((item) => item.id === imageId);
+  if (!trip || !moment || !image) return;
+  $('#moment-image-viewer-name').textContent = image.filename || 'Image';
+  const viewer = $('#moment-image-viewer-image');
+  viewer.src = api.imageUrl(trip.id, moment.id, image.id);
+  viewer.alt = `Photo held with ${moment.title}`;
+  $('#moment-image-viewer').showModal();
 }
 
 function updateMomentKindField(form) {
@@ -759,6 +772,7 @@ $$('[data-open-moment]').forEach((button) => button.addEventListener('click', ()
   openMoment();
 }));
 $$('[data-close-moment]').forEach((button) => button.addEventListener('click', () => $('#moment-dialog').close()));
+$$('[data-close-image-viewer]').forEach((button) => button.addEventListener('click', () => $('#moment-image-viewer').close()));
 $$('[data-close-journey]').forEach((button) => button.addEventListener('click', () => $('#journey-dialog').close()));
 
 $('#journey-select').addEventListener('change', (event) => {
