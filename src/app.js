@@ -70,7 +70,8 @@ function snapshotToState(snapshots) {
     snapshot.milestones.forEach((item) => { milestones[item.key] = item.completed; });
     trips.push({ ...snapshot.journey, members: snapshot.members.map((member) => member.displayName), memberRecords: snapshot.members, invitationRecords: snapshot.invitations || [], capacity: snapshot.capacity, createdByUserId, createdByDisplayName, createdAt: creationEvent?.createdAt || snapshot.journey.createdAt, milestones, archivedAt: '' });
     entries.push(...snapshot.expenses.map((expense) => ({ ...expense, tripId: expense.journeyId, paidBy: expense.payerLabel })));
-    moments.push(...snapshot.moments.map((moment) => ({ ...moment, tripId: moment.journeyId })));
+    const imagesByMoment = Object.groupBy(snapshot.images || [], (image) => image.momentId);
+    moments.push(...snapshot.moments.map((moment) => ({ ...moment, tripId: moment.journeyId, images: imagesByMoment[moment.id] || [] })));
     concerns.push(...snapshot.concerns.map((concern) => ({ ...concern, tripId: concern.journeyId, updatedBy: 'Journey member', updatedAt: new Date(concern.updatedAt).toISOString() })));
     snapshot.events.forEach((event, index) => events.push({
       ...event,
@@ -371,7 +372,8 @@ function renderSharedJourney(trip, moments, isEmptyStart) {
   $('#moment-timeline').innerHTML = visible.length ? visible.map((moment) => {
     const attribution = `<span>Held by ${escapeHtml(moment.createdBy || 'Journey member')}</span>${moment.shapedByBoth ? '<span class="moment-collaboration-badge">Shaped by both journeyers</span>' : ''}`;
     const shareAction = isCloudJourney(trip) && moment.visibility === 'share-later' ? `<button data-share-moment="${escapeHtml(moment.id)}">Share now</button>` : '';
-    return `<article class="moment-card ${moment.visibility}"><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn)}</span><span class="visibility-chip ${moment.visibility}">${escapeHtml(moment.visibility.replaceAll('-', ' '))}</span></div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${moment.moneyCents != null ? `<details class="money-context"><summary>Practical money context</summary><p>${money(moment.moneyCents, moment.moneyCurrency)} is held here as context, not a score.</p></details>` : ''}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">Edit</button></div></article>`;
+    const gallery = moment.images?.length ? `<div class="moment-gallery">${moment.images.map((image) => `<img src="${escapeHtml(api.imageUrl(trip.id, moment.id, image.id))}" crossorigin="use-credentials" alt="A photo held with ${escapeHtml(moment.title)}" />`).join('')}</div>` : '';
+    return `<article class="moment-card ${moment.visibility}"><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn)}</span><span class="visibility-chip ${moment.visibility}">${escapeHtml(moment.visibility.replaceAll('-', ' '))}</span></div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${gallery}${moment.moneyCents != null ? `<details class="money-context"><summary>Practical money context</summary><p>${money(moment.moneyCents, moment.moneyCurrency)} is held here as context, not a score.</p></details>` : ''}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">Edit</button></div></article>`;
   }).join('') : isEmptyStart ? `<div class="log-types"><p>There are no examples here—only possibilities:</p><div>${MOMENT_TYPES.filter(([value]) => value !== 'other').map(([, label]) => `<span>${escapeHtml(label)}</span>`).join('')}<button type="button" data-open-custom-moment>＋ Add your own moment</button></div></div>` : '<p class="empty">No moments in this view yet. A small truth is enough to begin.</p>';
   $$('[data-edit-moment]').forEach((button) => button.addEventListener('click', () => openMoment(button.dataset.editMoment)));
   $$('[data-share-moment]').forEach((button) => button.addEventListener('click', () => shareMoment(button.dataset.shareMoment)));
@@ -407,11 +409,27 @@ function openMoment(id = '', initialKind = '') {
       : 'Private stays with you. Shared now opens it to both journeyers. Share later stays with you until you deliberately share it.'
     : 'Browser only: Private and Share later are local cues, not separate-account privacy controls.';
   $('#moment-visibility-field').hidden = false;
+  $('#moment-image-field').hidden = !hosted;
   $$('input[name="visibility"]', form).forEach((input) => { input.disabled = Boolean(hosted && moment?.visibility === 'shared-now' && input.value !== 'shared-now'); });
   if (moment) {
     form.elements.id.value = moment.id; form.elements.kind.value = moment.kind; form.elements.kindLabel.value = moment.kindLabel || ''; form.elements.title.value = moment.title; form.elements.detail.value = moment.detail; form.elements.occurredOn.value = moment.occurredOn; form.elements.visibility.value = moment.visibility; form.elements.money.value = moment.moneyCents == null ? '' : (moment.moneyCents / 100).toFixed(2); form.elements.moneyCurrency.value = moment.moneyCurrency || '';
   } else if (initialKind) {
     form.elements.kind.value = initialKind;
+  }
+  const hasIncludedImage = Boolean(moment?.images?.length);
+  form.elements.image.disabled = hasIncludedImage;
+  $('#moment-image-help').textContent = hasIncludedImage ? 'This moment already holds its included image. Another image is a $1/month add-on.' : 'JPEG, PNG, or WebP, up to 25 MB. One image is included with every hosted moment.';
+  $('#buy-image-slot-button').hidden = !hosted || !moment || !hasIncludedImage;
+  $('#buy-image-slot-button').dataset.momentId = moment?.id || '';
+  delete form.dataset.paidSlotId;
+  if (hosted && moment && hasIncludedImage) {
+    api.imageSlots(activeTrip(state).id, moment.id).then(({ slots }) => {
+      const slot = slots.find((item) => ['active', 'grace'].includes(item.state));
+      if (!slot || !$('#moment-dialog').open) return;
+      form.elements.image.disabled = false;
+      form.dataset.paidSlotId = slot.id;
+      $('#moment-image-help').textContent = 'Your $1/month image add-on is ready. Choose the additional image, up to 25 MB.';
+    }).catch(() => {});
   }
   form.elements.kind.onchange = () => updateMomentKindField(form);
   updateMomentKindField(form);
@@ -849,8 +867,9 @@ $('#moment-form').addEventListener('submit', async (event) => {
     if (isCloudJourney(trip)) {
       const moneyCents = input.money === '' ? null : Math.round(Number(input.money) * 100);
       const payload = { kind: input.kind, kindLabel: input.kindLabel || '', title: input.title, detail: input.detail, occurredOn: input.occurredOn, visibility: input.visibility, moneyCents, moneyCurrency: input.moneyCurrency || '', ...(before ? { version: before.version } : {}) };
-      if (before) await api.mutate(`/journeys/${trip.id}/moments/${before.id}`, 'PATCH', payload);
-      else await api.mutate(`/journeys/${trip.id}/moments`, 'POST', payload);
+      const result = before ? await api.mutate(`/journeys/${trip.id}/moments/${before.id}`, 'PATCH', payload) : await api.mutate(`/journeys/${trip.id}/moments`, 'POST', payload);
+      const image = event.currentTarget.elements.image.files[0];
+      if (image) await api.uploadMomentImage(trip.id, result.moment.id, image, event.currentTarget.dataset.paidSlotId || '');
       $('#moment-dialog').close();
       await refreshCloudState();
       showToast(before ? 'Moment updated.' : input.visibility === 'shared-now' ? 'Moment shared.' : 'Moment held with you.');
@@ -872,6 +891,17 @@ $('#toggle-moments-button').addEventListener('click', () => {
   momentsExpanded = !momentsExpanded;
   momentFilter = 'all';
   renderSharedJourney(activeTrip(state), activeMoments(state));
+});
+$('#buy-image-slot-button').addEventListener('click', async (event) => {
+  const momentId = event.currentTarget.dataset.momentId;
+  const trip = activeTrip(state);
+  if (!momentId || !isCloudJourney(trip)) return;
+  try {
+    const session = await api.createImageCheckout(trip.id, momentId);
+    window.location.assign(session.url);
+  } catch (error) {
+    showToast(accountMessage(error));
+  }
 });
 $('#settings-button').addEventListener('click', () => $('#settings-dialog').showModal());
 $$('[data-close-settings]').forEach((button) => button.addEventListener('click', () => $('#settings-dialog').close()));

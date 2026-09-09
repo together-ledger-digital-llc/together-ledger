@@ -187,6 +187,10 @@ function publicMoment(row) {
   };
 }
 
+function publicMomentImage(row) {
+  return { id: row.id, momentId: row.moment_id, contentType: row.content_type, createdAt: dateTime(row.created_at) };
+}
+
 function auditMoment(moment) {
   if (!moment) return null;
   const { detail: _detail, ...safe } = moment;
@@ -761,6 +765,27 @@ export class PlatformService {
     });
   }
 
+  async uploadMomentImage(userId, journeyId, momentId, contentType, bytes, paidSlotId = null) {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(contentType)) throw new PlatformError(400, 'unsupported_image', 'Choose a JPEG, PNG, or WebP image.');
+    if (!Buffer.isBuffer(bytes) || bytes.length < 1 || bytes.length > 25 * 1024 * 1024) throw new PlatformError(400, 'invalid_image', 'Choose an image no larger than 25 MB.');
+    return withTransaction(this.pool, async (client) => {
+      await this.requireMember(client, userId, journeyId);
+      await this.lockJourney(client, journeyId);
+      const moment = await client.query("SELECT id FROM journey_moments WHERE id=$1 AND journey_id=$2 AND (visibility='shared-now' OR created_by_user_id=$3) FOR UPDATE", [momentId, journeyId, userId]);
+      if (!moment.rowCount) throw notFound();
+      const existing = await client.query('SELECT id FROM moment_images WHERE moment_id=$1 FOR UPDATE', [momentId]);
+      if (existing.rowCount && !paidSlotId) throw new PlatformError(409, 'included_image_already_used', 'This moment already holds its included image. Another image needs the monthly image add-on.');
+      const image = await client.query(`INSERT INTO moment_images (id,journey_id,moment_id,uploaded_by_user_id,content_type,content_length,bytes,paid_slot_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`, [randomUUID(), journeyId, momentId, userId, contentType, bytes.length, bytes, paidSlotId]);
+      return publicMomentImage(image.rows[0]);
+    });
+  }
+
+  async momentImage(userId, journeyId, momentId, imageId) {
+    const image = await this.pool.query(`SELECT mi.* FROM moment_images mi JOIN journey_moments m ON m.id=mi.moment_id JOIN journey_members jm ON jm.journey_id=m.journey_id AND jm.user_id=$1 WHERE mi.id=$2 AND mi.journey_id=$3 AND mi.moment_id=$4 AND (m.visibility='shared-now' OR m.created_by_user_id=$1)`, [userId, imageId, journeyId, momentId]);
+    if (!image.rowCount) throw notFound();
+    return image.rows[0];
+  }
+
   async createConcern(userId, journeyId, input) {
     return withTransaction(this.pool, async (client) => {
       await this.requireMember(client, userId, journeyId);
@@ -825,7 +850,7 @@ export class PlatformService {
     try {
       if (this.config.NODE_ENV !== 'test') await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
       const journey = await this.requireMember(client, userId, journeyId);
-      const [members, invitations, expenses, moments, concerns, milestones, events, capacity] = await Promise.all([
+      const [members, invitations, expenses, moments, images, concerns, milestones, events, capacity] = await Promise.all([
         client.query(`SELECT u.id,u.display_name,jm.role,jm.joined_at FROM journey_members jm JOIN users u ON u.id=jm.user_id WHERE jm.journey_id=$1 ORDER BY jm.joined_at,jm.user_id`, [journeyId]),
         client.query(`SELECT i.*,u.display_name AS invited_by_display_name FROM invitations i JOIN users u ON u.id=i.invited_by_user_id WHERE i.journey_id=$1 ORDER BY i.created_at,i.id`, [journeyId]),
         client.query('SELECT * FROM expenses WHERE journey_id=$1 ORDER BY occurred_on,id', [journeyId]),
@@ -835,6 +860,7 @@ export class PlatformService {
           LEFT JOIN users editor ON editor.id=m.updated_by_user_id
           WHERE m.journey_id=$1 AND (m.visibility='shared-now' OR m.created_by_user_id=$2)
           ORDER BY m.occurred_on,m.created_at,m.id`, [journeyId, userId]),
+        client.query(`SELECT mi.id,mi.moment_id,mi.content_type,mi.created_at FROM moment_images mi JOIN journey_moments m ON m.id=mi.moment_id WHERE mi.journey_id=$1 AND (m.visibility='shared-now' OR m.created_by_user_id=$2) ORDER BY mi.created_at,mi.id`, [journeyId, userId]),
         client.query('SELECT * FROM concerns WHERE journey_id=$1 ORDER BY updated_at DESC', [journeyId]),
         client.query('SELECT key,completed,updated_at FROM journey_milestones WHERE journey_id=$1', [journeyId]),
         client.query('SELECT * FROM journey_events WHERE journey_id=$1 AND sequence>$2 ORDER BY sequence', [journeyId, Number(afterSequence) || 0]),
@@ -854,6 +880,7 @@ export class PlatformService {
         invitations: invitations.rows.map((row) => publicInvitation(row, this.now())),
         expenses: expenses.rows.map(publicExpense),
         moments: moments.rows.map(publicMoment),
+        images: images.rows.map(publicMomentImage),
         concerns: concerns.rows.map(publicConcern),
         milestones: milestones.rows.map((row) => ({ key: row.key, completed: row.completed, updatedAt: row.updated_at })),
         events: publicEvents,

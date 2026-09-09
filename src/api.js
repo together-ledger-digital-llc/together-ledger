@@ -91,4 +91,26 @@ export class TogetherApi {
   mutate(path, method, body) {
     return this.request(path, { method, body, authenticatedMutation: true });
   }
+
+  imageUrl(journeyId, momentId, imageId) {
+    return `${this.base}/journeys/${encodeURIComponent(journeyId)}/moments/${encodeURIComponent(momentId)}/images/${encodeURIComponent(imageId)}`;
+  }
+
+  async uploadMomentImage(journeyId, momentId, file, paidSlotId = '') {
+    const slot = paidSlotId ? `?paidSlotId=${encodeURIComponent(paidSlotId)}` : '';
+    const response = await fetch(`${this.base}/journeys/${encodeURIComponent(journeyId)}/moments/${encodeURIComponent(momentId)}/images${slot}`, {
+      method: 'POST', credentials: this.crossOrigin ? 'include' : 'same-origin', headers: { 'Content-Type': file.type, 'X-Together-CSRF': this.csrfToken }, body: file,
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) throw new ApiError(payload?.error?.message || 'The image could not be added.', { code: payload?.error?.code, status: response.status });
+    return payload?.data?.image;
+  }
+
+  imageSlots(journeyId, momentId) {
+    return this.request(`/journeys/${journeyId}/moments/${momentId}/image-slots`);
+  }
+
+  createImageCheckout(journeyId, momentId) {
+    return this.mutate(`/journeys/${journeyId}/moments/${momentId}/image-slots/checkout-sessions`, 'POST', { requestId: crypto.randomUUID() });
+  }
 }
