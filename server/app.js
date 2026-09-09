@@ -19,6 +19,7 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(rateLimit, { max: 300, timeWindow: '1 minute' });
   await app.register(rawBody, { field: 'rawBody', global: false, encoding: false, runFirst: true });
+  app.addContentTypeParser(['image/jpeg', 'image/png', 'image/webp'], { parseAs: 'buffer' }, (_request, body, done) => done(null, body));
   app.addHook('onRequest', async (request, reply) => {
     const origin = request.headers.origin;
     if (origin && allowedOrigins.has(origin)) {
@@ -134,6 +135,8 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
     const session = await billing.createPortalSession(request.auth.userId, request.params.journeyId);
     return reply.code(201).send({ data: session });
   });
+  app.get('/api/v1/journeys/:journeyId/moments/:momentId/image-slots', { preHandler: authenticate }, async (request) => ({ data: { slots: await billing.imageSlots(request.auth.userId, request.params.journeyId, request.params.momentId) } }));
+  app.post('/api/v1/journeys/:journeyId/moments/:momentId/image-slots/checkout-sessions', { preHandler: protectMutation, config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } }, async (request, reply) => reply.code(201).send({ data: await billing.createImageCheckoutSession(request.auth.userId, request.params.journeyId, request.params.momentId, request.body || {}) }));
   app.post('/api/v1/billing/webhooks/stripe', { config: { rawBody: true, rateLimit: { max: 600, timeWindow: '1 minute' } } }, async (request, reply) => {
     const result = await billing.handleWebhook(request.rawBody, request.headers['stripe-signature']);
     return reply.code(200).send(result);
@@ -194,6 +197,15 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
   app.delete('/api/v1/journeys/:journeyId/moments/:momentId', { preHandler: protectMutation }, async (request, reply) => {
     await platform.mutateMoment(request.auth.userId, request.params.journeyId, request.params.momentId, request.body || {}, { remove: true });
     return reply.code(204).send();
+  });
+  app.post('/api/v1/journeys/:journeyId/moments/:momentId/images', { preHandler: protectMutation, bodyLimit: 25 * 1024 * 1024 }, async (request, reply) => {
+    const paidSlotId = request.query?.paidSlotId || null;
+    if (paidSlotId) await billing.assertImageSlot(request.auth.userId, request.params.journeyId, request.params.momentId, paidSlotId);
+    return reply.code(201).send({ data: { image: await platform.uploadMomentImage(request.auth.userId, request.params.journeyId, request.params.momentId, request.headers['content-type'], request.body, paidSlotId) } });
+  });
+  app.get('/api/v1/journeys/:journeyId/moments/:momentId/images/:imageId', { preHandler: authenticate }, async (request, reply) => {
+    const image = await platform.momentImage(request.auth.userId, request.params.journeyId, request.params.momentId, request.params.imageId);
+    return reply.header('Cache-Control', 'private, max-age=300').type(image.content_type).send(image.bytes);
   });
 
   app.post('/api/v1/journeys/:journeyId/concerns', { preHandler: protectMutation }, async (request, reply) => reply.code(201).send({ data: { concern: await platform.createConcern(request.auth.userId, request.params.journeyId, request.body || {}) } }));

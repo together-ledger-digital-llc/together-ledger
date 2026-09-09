@@ -6,6 +6,7 @@ import { PlatformError } from './platform.js';
 export const STRIPE_API_VERSION = '2026-02-25.clover';
 const CAPABILITY = 'additional-journey-capacity';
 const OFFER_ID = 'additional-person-monthly';
+const IMAGE_OFFER_ID = 'additional-moment-image-monthly';
 const UNIT_AMOUNT = 100;
 const CURRENCY = 'USD';
 const MAX_PAID_CAPACITY = 97;
@@ -72,6 +73,10 @@ export class DisabledBillingService {
   async createPortalSession() {
     throw new PlatformError(503, 'billing_portal_unavailable', 'Billing settings are not available yet.');
   }
+
+  async createImageCheckoutSession() { throw new PlatformError(503, 'billing_unavailable', 'Additional image billing is not available yet.'); }
+  async imageSlots() { return []; }
+  async assertImageSlot() { throw new PlatformError(409, 'image_payment_required', 'Another image needs the monthly image add-on.'); }
 
   async assertAccountDeletable() {}
 
@@ -247,6 +252,34 @@ export class StripeBillingService {
       [session.id, this.environment, user.id, journeyId, OFFER_ID, quantity, session.status || 'open', this.now()],
     );
     return { id: session.id, url: session.url, environment: this.environment, journeyId };
+  }
+
+  async createImageCheckoutSession(userId, journeyId, momentId, { requestId }) {
+    if (!this.config.momentImageBillingEnabled) throw new PlatformError(503, 'billing_unavailable', 'Additional image billing is not available yet.');
+    if (!REQUEST_ID.test(String(requestId || '')) || !REQUEST_ID.test(String(momentId || ''))) throw new PlatformError(400, 'invalid_request_id', 'Refresh the page before trying checkout again.');
+    const member = await this.pool.query(`SELECT u.id,u.email_normalized,u.email_verified_at FROM users u JOIN journey_members jm ON jm.user_id=u.id WHERE u.id=$1 AND jm.journey_id=$2 AND u.deleted_at IS NULL`, [userId, journeyId]);
+    if (!member.rowCount) throw new PlatformError(403, 'forbidden', 'Only a journey member can add an image.');
+    if (!member.rows[0].email_verified_at) throw new PlatformError(403, 'billing_email_unverified', 'Verify your email before adding another image.');
+    const moment = await this.pool.query(`SELECT id FROM journey_moments WHERE id=$1 AND journey_id=$2 AND (visibility='shared-now' OR created_by_user_id=$3)`, [momentId, journeyId, userId]);
+    if (!moment.rowCount) throw new PlatformError(404, 'not_found', 'The requested moment was not found.');
+    const price = await this.stripe.prices.retrieve(this.config.STRIPE_ADDITIONAL_IMAGE_PRICE_ID);
+    if (!price.active || price.type !== 'recurring' || Boolean(price.livemode) !== (this.environment === 'live') || price.currency !== 'usd' || price.unit_amount !== 100 || price.recurring?.interval !== 'month') throw new PlatformError(503, 'billing_price_mismatch', 'The image price must be an active $1 monthly Stripe price.');
+    const slotId = randomUUID();
+    const customerId = await this.customerFor(member.rows[0]);
+    const session = await this.stripe.checkout.sessions.create({ mode: 'subscription', customer: customerId, line_items: [{ price: price.id, quantity: 1 }], success_url: `${this.config.PUBLIC_ORIGIN}/?image=success&session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${this.config.PUBLIC_ORIGIN}/?image=canceled`, metadata: { together_offer_id: IMAGE_OFFER_ID, together_image_slot_id: slotId, together_user_id: userId, together_journey_id: journeyId, together_moment_id: momentId, together_environment: this.environment }, subscription_data: { metadata: { together_offer_id: IMAGE_OFFER_ID, together_image_slot_id: slotId, together_user_id: userId, together_journey_id: journeyId, together_moment_id: momentId, together_environment: this.environment } } }, { idempotencyKey: `together-image-checkout-${this.environment}-${slotId}-${requestId}` });
+    await this.pool.query(`INSERT INTO moment_image_slots (id,journey_id,moment_id,payer_user_id,environment,provider_session_id,state,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,'pending',$7,$7)`, [slotId, journeyId, momentId, userId, this.environment, session.id, this.now()]);
+    return { url: session.url, id: session.id };
+  }
+
+  async imageSlots(userId, journeyId, momentId) {
+    const slots = await this.pool.query(`SELECT mis.id,mis.state FROM moment_image_slots mis JOIN journey_members jm ON jm.journey_id=mis.journey_id AND jm.user_id=$1 WHERE mis.journey_id=$2 AND mis.moment_id=$3 AND mis.payer_user_id=$1 AND mis.environment=$4 ORDER BY mis.created_at`, [userId, journeyId, momentId, this.environment]);
+    return slots.rows.map((slot) => ({ id: slot.id, state: slot.state }));
+  }
+
+  async assertImageSlot(userId, journeyId, momentId, slotId) {
+    if (!REQUEST_ID.test(String(slotId || ''))) throw new PlatformError(409, 'image_payment_required', 'Another image needs the monthly image add-on.');
+    const slot = await this.pool.query(`SELECT mis.id FROM moment_image_slots mis LEFT JOIN moment_images mi ON mi.paid_slot_id=mis.id WHERE mis.id=$1 AND mis.journey_id=$2 AND mis.moment_id=$3 AND mis.payer_user_id=$4 AND mis.environment=$5 AND mis.state IN ('active','grace') AND mi.id IS NULL`, [slotId, journeyId, momentId, userId, this.environment]);
+    if (!slot.rowCount) throw new PlatformError(409, 'image_payment_required', 'Another image needs an active monthly image add-on.');
   }
 
   async createPortalSession(userId, journeyId) {
@@ -647,6 +680,13 @@ export class StripeBillingService {
   }
 
   async processSubscription(client, subscription, eventCreatedAt) {
+    if (subscription.metadata?.together_offer_id === IMAGE_OFFER_ID) {
+      const slotId = subscription.metadata?.together_image_slot_id;
+      if (!REQUEST_ID.test(String(slotId || ''))) return;
+      const state = ACTIVE_STATES.has(subscription.status) ? 'active' : GRACE_STATES.has(subscription.status) ? 'grace' : ['canceled', 'incomplete_expired'].includes(subscription.status) ? 'canceled' : 'pending';
+      await client.query(`UPDATE moment_image_slots SET provider_subscription_id=$1,state=$2,updated_at=$3 WHERE id=$4 AND environment=$5`, [subscription.id, state, this.now(), slotId, this.environment]);
+      return;
+    }
     this.assertSubscriptionOffer(subscription);
     const context = await this.billingContextFor(client, subscription, subscription.id);
     if (!context) return;

@@ -440,6 +440,9 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .field textarea { resize: vertical; }
 .money-fields > div { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr) minmax(190px, .55fr); }
 .money-fields label { display: block; }
+.moment-image-field input[type="file"] { padding: 10px; }
+.moment-gallery { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin-top: 16px; }
+.moment-gallery img { aspect-ratio: 4 / 3; border: 1px solid var(--line); border-radius: 12px; display: block; object-fit: cover; width: 100%; }
 .sr-only { clip: rect(0, 0, 0, 0); height: 1px; margin: -1px; overflow: hidden; position: absolute; width: 1px; }
 .radio-row { display: grid; gap: 9px; grid-template-columns: 1fr 1fr; }
 .radio-row label { border: 1px solid var(--line); border-radius: 12px; padding: 13px; }
