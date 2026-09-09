@@ -115,6 +115,40 @@ function authHeaders(client) {
   return { origin, cookie: client.cookie, 'x-together-csrf': client.csrf };
 }
 
+test('hosted moment images can be named, retrieved, and removed by an authorized journeyer', async (t) => {
+  const { app, mailer, pool } = await testPlatform();
+  t.after(async () => { await app.close(); await pool.end(); });
+  const alice = await register(app, mailer, { email: 'image-owner@example.test', username: 'image-owner' });
+  const journeyResponse = await app.inject({
+    method: 'POST', url: '/api/v1/journeys', headers: authHeaders(alice),
+    payload: { name: 'A place for a photo', location: '', startDateStatus: 'unknown', endDateStatus: 'forever', startDate: null, endDate: null, budgetCents: 0 },
+  });
+  assert.equal(journeyResponse.statusCode, 201, journeyResponse.body);
+  const journey = journeyResponse.json().data.journey;
+  const momentResponse = await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journey.id}/moments`, headers: authHeaders(alice),
+    payload: { kind: 'memory', title: 'A photo worth holding', detail: '', occurredOn: '2026-08-02', visibility: 'shared-now', moneyCents: null, moneyCurrency: '' },
+  });
+  assert.equal(momentResponse.statusCode, 201, momentResponse.body);
+  const moment = momentResponse.json().data.moment;
+  const uploadResponse = await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journey.id}/moments/${moment.id}/images`,
+    headers: { ...authHeaders(alice), 'content-type': 'image/png', 'x-together-image-name': encodeURIComponent('A quiet photo.png') },
+    payload: Buffer.from('image-bytes'),
+  });
+  assert.equal(uploadResponse.statusCode, 201, uploadResponse.body);
+  const image = uploadResponse.json().data.image;
+  assert.equal(image.filename, 'A quiet photo.png');
+  const fetched = await app.inject({ method: 'GET', url: `/api/v1/journeys/${journey.id}/moments/${moment.id}/images/${image.id}`, headers: { cookie: alice.cookie } });
+  assert.equal(fetched.statusCode, 200, fetched.body);
+  assert.equal(fetched.headers['content-type'], 'image/png');
+  assert.deepEqual(fetched.rawPayload, Buffer.from('image-bytes'));
+  const removed = await app.inject({ method: 'DELETE', url: `/api/v1/journeys/${journey.id}/moments/${moment.id}/images/${image.id}`, headers: authHeaders(alice) });
+  assert.equal(removed.statusCode, 204, removed.body);
+  const missing = await app.inject({ method: 'GET', url: `/api/v1/journeys/${journey.id}/moments/${moment.id}/images/${image.id}`, headers: { cookie: alice.cookie } });
+  assert.equal(missing.statusCode, 404, missing.body);
+});
+
 test('TC-00010 through TC-00120 prove the shared journey is clear and durable', async (t) => {
   const { app, mailer, pool } = await testPlatform();
   t.after(async () => { await app.close(); await pool.end(); });

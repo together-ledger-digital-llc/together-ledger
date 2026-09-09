@@ -797,6 +797,16 @@ export class PlatformService {
     return image.rows[0];
   }
 
+  async deleteMomentImage(userId, journeyId, momentId, imageId) {
+    return withTransaction(this.pool, async (client) => {
+      await this.requireMember(client, userId, journeyId);
+      await this.lockJourney(client, journeyId);
+      const image = await client.query(`SELECT mi.id FROM moment_images mi JOIN journey_moments m ON m.id=mi.moment_id WHERE mi.id=$1 AND mi.journey_id=$2 AND mi.moment_id=$3 AND (m.visibility='shared-now' OR m.created_by_user_id=$4) FOR UPDATE`, [imageId, journeyId, momentId, userId]);
+      if (!image.rowCount) throw notFound();
+      await client.query('DELETE FROM moment_images WHERE id=$1', [imageId]);
+    });
+  }
+
   async createConcern(userId, journeyId, input) {
     return withTransaction(this.pool, async (client) => {
       await this.requireMember(client, userId, journeyId);
