@@ -555,6 +555,20 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .money-context summary::after { content: ' +'; }
 .money-context[open] summary::after { content: ' −'; }
 .money-context p { margin: 7px 0 0; }
+.location-context { align-items: center; color: var(--muted); display: flex; flex-wrap: wrap; font-size: 13px; font-weight: 800; gap: 7px; margin-top: 13px; }
+.location-context::before { content: '⌖'; color: var(--red); font-size: 17px; }
+.location-heading { align-items: baseline; display: flex; flex-wrap: wrap; gap: 9px; justify-content: space-between; }
+.location-heading > span { font-weight: 800; }
+.location-heading > small, .field-help { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.field-help { margin: 7px 0 12px; }
+.location-actions { align-items: center; display: grid; gap: 8px; grid-template-columns: auto minmax(0, 1fr) auto; }
+.location-actions input { width: 100%; }
+.location-actions .button { font-size: 12px; padding: 9px 10px; }
+.location-list { display: grid; gap: 7px; list-style: none; margin: 12px 0 0; padding: 0; }
+.location-list li { align-items: center; background: var(--soft); border: 1px solid var(--line); border-radius: 12px; display: flex; gap: 10px; padding: 9px 10px; }
+.location-list strong { font-size: 13px; overflow-wrap: anywhere; }
+.location-list small { color: var(--muted); font-size: 11px; font-weight: 800; margin-left: auto; white-space: nowrap; }
+.location-list button { background: transparent; border: 0; color: var(--red); cursor: pointer; font: inherit; font-size: 12px; font-weight: 800; padding: 3px; }
 .threads-section { padding-bottom: 12px; }
 #open-threads { display: grid; gap: 0; padding: 0 28px 17px; }
 .thread-row { align-items: start; border-top: 1px solid var(--line); display: flex; gap: 15px; justify-content: space-between; padding: 17px 0; }
@@ -645,6 +659,7 @@ footer p { color: var(--on-accent); margin-bottom: 0; opacity: .8; }
   .entry-actions { grid-column: 2; }
   .timeline-panel { padding: 18px 12px; }
   .form-grid { grid-template-columns: 1fr; }
+  .location-actions { grid-template-columns: 1fr; }
   .field.full { grid-column: auto; }
   .settings-grid { grid-template-columns: 1fr; }
   .guidance-card { padding: 0; }

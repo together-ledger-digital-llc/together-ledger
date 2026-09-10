@@ -1,5 +1,5 @@
 export const CATEGORIES = ['Flights', 'Hotel', 'Restaurants', 'Transportation', 'Activities', 'Shopping', 'Other'];
-export const CURRENT_SCHEMA_VERSION = 4;
+export const CURRENT_SCHEMA_VERSION = 5;
 
 export const MOMENT_TYPES = [
   ['promise', 'Promise'],
@@ -36,6 +36,7 @@ function practicalMoments(entries) {
     visibility: 'shared-now',
     moneyCents: entry.amountCents,
     moneyCurrency: 'USD',
+    locations: [],
     sourceEntryId: entry.id,
     createdAt: `${entry.occurredOn || '2026-01-01'}T12:00:00.000Z`,
     updatedAt: `${entry.occurredOn || '2026-01-01'}T12:00:00.000Z`,
@@ -79,7 +80,7 @@ export function normalizeMilestones(value = {}) {
 }
 
 export function migrateState(value) {
-  if (!value || ![1, 2, 3, CURRENT_SCHEMA_VERSION].includes(value.schemaVersion) || !Array.isArray(value.trips) || !Array.isArray(value.entries)) throw new Error('This does not look like valid Together Ledger data.');
+  if (!value || ![1, 2, 3, 4, CURRENT_SCHEMA_VERSION].includes(value.schemaVersion) || !Array.isArray(value.trips) || !Array.isArray(value.entries)) throw new Error('This does not look like valid Together Ledger data.');
   const trips = value.trips.map((trip) => ({
     ...trip,
     location: typeof trip.location === 'string' ? trip.location : '',
@@ -99,7 +100,7 @@ export function migrateState(value) {
     preferences: { ...value.preferences, onboardingComplete: value.preferences?.onboardingComplete === true, guidanceDismissedOn: typeof value.preferences?.guidanceDismissedOn === 'string' ? value.preferences.guidanceDismissedOn : '', activeActorByTrip: value.preferences?.activeActorByTrip && typeof value.preferences.activeActorByTrip === 'object' ? { ...value.preferences.activeActorByTrip } : {} },
     trips,
     entries,
-    moments: Array.isArray(value.moments) ? value.moments.map((moment) => ({ ...moment, moneyCents: moment.moneyCents == null ? null : Number(moment.moneyCents), moneyCurrency: typeof moment.moneyCurrency === 'string' ? moment.moneyCurrency : '' })) : practicalMoments(entries),
+    moments: Array.isArray(value.moments) ? value.moments.map((moment) => ({ ...moment, moneyCents: moment.moneyCents == null ? null : Number(moment.moneyCents), moneyCurrency: typeof moment.moneyCurrency === 'string' ? moment.moneyCurrency : '', locations: Array.isArray(moment.locations) ? moment.locations : [] })) : practicalMoments(entries),
     concerns: Array.isArray(value.concerns) ? value.concerns.map((concern) => ({ ...concern })) : [],
     events: Array.isArray(value.events) ? value.events.map((event) => ({ ...event })) : [],
   };
@@ -174,10 +175,17 @@ export function normalizeMoment(input, tripId, existing = null) {
   if (moneyCents != null && (!Number.isSafeInteger(moneyCents) || moneyCents < 0 || moneyCents > 100000000)) throw new Error('Enter a valid optional money context.');
   const moneyCurrency = String(input.moneyCurrency ?? existing?.moneyCurrency ?? '').trim().toUpperCase();
   if (moneyCurrency && !['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'INR'].includes(moneyCurrency)) throw new Error('Choose a supported optional currency.');
+  const locations = Array.isArray(input.locations) ? input.locations.map((location) => ({
+    label: String(location?.label || '').trim(),
+    latitude: location?.latitude == null ? null : Number(location.latitude),
+    longitude: location?.longitude == null ? null : Number(location.longitude),
+    accuracyMeters: location?.accuracyMeters == null ? null : Math.round(Number(location.accuracyMeters)),
+  })) : existing?.locations || [];
+  if (locations.length > 12 || locations.some((location) => !location.label || location.label.length > 120 || (location.latitude != null && (!Number.isFinite(location.latitude) || location.latitude < -90 || location.latitude > 90)) || (location.longitude != null && (!Number.isFinite(location.longitude) || location.longitude < -180 || location.longitude > 180)) || (location.accuracyMeters != null && (!Number.isSafeInteger(location.accuracyMeters) || location.accuracyMeters < 0)))) throw new Error('Keep each location clear and within the displayed limits.');
   const now = new Date().toISOString();
   const createdBy = existing?.createdBy || input.createdBy || 'Journey member';
   const updatedBy = input.updatedBy || existing?.updatedBy || createdBy;
-  return { id: existing?.id || makeId('moment'), tripId, kind: input.kind, kindLabel, title: input.title.trim(), detail: input.detail?.trim() || '', occurredOn: input.occurredOn, visibility: input.visibility, moneyCents, moneyCurrency, sourceEntryId: existing?.sourceEntryId || '', createdAt: existing?.createdAt || now, updatedAt: now, createdBy, updatedBy, shapedByBoth: Boolean(existing?.shapedByBoth || (existing?.createdBy && existing.createdBy !== updatedBy)), label: input.kind === 'other' ? kindLabel : momentLabel[input.kind] };
+  return { id: existing?.id || makeId('moment'), tripId, kind: input.kind, kindLabel, title: input.title.trim(), detail: input.detail?.trim() || '', occurredOn: input.occurredOn, visibility: input.visibility, moneyCents, moneyCurrency, locations, sourceEntryId: existing?.sourceEntryId || '', createdAt: existing?.createdAt || now, updatedAt: now, createdBy, updatedBy, shapedByBoth: Boolean(existing?.shapedByBoth || (existing?.createdBy && existing.createdBy !== updatedBy)), label: input.kind === 'other' ? kindLabel : momentLabel[input.kind] };
 }
 
 export function normalizeTrip(input) {
@@ -207,7 +215,7 @@ export function isValidState(value) {
   if (!value.trips.every((trip) => trip.id && trip.name && typeof trip.location === 'string' && ['exact', 'unknown'].includes(trip.startDateStatus) && ['date', 'unsure', 'forever'].includes(trip.endDateStatus) && (trip.startDateStatus !== 'exact' || /^\d{4}-\d{2}-\d{2}$/.test(trip.startDate)) && (trip.startDateStatus !== 'unknown' || !trip.startDate) && (trip.endDateStatus !== 'date' || /^\d{4}-\d{2}-\d{2}$/.test(trip.endDate)) && (trip.endDateStatus === 'date' || !trip.endDate) && (!trip.startDate || !trip.endDate || trip.endDate >= trip.startDate) && Array.isArray(trip.members) && trip.members.length >= 1 && trip.members.length <= 2 && Number.isSafeInteger(trip.budgetCents) && trip.milestones && ['reviewedPicture', 'chosePrompt', 'agreedNextAction'].every((key) => typeof trip.milestones[key] === 'boolean'))) return false;
   const tripIds = new Set(value.trips.map((trip) => trip.id)); if (!tripIds.has(value.activeTripId)) return false;
   if (!value.entries.every((entry) => entry.id && tripIds.has(entry.tripId) && entry.merchant && CATEGORIES.includes(entry.category) && Number.isSafeInteger(entry.amountCents))) return false;
-  if (!value.moments.every((moment) => moment.id && tripIds.has(moment.tripId) && moment.title && MOMENT_TYPES.some(([kind]) => kind === moment.kind) && (moment.kind !== 'other' || (typeof moment.kindLabel === 'string' && moment.kindLabel.length > 0 && moment.kindLabel.length <= 60)) && MOMENT_VISIBILITIES.includes(moment.visibility) && /^\d{4}-\d{2}-\d{2}$/.test(moment.occurredOn) && (moment.moneyCents === null || Number.isSafeInteger(moment.moneyCents)) && typeof moment.moneyCurrency === 'string' && (!moment.moneyCurrency || ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'INR'].includes(moment.moneyCurrency)))) return false;
+  if (!value.moments.every((moment) => moment.id && tripIds.has(moment.tripId) && moment.title && MOMENT_TYPES.some(([kind]) => kind === moment.kind) && (moment.kind !== 'other' || (typeof moment.kindLabel === 'string' && moment.kindLabel.length > 0 && moment.kindLabel.length <= 60)) && MOMENT_VISIBILITIES.includes(moment.visibility) && /^\d{4}-\d{2}-\d{2}$/.test(moment.occurredOn) && (moment.moneyCents === null || Number.isSafeInteger(moment.moneyCents)) && typeof moment.moneyCurrency === 'string' && (!moment.moneyCurrency || ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'INR'].includes(moment.moneyCurrency)) && Array.isArray(moment.locations) && moment.locations.length <= 12 && moment.locations.every((location) => location && typeof location.label === 'string' && location.label.length > 0 && location.label.length <= 120 && (location.latitude == null || (Number.isFinite(location.latitude) && location.latitude >= -90 && location.latitude <= 90)) && (location.longitude == null || (Number.isFinite(location.longitude) && location.longitude >= -180 && location.longitude <= 180)) && (location.accuracyMeters == null || (Number.isSafeInteger(location.accuracyMeters) && location.accuracyMeters >= 0))))) return false;
   if (!Array.isArray(value.concerns) || !value.concerns.every((concern) => concern.id && tripIds.has(concern.tripId) && concern.title && ['open', 'resolved'].includes(concern.status))) return false;
   if (!Array.isArray(value.events) || !value.events.every((event) => event.id && tripIds.has(event.tripId) && Number.isInteger(event.sequence) && event.sequence > 0 && event.occurredAt && event.actorName && event.action && event.entityType && event.entityId && event.summary)) return false;
   for (const tripId of tripIds) { const events = value.events.filter((event) => event.tripId === tripId).sort((a, b) => a.sequence - b.sequence); if (events.some((event, index) => event.sequence !== index + 1 || event.previousEventId !== (events[index - 1]?.id || ''))) return false; }

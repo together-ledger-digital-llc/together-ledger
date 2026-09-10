@@ -32,6 +32,7 @@ async function testPlatform({ mailer = new MemoryMailer(), configOverrides = {} 
   await pool.query(await readFile(new URL('../server/migrations/011_hold-one-image-with-each-moment.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../server/migrations/012_bill-additional-moment-images.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../server/migrations/013_name-moment-image-attachments.sql', import.meta.url), 'utf8'));
+  await pool.query(await readFile(new URL('../server/migrations/014_hold-places-with-shared-moments.sql', import.meta.url), 'utf8'));
   const config = loadConfig({
     NODE_ENV: 'test',
     PUBLIC_ORIGIN: origin,
@@ -188,12 +189,13 @@ test('TC-00010 through TC-00120 prove the shared journey is clear and durable', 
   await t.test('TC-00030: Shared moments can begin before another journeyer joins', async () => {
     const response = await app.inject({
       method: 'POST', url: `/api/v1/journeys/${journey.id}/moments`, headers: authHeaders(alice),
-      payload: { kind: 'memory', title: 'We made room to listen', detail: 'A shared truth held before the invitation was accepted.', occurredOn: '2026-08-22', moneyCents: 110, moneyCurrency: '' },
+      payload: { kind: 'memory', title: 'We made room to listen', detail: 'A shared truth held before the invitation was accepted.', occurredOn: '2026-08-22', moneyCents: 110, moneyCurrency: '', locations: [{ label: 'A quiet bench', latitude: 39.7392, longitude: -104.9903, accuracyMeters: 25 }] },
     });
     assert.equal(response.statusCode, 201, response.body);
     firstMoment = response.json().data.moment;
     assert.equal(firstMoment.visibility, 'shared-now');
     assert.equal(firstMoment.moneyCurrency, '');
+    assert.equal(firstMoment.locations[0].label, 'A quiet bench');
   });
 
   await t.test('TC-00031: Shared moments can use a name of their own', async () => {
@@ -269,6 +271,7 @@ test('TC-00010 through TC-00120 prove the shared journey is clear and durable', 
     const snapshot = await app.inject({ method: 'GET', url: `/api/v1/journeys/${journey.id}/snapshot`, headers: { cookie: bob.cookie } });
     const edited = snapshot.json().data.moments.find((moment) => moment.id === firstMoment.id);
     assert.equal(edited.shapedByBoth, true);
+    assert.equal(edited.locations[0].label, 'A quiet bench');
     assert.equal(edited.createdBy, 'tc-person-a');
     assert.equal(edited.updatedBy, 'tc-person-b');
   });
@@ -332,16 +335,16 @@ test('hosted moments enforce private, shared-now, and share-later visibility bet
   const invitationToken = mailer.messages.findLast((message) => message.type === 'invitation' && message.to === 'visibility-b@example.test').token;
   await app.inject({ method: 'POST', url: `/api/v1/invitations/${invitationToken}/accept`, headers: authHeaders(bob) });
 
-  async function createMoment(client, visibility, title) {
+  async function createMoment(client, visibility, title, locations = []) {
     const response = await app.inject({
       method: 'POST', url: `/api/v1/journeys/${journey.id}/moments`, headers: authHeaders(client),
-      payload: { kind: 'memory', title, detail: `${title} detail`, occurredOn: '2026-08-30', visibility, moneyCents: null, moneyCurrency: '' },
+      payload: { kind: 'memory', title, detail: `${title} detail`, occurredOn: '2026-08-30', visibility, moneyCents: null, moneyCurrency: '', locations },
     });
     assert.equal(response.statusCode, 201, response.body);
     return response.json().data.moment;
   }
 
-  const alicePrivate = await createMoment(alice, 'private', 'Only Alice can name this');
+  const alicePrivate = await createMoment(alice, 'private', 'Only Alice can name this', [{ label: 'Alice private place' }]);
   let aliceLater = await createMoment(alice, 'share-later', 'Alice will share this later');
   const aliceShared = await createMoment(alice, 'shared-now', 'Both can see this now');
   const bobPrivate = await createMoment(bob, 'private', 'Only Bob can name this');
@@ -352,6 +355,7 @@ test('hosted moments enforce private, shared-now, and share-later visibility bet
   assert.deepEqual(bobSnapshot.json().data.moments.map((moment) => moment.id).sort(), [aliceShared.id, bobPrivate.id].sort());
   assert.equal(JSON.stringify(bobSnapshot.json().data.events).includes(alicePrivate.title), false);
   assert.equal(JSON.stringify(bobSnapshot.json().data.events).includes(aliceLater.title), false);
+  assert.equal(JSON.stringify(bobSnapshot.json().data).includes('Alice private place'), false);
 
   const deniedEdit = await app.inject({
     method: 'PATCH', url: `/api/v1/journeys/${journey.id}/moments/${alicePrivate.id}`, headers: authHeaders(bob),
@@ -377,6 +381,7 @@ test('hosted moments enforce private, shared-now, and share-later visibility bet
   });
   assert.equal(heldPrivate.statusCode, 200, heldPrivate.body);
   assert.equal(heldPrivate.json().data.moment.visibility, 'share-later');
+  assert.equal(heldPrivate.json().data.moment.locations[0].label, 'Alice private place');
 
   const opened = await app.inject({
     method: 'PATCH', url: `/api/v1/journeys/${journey.id}/moments/${aliceLater.id}`, headers: authHeaders(alice),
