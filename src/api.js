@@ -96,14 +96,31 @@ export class TogetherApi {
     return `${this.base}/journeys/${encodeURIComponent(journeyId)}/moments/${encodeURIComponent(momentId)}/images/${encodeURIComponent(imageId)}`;
   }
 
+  async momentImageBlob(journeyId, momentId, imageId) {
+    let response;
+    try {
+      response = await fetch(this.imageUrl(journeyId, momentId, imageId), {
+        credentials: this.crossOrigin ? 'include' : 'same-origin',
+      });
+    } catch {
+      throw new ApiError('The photo could not be reached right now.', { code: 'offline' });
+    }
+    if (!response.ok) throw new ApiError('The photo could not be opened right now.', { code: 'image_unavailable', status: response.status });
+    return response.blob();
+  }
+
   async uploadMomentImage(journeyId, momentId, file, paidSlotId = '') {
     const slot = paidSlotId ? `?paidSlotId=${encodeURIComponent(paidSlotId)}` : '';
     const response = await fetch(`${this.base}/journeys/${encodeURIComponent(journeyId)}/moments/${encodeURIComponent(momentId)}/images${slot}`, {
-      method: 'POST', credentials: this.crossOrigin ? 'include' : 'same-origin', headers: { 'Content-Type': file.type, 'X-Together-CSRF': this.csrfToken }, body: file,
+      method: 'POST', credentials: this.crossOrigin ? 'include' : 'same-origin', headers: { 'Content-Type': file.type, 'X-Together-CSRF': this.csrfToken, 'X-Together-Image-Name': encodeURIComponent(file.name) }, body: file,
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok) throw new ApiError(payload?.error?.message || 'The image could not be added.', { code: payload?.error?.code, status: response.status });
     return payload?.data?.image;
+  }
+
+  deleteMomentImage(journeyId, momentId, imageId) {
+    return this.mutate(`/journeys/${encodeURIComponent(journeyId)}/moments/${encodeURIComponent(momentId)}/images/${encodeURIComponent(imageId)}`, 'DELETE');
   }
 
   imageSlots(journeyId, momentId) {

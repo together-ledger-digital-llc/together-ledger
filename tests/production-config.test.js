@@ -69,8 +69,9 @@ test('production deployment bundle keeps the database private and requires delib
   assert.match(readiness, /never committed/);
   assert.match(readiness, /budget alert is monitoring/);
   assert.match(readiness, /api\.together-ledger\.com/);
-  assert.match(dockerfile, /FROM node:22-bookworm-slim AS dependencies/);
-  assert.match(dockerfile, /apt-get install -y --no-install-recommends python3 make g\+\+/);
+  assert.match(dockerfile, /FROM node:24-alpine AS dependencies/);
+  assert.match(dockerfile, /apk add --no-cache python3 make g\+\+/);
+  assert.match(dockerfile, /FROM node:24-alpine\nENV NODE_ENV=production/);
 });
 
 test('operations use the production environment file for Compose substitutions', async () => {
