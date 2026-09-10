@@ -498,6 +498,8 @@ function openMoment(id = '', initialKind = '') {
   $('#remove-moment-image-button').dataset.imageId = includedImage?.id || '';
   $('#buy-image-slot-button').hidden = !hosted || !moment || !hasIncludedImage;
   $('#buy-image-slot-button').dataset.momentId = moment?.id || '';
+  $('#buy-location-slot-button').hidden = !hosted || !moment || momentLocations.length === 0;
+  $('#buy-location-slot-button').dataset.momentId = moment?.id || '';
   delete form.dataset.paidSlotId;
   if (hosted && moment && hasIncludedImage) {
     api.imageSlots(activeTrip(state).id, moment.id).then(({ slots }) => {
@@ -1032,6 +1034,19 @@ $('#buy-image-slot-button').addEventListener('click', async (event) => {
   try {
     const session = await api.createImageCheckout(trip.id, momentId);
     window.location.assign(session.url);
+  } catch (error) {
+    showToast(accountMessage(error));
+  }
+});
+$('#buy-location-slot-button').addEventListener('click', async (event) => {
+  const momentId = event.currentTarget.dataset.momentId;
+  const trip = activeTrip(state);
+  if (!momentId || !isCloudJourney(trip)) return;
+  try {
+    const session = await api.createLocationCheckout(trip.id, momentId);
+    const checkout = new URL(session.url);
+    if (checkout.protocol !== 'https:' || checkout.hostname !== 'checkout.stripe.com') throw new Error('Unexpected checkout destination.');
+    window.location.assign(checkout.href);
   } catch (error) {
     showToast(accountMessage(error));
   }

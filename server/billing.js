@@ -7,6 +7,7 @@ export const STRIPE_API_VERSION = '2026-02-25.clover';
 const CAPABILITY = 'additional-journey-capacity';
 const OFFER_ID = 'additional-person-monthly';
 const IMAGE_OFFER_ID = 'additional-moment-image-monthly';
+const LOCATION_OFFER_ID = 'additional-moment-location-monthly';
 const UNIT_AMOUNT = 100;
 const CURRENCY = 'USD';
 const MAX_PAID_CAPACITY = 97;
@@ -75,6 +76,8 @@ export class DisabledBillingService {
   }
 
   async createImageCheckoutSession() { throw new PlatformError(503, 'billing_unavailable', 'Additional image billing is not available yet.'); }
+  async createLocationCheckoutSession() { throw new PlatformError(503, 'billing_unavailable', 'Additional place billing is not available yet.'); }
+  async assertLocationCapacity() { throw new PlatformError(409, 'location_payment_required', 'Another place needs an active monthly place add-on.'); }
   async imageSlots() { return []; }
   async assertImageSlot() { throw new PlatformError(409, 'image_payment_required', 'Another image needs the monthly image add-on.'); }
 
@@ -269,6 +272,28 @@ export class StripeBillingService {
     const session = await this.stripe.checkout.sessions.create({ mode: 'subscription', customer: customerId, line_items: [{ price: price.id, quantity: 1 }], success_url: `${this.config.PUBLIC_ORIGIN}/?image=success&session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${this.config.PUBLIC_ORIGIN}/?image=canceled`, metadata: { together_offer_id: IMAGE_OFFER_ID, together_image_slot_id: slotId, together_user_id: userId, together_journey_id: journeyId, together_moment_id: momentId, together_environment: this.environment }, subscription_data: { metadata: { together_offer_id: IMAGE_OFFER_ID, together_image_slot_id: slotId, together_user_id: userId, together_journey_id: journeyId, together_moment_id: momentId, together_environment: this.environment } } }, { idempotencyKey: `together-image-checkout-${this.environment}-${slotId}-${requestId}` });
     await this.pool.query(`INSERT INTO moment_image_slots (id,journey_id,moment_id,payer_user_id,environment,provider_session_id,state,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,'pending',$7,$7)`, [slotId, journeyId, momentId, userId, this.environment, session.id, this.now()]);
     return { url: session.url, id: session.id };
+  }
+
+  async createLocationCheckoutSession(userId, journeyId, momentId, { requestId }) {
+    if (!this.config.momentLocationBillingEnabled) throw new PlatformError(503, 'billing_unavailable', 'Additional place billing is not available yet.');
+    if (!REQUEST_ID.test(String(requestId || '')) || !REQUEST_ID.test(String(momentId || ''))) throw new PlatformError(400, 'invalid_request_id', 'Refresh the page before trying checkout again.');
+    const member = await this.pool.query(`SELECT u.id,u.email_normalized,u.email_verified_at FROM users u JOIN journey_members jm ON jm.user_id=u.id WHERE u.id=$1 AND jm.journey_id=$2 AND u.deleted_at IS NULL`, [userId, journeyId]);
+    if (!member.rowCount || !member.rows[0].email_verified_at) throw new PlatformError(403, 'billing_email_unverified', 'Verify your email before adding another place.');
+    const moment = await this.pool.query(`SELECT id FROM journey_moments WHERE id=$1 AND journey_id=$2 AND (visibility='shared-now' OR created_by_user_id=$3)`, [momentId, journeyId, userId]);
+    if (!moment.rowCount) throw new PlatformError(404, 'not_found', 'The requested moment was not found.');
+    const price = await this.stripe.prices.retrieve(this.config.STRIPE_ADDITIONAL_LOCATION_PRICE_ID);
+    if (!price.active || price.type !== 'recurring' || price.livemode || price.currency !== 'usd' || price.unit_amount !== 100 || price.recurring?.interval !== 'month') throw new PlatformError(503, 'billing_price_mismatch', 'The place price must be an active test $1 monthly Stripe price.');
+    const slotId = randomUUID(); const customerId = await this.customerFor(member.rows[0]);
+    const metadata = { together_offer_id: LOCATION_OFFER_ID, together_location_slot_id: slotId, together_user_id: userId, together_journey_id: journeyId, together_moment_id: momentId, together_environment: this.environment };
+    const session = await this.stripe.checkout.sessions.create({ mode: 'subscription', customer: customerId, line_items: [{ price: price.id, quantity: 1 }], success_url: `${this.config.PUBLIC_ORIGIN}/?location=success&session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${this.config.PUBLIC_ORIGIN}/?location=canceled`, metadata, subscription_data: { metadata } }, { idempotencyKey: `together-location-checkout-${this.environment}-${slotId}-${requestId}` });
+    await this.pool.query(`INSERT INTO moment_location_slots (id,journey_id,moment_id,payer_user_id,environment,provider_session_id,state,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,'pending',$7,$7)`, [slotId, journeyId, momentId, userId, this.environment, session.id, this.now()]);
+    return { url: session.url, id: session.id, environment: this.environment };
+  }
+
+  async assertLocationCapacity(userId, journeyId, momentId, locationCount) {
+    const slots = await this.pool.query(`SELECT m.location_billing_baseline,count(mls.id)::int AS count FROM journey_moments m LEFT JOIN moment_location_slots mls ON mls.moment_id=m.id AND mls.payer_user_id=$3 AND mls.environment=$4 AND mls.state IN ('active','grace') WHERE m.id=$1 AND m.journey_id=$2 GROUP BY m.location_billing_baseline`, [momentId, journeyId, userId, this.environment]);
+    const required = Math.max(0, Number(locationCount) - Number(slots.rows[0]?.location_billing_baseline || 1));
+    if (!slots.rowCount || Number(slots.rows[0].count) < required) throw new PlatformError(409, 'location_payment_required', 'Another place needs an active monthly place add-on.');
   }
 
   async imageSlots(userId, journeyId, momentId) {
@@ -685,6 +710,13 @@ export class StripeBillingService {
       if (!REQUEST_ID.test(String(slotId || ''))) return;
       const state = ACTIVE_STATES.has(subscription.status) ? 'active' : GRACE_STATES.has(subscription.status) ? 'grace' : ['canceled', 'incomplete_expired'].includes(subscription.status) ? 'canceled' : 'pending';
       await client.query(`UPDATE moment_image_slots SET provider_subscription_id=$1,state=$2,updated_at=$3 WHERE id=$4 AND environment=$5`, [subscription.id, state, this.now(), slotId, this.environment]);
+      return;
+    }
+    if (subscription.metadata?.together_offer_id === LOCATION_OFFER_ID) {
+      const slotId = subscription.metadata?.together_location_slot_id;
+      if (!REQUEST_ID.test(String(slotId || ''))) return;
+      const state = ACTIVE_STATES.has(subscription.status) ? 'active' : GRACE_STATES.has(subscription.status) ? 'grace' : ['canceled', 'incomplete_expired'].includes(subscription.status) ? 'canceled' : 'pending';
+      await client.query(`UPDATE moment_location_slots SET provider_subscription_id=$1,state=$2,updated_at=$3 WHERE id=$4 AND environment=$5`, [subscription.id, state, this.now(), slotId, this.environment]);
       return;
     }
     this.assertSubscriptionOffer(subscription);

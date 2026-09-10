@@ -130,4 +130,8 @@ export class TogetherApi {
   createImageCheckout(journeyId, momentId) {
     return this.mutate(`/journeys/${journeyId}/moments/${momentId}/image-slots/checkout-sessions`, 'POST', { requestId: crypto.randomUUID() });
   }
+
+  createLocationCheckout(journeyId, momentId) {
+    return this.mutate(`/journeys/${journeyId}/moments/${momentId}/location-slots/checkout-sessions`, 'POST', { requestId: crypto.randomUUID() });
+  }
 }
