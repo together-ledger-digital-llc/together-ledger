@@ -46,7 +46,7 @@
     "argon2": "0.45.1",
     "fastify": "5.12.3",
     "fastify-raw-body": "6.0.1",
-    "nodemailer": "9.0.3",
+    "nodemailer": "9.1.1",
     "pg": "8.22.0",
     "stripe": "22.6.1",
     "zod": "4.4.3"
@@ -58,7 +58,10 @@
     "@axe-core/playwright": "4.12.1",
     "@playwright/test": "1.60.0",
     "pg-mem": "3.0.14",
-    "smtp-server": "3.19.3",
-    "wrangler": "4.129.1"
+    "smtp-server": "3.19.10",
+    "wrangler": "4.130.0"
+  },
+  "overrides": {
+    "sharp": "0.35.4"
   }
 }
