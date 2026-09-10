@@ -99,6 +99,18 @@ Read the companion [production readiness gate](PRODUCTION_READINESS.md) before o
 ./scripts/verify-production-host.sh
 ```
 
+### Container scan evidence
+
+Buildx can publish an OCI image index even when the release was built explicitly for
+`linux/amd64`. ECR Basic scanning cannot scan that index directly. For each immutable
+release, resolve the index's `linux/amd64` child manifest and retrieve the completed
+scan status and severity counts from that child.
+
+Do not treat a missing scan on the index as a clean scan, and do not deploy a candidate
+until its runnable child has completed scanning. Record the counts and the release
+decision without publishing registry account details, digests, or private infrastructure
+information.
+
 ## AWS rollback procedure
 
 Use this procedure only after a deployed release. It does not replace the incident/failover plan below.
