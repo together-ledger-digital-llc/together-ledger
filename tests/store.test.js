@@ -23,11 +23,11 @@ test('legacy browser state migrates to the current schema without deleting the r
   const storage = memoryStorage({ [LEGACY_STORAGE_KEY]: JSON.stringify(legacy) });
   globalThis.localStorage = storage;
   const loaded = loadState();
-  assert.equal(loaded.schemaVersion, 4);
+  assert.equal(loaded.schemaVersion, 5);
   assert.deepEqual(loaded.entries, legacy.entries);
   assert.equal(loaded.moments.length, legacy.entries.length);
   assert.equal(storage.value(LEGACY_STORAGE_KEY), JSON.stringify(legacy));
-  assert.equal(JSON.parse(storage.value(STORAGE_KEY)).schemaVersion, 4);
+  assert.equal(JSON.parse(storage.value(STORAGE_KEY)).schemaVersion, 5);
   delete globalThis.localStorage;
 });
 
@@ -37,7 +37,7 @@ test('v2 browser data remains available from its former storage key', () => {
   delete v2.moments;
   globalThis.localStorage = memoryStorage({ [PREVIOUS_STORAGE_KEY]: JSON.stringify(v2) });
   const loaded = loadState();
-  assert.equal(loaded.schemaVersion, 4);
+  assert.equal(loaded.schemaVersion, 5);
   assert.equal(loaded.entries.length, state.entries.length);
   assert.equal(loaded.moments.length, state.entries.length);
   delete globalThis.localStorage;

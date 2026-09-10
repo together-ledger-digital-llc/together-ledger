@@ -77,6 +77,21 @@ test('the browser-only starter holds the requested everyday moment kinds', async
   await expect(page.locator('#moment-timeline')).toContainText('I called when I said I would');
 });
 
+test('a browser-only moment can hold a first included place and paid additional places', async ({ page }) => {
+  await page.goto('/');
+  await beginBrowserLedger(page);
+  await page.locator('#moment-form [name="title"]').fill('We stopped to watch the clouds');
+  await page.locator('#manual-location').fill('Lookout Mountain');
+  await page.getByRole('button', { name: 'Add place' }).click();
+  await expect(page.locator('#moment-locations')).toContainText('Lookout Mountain');
+  await expect(page.locator('#moment-locations')).toContainText('Included');
+  await page.locator('#manual-location').fill('Golden, Colorado');
+  await page.getByRole('button', { name: 'Add place' }).click();
+  await expect(page.locator('#moment-locations')).toContainText('$1/month');
+  await page.getByRole('button', { name: 'Hold this moment' }).click();
+  await expect(page.locator('#moment-timeline')).toContainText('Lookout Mountain · Golden, Colorado');
+});
+
 test('the browser-only starter offers a named add-your-own moment', async ({ page }) => {
   await page.goto('/');
   await beginBrowserLedger(page, { closeMoment: true });

@@ -87,7 +87,7 @@ test('schema version 1 migrates losslessly into multiple-journey state', () => {
     entries: current.entries.map((entry) => ({ ...entry })),
   };
   const migrated = migrateState(legacy);
-  assert.equal(migrated.schemaVersion, 4);
+  assert.equal(migrated.schemaVersion, 5);
   assert.equal(migrated.preferences.onboardingComplete, false);
   assert.deepEqual(migrated.events, []);
   assert.deepEqual(migrated.concerns, []);
@@ -95,6 +95,7 @@ test('schema version 1 migrates losslessly into multiple-journey state', () => {
   assert.equal(migrated.moments.length, legacy.entries.length);
   assert.equal(migrated.moments[0].kind, 'practical-matter');
   assert.equal(migrated.moments[0].moneyCents, legacy.entries[0].amountCents);
+  assert.deepEqual(migrated.moments[0].locations, []);
   assert.deepEqual(migrated.trips[0].members, legacy.trips[0].members);
   assert.deepEqual(migrated.trips[0].milestones, {
     reviewedPicture: false,
@@ -116,6 +117,21 @@ test('moments keep optional money as context and require an honest visibility ch
   assert.equal(moment.moneyCents, 1250);
   assert.equal(moment.visibility, 'share-later');
   assert.throws(() => normalizeMoment({ ...moment, visibility: 'everyone' }, state.activeTripId), /who can see/);
+});
+
+test('moments hold an optional first place and additional paid places without weakening validation', () => {
+  const state = demoState();
+  const moment = normalizeMoment({
+    kind: 'memory', title: 'We sat together after the concert', detail: '', occurredOn: '2026-09-10', visibility: 'shared-now', money: '',
+    locations: [
+      { label: 'Red Rocks Amphitheatre' },
+      { label: 'The overlook', latitude: 39.665, longitude: -105.205, accuracyMeters: 28 },
+    ],
+  }, state.activeTripId);
+  assert.equal(moment.locations.length, 2);
+  assert.equal(moment.locations[0].label, 'Red Rocks Amphitheatre');
+  assert.equal(isValidState({ ...state, moments: [moment] }), true);
+  assert.throws(() => normalizeMoment({ ...moment, locations: [{ label: '', latitude: 200 }] }, state.activeTripId), /location/);
 });
 
 test('a browser-only journey can name a moment outside the preset list', () => {
