@@ -34,6 +34,7 @@ let guidanceIndex = 0;
 let onboardingIndex = 0;
 let momentFilter = 'all';
 let momentsExpanded = false;
+let momentLocations = [];
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -256,7 +257,9 @@ function renderSharedJourney(trip, moments, isEmptyStart) {
   const visible = (momentsExpanded ? recent.filter((moment) => momentFilter === 'all' || moment.kind === momentFilter) : recent.slice(0, 3));
   $('#moment-timeline').innerHTML = visible.length ? visible.map((moment) => {
     const attribution = `<span>Held by ${escapeHtml(moment.createdBy || 'Journey member')}</span>${moment.shapedByBoth ? '<span class="moment-collaboration-badge">Shaped by both journeyers</span>' : ''}`;
-    return `<article class="moment-card ${moment.visibility}"><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn)}</span><span class="visibility-chip ${moment.visibility}">${escapeHtml(moment.visibility.replaceAll('-', ' '))}</span></div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${moment.moneyCents != null ? `<details class="money-context"><summary>Practical money context</summary><p>${money(moment.moneyCents, moment.moneyCurrency)} is held here as context, not a score.</p></details>` : ''}<div class="moment-actions"><small class="moment-author">${attribution}</small><button data-edit-moment="${escapeHtml(moment.id)}">Edit</button></div></article>`;
+    const locations = Array.isArray(moment.locations) ? moment.locations : [];
+    const locationContext = locations.length ? `<div class="location-context">${escapeHtml(locations.map((location) => location.label).join(' · '))}</div>` : '';
+    return `<article class="moment-card ${moment.visibility}"><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn)}</span><span class="visibility-chip ${moment.visibility}">${escapeHtml(moment.visibility.replaceAll('-', ' '))}</span></div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${locationContext}${moment.moneyCents != null ? `<details class="money-context"><summary>Practical money context</summary><p>${money(moment.moneyCents, moment.moneyCurrency)} is held here as context, not a score.</p></details>` : ''}<div class="moment-actions"><small class="moment-author">${attribution}</small><button data-edit-moment="${escapeHtml(moment.id)}">Edit</button></div></article>`;
   }).join('') : isEmptyStart ? `<div class="log-types"><p>There are no examples here—only possibilities:</p><div>${MOMENT_TYPES.filter(([value]) => value !== 'other').map(([, label]) => `<span>${escapeHtml(label)}</span>`).join('')}<button type="button" data-open-custom-moment>＋ Add your own moment</button></div></div>` : '<p class="empty">No moments in this view yet. A small truth is enough to begin.</p>';
   $$('[data-edit-moment]').forEach((button) => button.addEventListener('click', () => openMoment(button.dataset.editMoment)));
   $$('[data-open-custom-moment]').forEach((button) => button.addEventListener('click', () => {
@@ -274,6 +277,22 @@ function updateMomentKindField(form) {
   form.elements.kindLabel.disabled = !custom;
 }
 
+function renderMomentLocations() {
+  const list = $('#moment-locations');
+  list.innerHTML = momentLocations.map((location, index) => `<li><strong>${escapeHtml(location.label)}</strong><small>${index === 0 ? 'Included' : '$1/month'}</small><button type="button" data-remove-location="${index}" aria-label="Remove ${escapeHtml(location.label)}">Remove</button></li>`).join('');
+  $$('[data-remove-location]', list).forEach((button) => button.addEventListener('click', () => {
+    momentLocations.splice(Number(button.dataset.removeLocation), 1);
+    renderMomentLocations();
+  }));
+}
+
+function addMomentLocation(location) {
+  if (!location.label?.trim()) return;
+  if (momentLocations.length >= 12) { showToast('A moment can hold up to 12 places.'); return; }
+  momentLocations.push({ ...location, label: location.label.trim() });
+  renderMomentLocations();
+}
+
 function openMoment(id = '', initialKind = '') {
   const form = $('#moment-form');
   const moment = state.moments.find((item) => item.id === id);
@@ -282,18 +301,21 @@ function openMoment(id = '', initialKind = '') {
   form.elements.kind.innerHTML = MOMENT_TYPES.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
   form.elements.occurredOn.value = new Date().toISOString().slice(0, 10);
   form.elements.visibility.value = 'shared-now';
+  momentLocations = [];
   $('#moment-dialog-title').textContent = moment ? 'Edit this moment' : 'Hold a moment';
   $('#save-moment').textContent = moment ? 'Save moment' : 'Hold this moment';
   $('#moment-dialog-copy').textContent = shared ? 'This is a shared moment. Both journeyers can see it and return to it with care.' : 'Choose visibility with care. In browser-only mode, it is a local cue, not separate-account privacy.';
   $('#moment-visibility-field').hidden = shared;
+  $('#moment-location-label').closest('.location-field').hidden = false;
   $$('input[name="visibility"]', form).forEach((input) => { input.disabled = shared; });
   if (moment) {
-    form.elements.id.value = moment.id; form.elements.kind.value = moment.kind; form.elements.kindLabel.value = moment.kindLabel || ''; form.elements.title.value = moment.title; form.elements.detail.value = moment.detail; form.elements.occurredOn.value = moment.occurredOn; form.elements.visibility.value = moment.visibility; form.elements.money.value = moment.moneyCents == null ? '' : (moment.moneyCents / 100).toFixed(2); form.elements.moneyCurrency.value = moment.moneyCurrency || '';
+    form.elements.id.value = moment.id; form.elements.kind.value = moment.kind; form.elements.kindLabel.value = moment.kindLabel || ''; form.elements.title.value = moment.title; form.elements.detail.value = moment.detail; form.elements.occurredOn.value = moment.occurredOn; form.elements.visibility.value = moment.visibility; form.elements.money.value = moment.moneyCents == null ? '' : (moment.moneyCents / 100).toFixed(2); form.elements.moneyCurrency.value = moment.moneyCurrency || ''; momentLocations = Array.isArray(moment.locations) ? structuredClone(moment.locations) : [];
   } else if (initialKind) {
     form.elements.kind.value = initialKind;
   }
   form.elements.kind.onchange = () => updateMomentKindField(form);
   updateMomentKindField(form);
+  renderMomentLocations();
   $('#moment-dialog').showModal(); form.elements.title.focus({ preventScroll: true });
 }
 
@@ -615,6 +637,36 @@ $$('[data-open-moment]').forEach((button) => button.addEventListener('click', ()
   if (accountUser && !isCloudJourney()) { openJourney(); return; }
   openMoment();
 }));
+$('#add-manual-location').addEventListener('click', () => {
+  const input = $('#manual-location');
+  if (!input.value.trim()) { input.focus(); return; }
+  addMomentLocation({ label: input.value });
+  input.value = '';
+  input.focus();
+});
+$('#manual-location').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') { event.preventDefault(); $('#add-manual-location').click(); }
+});
+$('#use-device-location').addEventListener('click', () => {
+  if (!navigator.geolocation) { showToast('This browser cannot share a device location. You can still enter a place.'); return; }
+  const button = $('#use-device-location');
+  button.disabled = true;
+  button.textContent = 'Finding your location…';
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const { latitude, longitude, accuracy } = position.coords;
+      addMomentLocation({ label: `Device location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`, latitude, longitude, accuracyMeters: accuracy });
+      button.disabled = false;
+      button.textContent = 'Use my device location';
+    },
+    () => {
+      button.disabled = false;
+      button.textContent = 'Use my device location';
+      showToast('Location was not shared. You can still enter a place in your own words.');
+    },
+    { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 },
+  );
+});
 $$('[data-close-moment]').forEach((button) => button.addEventListener('click', () => $('#moment-dialog').close()));
 $$('[data-close-journey]').forEach((button) => button.addEventListener('click', () => $('#journey-dialog').close()));
 
@@ -719,13 +771,13 @@ $('#guidance-done').addEventListener('click', () => endGuidanceForToday('Check-i
 $('#moment-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   try {
-    const input = Object.fromEntries(new FormData(event.currentTarget));
+    const input = { ...Object.fromEntries(new FormData(event.currentTarget)), locations: structuredClone(momentLocations) };
     const existingIndex = state.moments.findIndex((moment) => moment.id === input.id);
     const before = existingIndex >= 0 ? structuredClone(state.moments[existingIndex]) : null;
     const trip = activeTrip(state);
     if (isCloudJourney(trip)) {
       const moneyCents = input.money === '' ? null : Math.round(Number(input.money) * 100);
-      const payload = { kind: input.kind, kindLabel: input.kindLabel || '', title: input.title, detail: input.detail, occurredOn: input.occurredOn, moneyCents, moneyCurrency: input.moneyCurrency || '', ...(before ? { version: before.version } : {}) };
+      const payload = { kind: input.kind, kindLabel: input.kindLabel || '', title: input.title, detail: input.detail, occurredOn: input.occurredOn, moneyCents, moneyCurrency: input.moneyCurrency || '', locations: input.locations, ...(before ? { version: before.version } : {}) };
       if (before) await api.mutate(`/journeys/${trip.id}/moments/${before.id}`, 'PATCH', payload);
       else await api.mutate(`/journeys/${trip.id}/moments`, 'POST', payload);
       $('#moment-dialog').close();

@@ -174,6 +174,7 @@ function publicMoment(row) {
     visibility: row.visibility,
     moneyCents: row.money_cents,
     moneyCurrency: row.money_currency || '',
+    locations: Array.isArray(row.locations) ? row.locations : [],
     createdBy: row.created_by_name || 'Journey member',
     updatedBy: row.updated_by_name || row.created_by_name || 'Journey member',
     shapedByBoth: Boolean(row.created_by_user_id && row.updated_by_user_id && row.created_by_user_id !== row.updated_by_user_id),
@@ -202,6 +203,16 @@ function cleanMoment(input, existing = null) {
   if (moneyCents != null && (!Number.isSafeInteger(moneyCents) || moneyCents < 0 || moneyCents > 100000000)) throw new PlatformError(400, 'invalid_input', 'Enter a valid optional money context.');
   const moneyCurrency = String(input.moneyCurrency ?? existing?.moneyCurrency ?? '').trim().toUpperCase();
   if (!MONEY_CURRENCIES.has(moneyCurrency)) throw new PlatformError(400, 'invalid_input', 'Choose a supported optional currency.');
+  const rawLocations = Object.hasOwn(input, 'locations') ? input.locations : existing?.locations || [];
+  if (!Array.isArray(rawLocations) || rawLocations.length > 12) throw new PlatformError(400, 'invalid_input', 'A moment can hold up to 12 places.');
+  const locations = rawLocations.map((location) => {
+    const label = cleanText(location?.label, 'Location', 120);
+    const latitude = location?.latitude == null ? null : Number(location.latitude);
+    const longitude = location?.longitude == null ? null : Number(location.longitude);
+    const accuracyMeters = location?.accuracyMeters == null ? null : Math.round(Number(location.accuracyMeters));
+    if ((latitude != null && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90)) || (longitude != null && (!Number.isFinite(longitude) || longitude < -180 || longitude > 180)) || (accuracyMeters != null && (!Number.isSafeInteger(accuracyMeters) || accuracyMeters < 0))) throw new PlatformError(400, 'invalid_input', 'Location details are not valid.');
+    return { label, latitude, longitude, accuracyMeters };
+  });
   return {
     kind,
     kindLabel,
@@ -210,6 +221,7 @@ function cleanMoment(input, existing = null) {
     detail: String(input.detail ?? existing?.detail ?? '').slice(0, 1200),
     moneyCents,
     moneyCurrency,
+    locations,
   };
 }
 
@@ -590,9 +602,9 @@ export class PlatformService {
       const id = randomUUID();
       const next = cleanMoment(input);
       const created = await client.query(
-        `INSERT INTO journey_moments (id,journey_id,kind,kind_label,occurred_on,title,detail,money_cents,money_currency,created_by_user_id,updated_by_user_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-        [id, journeyId, next.kind, next.kindLabel, next.occurredOn, next.title, next.detail, next.moneyCents, next.moneyCurrency, userId, userId],
+        `INSERT INTO journey_moments (id,journey_id,kind,kind_label,occurred_on,title,detail,money_cents,money_currency,locations,created_by_user_id,updated_by_user_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12) RETURNING *`,
+        [id, journeyId, next.kind, next.kindLabel, next.occurredOn, next.title, next.detail, next.moneyCents, next.moneyCurrency, JSON.stringify(next.locations), userId, userId],
       );
       const moment = publicMoment(created.rows[0]);
       await this.appendEvent(client, { journeyId, actorUserId: userId, action: 'moment_added', entityType: 'moment', entityId: id, summary: `Held ${moment.kindLabel || moment.kind}: ${moment.title}`, after: auditMoment(moment) });
@@ -615,8 +627,8 @@ export class PlatformService {
       }
       const next = cleanMoment(input, before);
       const updated = await client.query(
-        `UPDATE journey_moments SET kind=$1,kind_label=$2,occurred_on=$3,title=$4,detail=$5,money_cents=$6,money_currency=$7,updated_by_user_id=$8,version=version+1,updated_at=$9 WHERE id=$10 RETURNING *`,
-        [next.kind, next.kindLabel, next.occurredOn, next.title, next.detail, next.moneyCents, next.moneyCurrency, userId, this.now(), momentId],
+        `UPDATE journey_moments SET kind=$1,kind_label=$2,occurred_on=$3,title=$4,detail=$5,money_cents=$6,money_currency=$7,locations=$8::jsonb,updated_by_user_id=$9,version=version+1,updated_at=$10 WHERE id=$11 RETURNING *`,
+        [next.kind, next.kindLabel, next.occurredOn, next.title, next.detail, next.moneyCents, next.moneyCurrency, JSON.stringify(next.locations), userId, this.now(), momentId],
       );
       const after = publicMoment(updated.rows[0]);
       await this.appendEvent(client, { journeyId, actorUserId: userId, action: 'moment_updated', entityType: 'moment', entityId: momentId, summary: `Updated moment: ${after.title}`, before: auditMoment(before), after: auditMoment(after) });

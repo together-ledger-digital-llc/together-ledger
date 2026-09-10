@@ -25,6 +25,7 @@ async function testPlatform({ mailer = new MemoryMailer() } = {}) {
   await pool.query(await readFile(new URL('../server/migrations/004_shared_moments.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../server/migrations/005_make-shared-journeys-more-humane.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../server/migrations/006_expand-shared-moment-vocabulary.sql', import.meta.url), 'utf8'));
+  await pool.query(await readFile(new URL('../server/migrations/007_hold-places-with-shared-moments.sql', import.meta.url), 'utf8'));
   const config = loadConfig({
     NODE_ENV: 'test',
     PUBLIC_ORIGIN: origin,
@@ -129,12 +130,13 @@ test('TC-00010 through TC-00120 prove the shared journey is clear and durable', 
   await t.test('TC-00030: Shared moments can begin before another journeyer joins', async () => {
     const response = await app.inject({
       method: 'POST', url: `/api/v1/journeys/${journey.id}/moments`, headers: authHeaders(alice),
-      payload: { kind: 'memory', title: 'We made room to listen', detail: 'A shared truth held before the invitation was accepted.', occurredOn: '2026-08-22', moneyCents: 110, moneyCurrency: '' },
+      payload: { kind: 'memory', title: 'We made room to listen', detail: 'A shared truth held before the invitation was accepted.', occurredOn: '2026-08-22', moneyCents: 110, moneyCurrency: '', locations: [{ label: 'A quiet bench', latitude: 39.7392, longitude: -104.9903, accuracyMeters: 25 }] },
     });
     assert.equal(response.statusCode, 201, response.body);
     firstMoment = response.json().data.moment;
     assert.equal(firstMoment.visibility, 'shared-now');
     assert.equal(firstMoment.moneyCurrency, '');
+    assert.equal(firstMoment.locations[0].label, 'A quiet bench');
   });
 
   await t.test('TC-00031: Shared moments can use a name of their own', async () => {
@@ -210,6 +212,7 @@ test('TC-00010 through TC-00120 prove the shared journey is clear and durable', 
     const snapshot = await app.inject({ method: 'GET', url: `/api/v1/journeys/${journey.id}/snapshot`, headers: { cookie: bob.cookie } });
     const edited = snapshot.json().data.moments.find((moment) => moment.id === firstMoment.id);
     assert.equal(edited.shapedByBoth, true);
+    assert.equal(edited.locations[0].label, 'A quiet bench');
     assert.equal(edited.createdBy, 'tc-person-a');
     assert.equal(edited.updatedBy, 'tc-person-b');
   });
