@@ -1,11 +1,11 @@
-FROM node:24-alpine AS dependencies
+FROM node:24.21.0-alpine3.24@sha256:be80f76cf40ec8e42b9bec49f60a55e0660f30af58d3e5a25530785b30ea67e2 AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
 # argon2 has a native module. Keep its compiler toolchain only in this build stage.
 RUN apk add --no-cache python3 make g++ \
   && npm ci --omit=dev
 
-FROM node:24-alpine
+FROM node:24.21.0-alpine3.24@sha256:be80f76cf40ec8e42b9bec49f60a55e0660f30af58d3e5a25530785b30ea67e2
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
