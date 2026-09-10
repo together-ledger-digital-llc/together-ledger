@@ -36,9 +36,15 @@ async function billingPool() {
     returns: 'integer',
     implementation: (value) => value.length,
   });
+  memory.public.registerFunction({
+    name: 'jsonb_array_length',
+    args: ['jsonb'],
+    returns: 'integer',
+    implementation: (value) => Array.isArray(value) ? value.length : 0,
+  });
   const adapter = memory.adapters.createPg();
   const pool = new adapter.Pool();
-  for (const migration of ['001_platform.sql', '003_private_usernames.sql', '008_stripe_web_billing.sql', '010_stripe_reconciliation_runs.sql']) {
+  for (const migration of ['001_platform.sql', '003_private_usernames.sql', '004_shared_moments.sql', '005_make-shared-journeys-more-humane.sql', '006_expand-shared-moment-vocabulary.sql', '007_person_specific_moment_visibility.sql', '008_stripe_web_billing.sql', '010_stripe_reconciliation_runs.sql', '014_hold-places-with-shared-moments.sql', '015_bill-additional-moment-places.sql']) {
     await pool.query(await readFile(new URL(`../server/migrations/${migration}`, import.meta.url), 'utf8'));
   }
   await pool.query(
@@ -81,7 +87,7 @@ function fakeStripe({
     calls,
     prices: {
       async retrieve(id) {
-        assert.equal(id, 'price_additional_person_test');
+        assert.ok(['price_additional_person_test', 'price_additional_location_test'].includes(id));
         return { id, active: true, livemode: false, type: 'recurring', currency: 'usd', unit_amount: 100, recurring: { interval: 'month', usage_type: 'licensed' } };
       },
     },
@@ -186,6 +192,49 @@ test('checkout creates one journey-scoped monthly subscription with a fixed quan
     id: 'additional-person-monthly', label: 'Another person', cadence: 'month', currency: 'USD', unitAmount: 100,
   }]);
   assert.equal(JSON.stringify(status).includes('price_additional_person_test'), false);
+});
+
+test('a test-only additional place stays pending until its verified webhook arrives', async (t) => {
+  const pool = await billingPool();
+  t.after(async () => pool.end());
+  const momentId = '12121212-1212-4121-8121-121212121212';
+  await pool.query(
+    `INSERT INTO journey_moments (id,journey_id,kind,kind_label,occurred_on,title,detail,visibility,money_cents,money_currency,locations,created_by_user_id,updated_by_user_id)
+     VALUES ($1,$2,'memory','',$3,$4,'','shared-now',NULL,'USD','[]'::jsonb,$5,$5)`,
+    [momentId, journeyId, '2026-09-07', 'A remembered place', userId],
+  );
+  const stripe = fakeStripe();
+  const billing = new StripeBillingService({
+    pool,
+    config: billingConfig({ MOMENT_LOCATION_BILLING_ENABLED: 'true', STRIPE_ADDITIONAL_LOCATION_PRICE_ID: 'price_additional_location_test' }),
+    stripe,
+    now: () => now,
+  });
+
+  const checkout = await billing.createLocationCheckoutSession(userId, journeyId, momentId, { requestId: '13131313-1313-4131-8131-131313131313' });
+  const slot = await pool.query('SELECT id,state,provider_session_id FROM moment_location_slots');
+  assert.equal(checkout.environment, 'test');
+  assert.equal(slot.rows[0].state, 'pending');
+  assert.equal(slot.rows[0].provider_session_id, checkout.id);
+  assert.equal(stripe.calls.checkouts[0].input.line_items[0].price, 'price_additional_location_test');
+  assert.equal(stripe.calls.checkouts[0].input.metadata.together_offer_id, 'additional-moment-location-monthly');
+  await assert.rejects(
+    billing.assertLocationCapacity(userId, journeyId, momentId, 2),
+    (error) => error.code === 'location_payment_required',
+  );
+
+  const event = {
+    id: 'evt_test_location_subscription', type: 'customer.subscription.updated', created: 1788807600, livemode: false,
+    data: { object: { id: 'sub_test_location', status: 'active', metadata: { together_offer_id: 'additional-moment-location-monthly', together_location_slot_id: slot.rows[0].id } } },
+  };
+  await billing.handleWebhook(Buffer.from(JSON.stringify(event)), 'valid-signature');
+  const activated = await pool.query('SELECT state,provider_subscription_id FROM moment_location_slots WHERE id=$1', [slot.rows[0].id]);
+  assert.deepEqual(activated.rows[0], { state: 'active', provider_subscription_id: 'sub_test_location' });
+  await billing.assertLocationCapacity(userId, journeyId, momentId, 2);
+  await assert.rejects(
+    billing.handleWebhook(Buffer.from(JSON.stringify({ ...event, id: 'evt_live_location_subscription', livemode: true })), 'valid-signature'),
+    (error) => error.code === 'stripe_environment_mismatch',
+  );
 });
 
 test('test-mode webhooks grant access once and reject live events', async (t) => {

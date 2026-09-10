@@ -30,6 +30,8 @@ const ConfigSchema = z.object({
   STRIPE_ADDITIONAL_PERSON_PRICE_ID: z.string().default(''),
   STRIPE_ADDITIONAL_IMAGE_PRICE_ID: z.string().default(''),
   MOMENT_IMAGE_BILLING_ENABLED: z.enum(['true', 'false']).default('false'),
+  STRIPE_ADDITIONAL_LOCATION_PRICE_ID: z.string().default(''),
+  MOMENT_LOCATION_BILLING_ENABLED: z.enum(['true', 'false']).default('false'),
   STRIPE_PORTAL_CONFIGURATION_ID: z.string().default(''),
   STRIPE_TAX_ENABLED: z.enum(['true', 'false']).default('false'),
   BILLING_GRACE_DAYS: z.coerce.number().int().min(0).max(90).default(7),
@@ -59,6 +61,7 @@ function assertStripeConfiguration(config) {
   }
   if (!config.STRIPE_ADDITIONAL_PERSON_PRICE_ID.startsWith('price_')) throw new Error('Stripe billing Price IDs must begin with price_.');
   if (config.MOMENT_IMAGE_BILLING_ENABLED === 'true' && !config.STRIPE_ADDITIONAL_IMAGE_PRICE_ID.startsWith('price_')) throw new Error('Additional moment images require an allow-listed Stripe Price ID.');
+  if (config.MOMENT_LOCATION_BILLING_ENABLED === 'true' && (!config.STRIPE_ADDITIONAL_LOCATION_PRICE_ID.startsWith('price_') || config.STRIPE_ENVIRONMENT !== 'test')) throw new Error('Additional moment places require an allow-listed test Stripe Price ID.');
   if (config.BILLING_PORTAL_ENABLED === 'true' && !config.STRIPE_PORTAL_CONFIGURATION_ID.startsWith('bpc_')) {
     throw new Error('Stripe Customer Portal requires an allow-listed configuration ID beginning with bpc_.');
   }
@@ -76,6 +79,7 @@ export function loadConfig(overrides = {}) {
   if (config.MOMENT_IMAGE_BILLING_ENABLED === 'true' && config.BILLING_ENABLED !== 'true') {
     throw new Error('Additional moment image billing requires Stripe billing to be enabled.');
   }
+  if (config.MOMENT_LOCATION_BILLING_ENABLED === 'true' && config.BILLING_ENABLED !== 'true') throw new Error('Additional moment place billing requires Stripe billing to be enabled.');
   if (config.NODE_ENV === 'production') {
     if (!config.PUBLIC_ORIGIN.startsWith('https://')) throw new Error('Production PUBLIC_ORIGIN must use HTTPS.');
     if (!config.API_ORIGIN.startsWith('https://')) throw new Error('Production API_ORIGIN must use HTTPS.');
@@ -98,5 +102,6 @@ export function loadConfig(overrides = {}) {
     stripeTaxEnabled: config.STRIPE_TAX_ENABLED === 'true',
     billingGraceDays: config.BILLING_GRACE_DAYS,
     momentImageBillingEnabled: config.MOMENT_IMAGE_BILLING_ENABLED === 'true',
+    momentLocationBillingEnabled: config.MOMENT_LOCATION_BILLING_ENABLED === 'true',
   };
 }

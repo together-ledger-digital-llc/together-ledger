@@ -137,6 +137,7 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
   });
   app.get('/api/v1/journeys/:journeyId/moments/:momentId/image-slots', { preHandler: authenticate }, async (request) => ({ data: { slots: await billing.imageSlots(request.auth.userId, request.params.journeyId, request.params.momentId) } }));
   app.post('/api/v1/journeys/:journeyId/moments/:momentId/image-slots/checkout-sessions', { preHandler: protectMutation, config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } }, async (request, reply) => reply.code(201).send({ data: await billing.createImageCheckoutSession(request.auth.userId, request.params.journeyId, request.params.momentId, request.body || {}) }));
+  app.post('/api/v1/journeys/:journeyId/moments/:momentId/location-slots/checkout-sessions', { preHandler: protectMutation, config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } }, async (request, reply) => reply.code(201).send({ data: await billing.createLocationCheckoutSession(request.auth.userId, request.params.journeyId, request.params.momentId, request.body || {}) }));
   app.post('/api/v1/billing/webhooks/stripe', { config: { rawBody: true, rateLimit: { max: 600, timeWindow: '1 minute' } } }, async (request, reply) => {
     const result = await billing.handleWebhook(request.rawBody, request.headers['stripe-signature']);
     return reply.code(200).send(result);
@@ -192,8 +193,14 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
     return reply.code(204).send();
   });
 
-  app.post('/api/v1/journeys/:journeyId/moments', { preHandler: protectMutation }, async (request, reply) => reply.code(201).send({ data: { moment: await platform.createMoment(request.auth.userId, request.params.journeyId, request.body || {}) } }));
-  app.patch('/api/v1/journeys/:journeyId/moments/:momentId', { preHandler: protectMutation }, async (request) => ({ data: { moment: await platform.mutateMoment(request.auth.userId, request.params.journeyId, request.params.momentId, request.body || {}) } }));
+  app.post('/api/v1/journeys/:journeyId/moments', { preHandler: protectMutation }, async (request, reply) => {
+    if (config.momentLocationBillingEnabled && Array.isArray(request.body?.locations) && request.body.locations.length > 1) throw new PlatformError(409, 'location_payment_required', 'Hold the first place, then add another through its monthly place add-on.');
+    return reply.code(201).send({ data: { moment: await platform.createMoment(request.auth.userId, request.params.journeyId, request.body || {}) } });
+  });
+  app.patch('/api/v1/journeys/:journeyId/moments/:momentId', { preHandler: protectMutation }, async (request) => {
+    if (config.momentLocationBillingEnabled) await billing.assertLocationCapacity(request.auth.userId, request.params.journeyId, request.params.momentId, Array.isArray(request.body?.locations) ? request.body.locations.length : 0);
+    return { data: { moment: await platform.mutateMoment(request.auth.userId, request.params.journeyId, request.params.momentId, request.body || {}) } };
+  });
   app.delete('/api/v1/journeys/:journeyId/moments/:momentId', { preHandler: protectMutation }, async (request, reply) => {
     await platform.mutateMoment(request.auth.userId, request.params.journeyId, request.params.momentId, request.body || {}, { remove: true });
     return reply.code(204).send();

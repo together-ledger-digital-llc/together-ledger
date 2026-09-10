@@ -17,6 +17,11 @@ test('billing-backed capacity cannot run while billing is disabled', () => {
   }), /Billing-backed journey capacity requires Stripe billing to be enabled/);
 });
 
+test('additional moment places are test-mode only and require billing', () => {
+  assert.throws(() => loadConfig({ MOMENT_LOCATION_BILLING_ENABLED: 'true' }), /requires Stripe billing/);
+  assert.throws(() => loadConfig({ BILLING_ENABLED: 'true', STRIPE_SECRET_KEY: 'sk_live_fake', STRIPE_WEBHOOK_SECRET: 'whsec_fake', STRIPE_ADDITIONAL_PERSON_PRICE_ID: 'price_test', MOMENT_LOCATION_BILLING_ENABLED: 'true', STRIPE_ADDITIONAL_LOCATION_PRICE_ID: 'price_location_test', STRIPE_ENVIRONMENT: 'live' }), /test Stripe Price ID/);
+});
+
 test('two-person capacity remains the default', () => {
   const config = loadConfig({ NODE_ENV: 'test' });
   assert.equal(config.journeyCapacityMode, 'two-person');

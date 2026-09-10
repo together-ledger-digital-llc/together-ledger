@@ -5,13 +5,13 @@ import { newDb } from 'pg-mem';
 import { buildApp } from '../server/app.js';
 import { loadConfig } from '../server/config.js';
 import { MemoryMailer } from '../server/mailer.js';
-import { PlatformService } from '../server/platform.js';
+import { PlatformError, PlatformService } from '../server/platform.js';
 
 const origin = 'http://127.0.0.1:4174';
 const appOrigin = 'https://app.together-ledger.com';
 const apiOrigin = 'https://api.example.test';
 
-async function testPlatform({ mailer = new MemoryMailer(), configOverrides = {} } = {}) {
+async function testPlatform({ mailer = new MemoryMailer(), configOverrides = {}, billing } = {}) {
   const memory = newDb({ autoCreateForeignKeyIndices: true });
   memory.public.registerFunction({
     name: 'char_length',
@@ -44,7 +44,7 @@ async function testPlatform({ mailer = new MemoryMailer(), configOverrides = {} 
     ...configOverrides,
   });
   const platform = new PlatformService({ pool, config, mailer, now: () => new Date('2026-08-02T12:00:00.000Z') });
-  const app = await buildApp({ platform, config });
+  const app = await buildApp({ platform, config, ...(billing ? { billing } : {}) });
   return { app, mailer, pool };
 }
 
@@ -115,6 +115,24 @@ test('dual-host frontend can start an account lifecycle', async (t) => {
 function authHeaders(client) {
   return { origin, cookie: client.cookie, 'x-together-csrf': client.csrf };
 }
+
+test('hosted moments cannot add an unpaid extra place through a direct update', async (t) => {
+  const billing = { async assertLocationCapacity() { throw new PlatformError(409, 'location_payment_required', 'Another place needs an active monthly place add-on.'); } };
+  const { app, mailer, pool } = await testPlatform({
+    billing,
+    configOverrides: { BILLING_ENABLED: 'true', STRIPE_ENVIRONMENT: 'test', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: 'whsec_fake', STRIPE_ADDITIONAL_PERSON_PRICE_ID: 'price_person_test', MOMENT_LOCATION_BILLING_ENABLED: 'true', STRIPE_ADDITIONAL_LOCATION_PRICE_ID: 'price_location_test' },
+  });
+  t.after(async () => { await app.close(); await pool.end(); });
+  const alice = await register(app, mailer, { email: 'place-owner@example.test', username: 'place-owner' });
+  const journeyResponse = await app.inject({ method: 'POST', url: '/api/v1/journeys', headers: authHeaders(alice), payload: { name: 'A place to return to', location: '', startDateStatus: 'unknown', endDateStatus: 'forever', startDate: null, endDate: null, budgetCents: 0 } });
+  const journey = journeyResponse.json().data.journey;
+  const created = await app.inject({ method: 'POST', url: `/api/v1/journeys/${journey.id}/moments`, headers: authHeaders(alice), payload: { kind: 'memory', title: 'One held place', detail: '', occurredOn: '2026-08-02', visibility: 'shared-now', moneyCents: null, moneyCurrency: '', locations: [{ label: 'First place' }] } });
+  assert.equal(created.statusCode, 201, created.body);
+  const moment = created.json().data.moment;
+  const rejected = await app.inject({ method: 'PATCH', url: `/api/v1/journeys/${journey.id}/moments/${moment.id}`, headers: authHeaders(alice), payload: { kind: moment.kind, kindLabel: moment.kindLabel, title: moment.title, detail: moment.detail, occurredOn: moment.occurredOn, visibility: moment.visibility, moneyCents: moment.moneyCents, moneyCurrency: moment.moneyCurrency, version: moment.version, locations: [{ label: 'First place' }, { label: 'Unpaid extra place' }] } });
+  assert.equal(rejected.statusCode, 409, rejected.body);
+  assert.equal(rejected.json().error.code, 'location_payment_required');
+});
 
 test('hosted moment images can be named, retrieved, and removed by an authorized journeyer', async (t) => {
   const { app, mailer, pool } = await testPlatform();
