@@ -189,7 +189,7 @@ function publicMoment(row) {
 }
 
 function publicMomentImage(row) {
-  return { id: row.id, momentId: row.moment_id, filename: row.original_filename || 'Image', contentType: row.content_type, createdAt: dateTime(row.created_at) };
+  return { id: row.id, momentId: row.moment_id, filename: row.original_filename || 'Image', contentType: row.content_type, createdAt: dateTime(row.created_at), deletedAt: dateTime(row.deleted_at) };
 }
 
 function cleanImageFilename(value, contentType) {
@@ -797,7 +797,11 @@ export class PlatformService {
       const moment = await client.query("SELECT id FROM journey_moments WHERE id=$1 AND journey_id=$2 AND (visibility='shared-now' OR created_by_user_id=$3) FOR UPDATE", [momentId, journeyId, userId]);
       if (!moment.rowCount) throw notFound();
       const existing = await client.query('SELECT id FROM moment_images WHERE moment_id=$1 FOR UPDATE', [momentId]);
-      if (existing.rowCount && !paidSlotId) throw new PlatformError(409, 'included_image_already_used', 'This moment already holds its included image. Another image needs the monthly image add-on.');
+      if (existing.rowCount && !paidSlotId) throw new PlatformError(409, 'included_image_already_used', 'This moment already holds its included image. Another image needs a one-time photo payment.');
+      if (paidSlotId) {
+        const slot = await client.query(`UPDATE moment_image_slots SET used_at=$1,updated_at=$1 WHERE id=$2 AND journey_id=$3 AND moment_id=$4 AND payer_user_id=$5 AND environment=$6 AND state='active' AND used_at IS NULL RETURNING id`, [this.now(), paidSlotId, journeyId, momentId, userId, this.config.stripeEnvironment]);
+        if (!slot.rowCount) throw new PlatformError(409, 'image_payment_required', 'Another image needs an unused verified one-time photo payment.');
+      }
       const image = await client.query(`INSERT INTO moment_images (id,journey_id,moment_id,uploaded_by_user_id,content_type,content_length,bytes,paid_slot_id,original_filename) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`, [randomUUID(), journeyId, momentId, userId, contentType, bytes.length, bytes, paidSlotId, cleanImageFilename(originalFilename, contentType)]);
       return publicMomentImage(image.rows[0]);
     });
@@ -813,9 +817,10 @@ export class PlatformService {
     return withTransaction(this.pool, async (client) => {
       await this.requireMember(client, userId, journeyId);
       await this.lockJourney(client, journeyId);
-      const image = await client.query(`SELECT mi.id FROM moment_images mi JOIN journey_moments m ON m.id=mi.moment_id WHERE mi.id=$1 AND mi.journey_id=$2 AND mi.moment_id=$3 AND (m.visibility='shared-now' OR m.created_by_user_id=$4) FOR UPDATE`, [imageId, journeyId, momentId, userId]);
+      const image = await client.query(`SELECT mi.id FROM moment_images mi JOIN journey_moments m ON m.id=mi.moment_id WHERE mi.id=$1 AND mi.journey_id=$2 AND mi.moment_id=$3 AND mi.deleted_at IS NULL AND (m.visibility='shared-now' OR m.created_by_user_id=$4) FOR UPDATE`, [imageId, journeyId, momentId, userId]);
       if (!image.rowCount) throw notFound();
-      await client.query('DELETE FROM moment_images WHERE id=$1', [imageId]);
+      await client.query('DELETE FROM moment_images WHERE moment_id=$1 AND deleted_at IS NOT NULL', [momentId]);
+      await client.query('UPDATE moment_images SET deleted_at=$1 WHERE id=$2', [this.now(), imageId]);
     });
   }
 
@@ -893,7 +898,7 @@ export class PlatformService {
           LEFT JOIN users editor ON editor.id=m.updated_by_user_id
           WHERE m.journey_id=$1 AND (m.visibility='shared-now' OR m.created_by_user_id=$2)
           ORDER BY m.occurred_on,m.created_at,m.id`, [journeyId, userId]),
-        client.query(`SELECT mi.id,mi.moment_id,mi.original_filename,mi.content_type,mi.created_at FROM moment_images mi JOIN journey_moments m ON m.id=mi.moment_id WHERE mi.journey_id=$1 AND (m.visibility='shared-now' OR m.created_by_user_id=$2) ORDER BY mi.created_at,mi.id`, [journeyId, userId]),
+        client.query(`SELECT mi.id,mi.moment_id,mi.original_filename,mi.content_type,mi.created_at,mi.deleted_at FROM moment_images mi JOIN journey_moments m ON m.id=mi.moment_id WHERE mi.journey_id=$1 AND (m.visibility='shared-now' OR m.created_by_user_id=$2) ORDER BY mi.created_at,mi.id`, [journeyId, userId]),
         client.query('SELECT * FROM concerns WHERE journey_id=$1 ORDER BY updated_at DESC', [journeyId]),
         client.query('SELECT key,completed,updated_at FROM journey_milestones WHERE journey_id=$1', [journeyId]),
         client.query('SELECT * FROM journey_events WHERE journey_id=$1 AND sequence>$2 ORDER BY sequence', [journeyId, Number(afterSequence) || 0]),

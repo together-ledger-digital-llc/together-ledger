@@ -60,7 +60,7 @@ function assertStripeConfiguration(config) {
     throw new Error('Stripe billing requires a webhook signing secret.');
   }
   if (!config.STRIPE_ADDITIONAL_PERSON_PRICE_ID.startsWith('price_')) throw new Error('Stripe billing Price IDs must begin with price_.');
-  if (config.MOMENT_IMAGE_BILLING_ENABLED === 'true' && !config.STRIPE_ADDITIONAL_IMAGE_PRICE_ID.startsWith('price_')) throw new Error('Additional moment images require an allow-listed Stripe Price ID.');
+  if (config.MOMENT_IMAGE_BILLING_ENABLED === 'true' && (!config.STRIPE_ADDITIONAL_IMAGE_PRICE_ID.startsWith('price_') || config.STRIPE_ENVIRONMENT !== 'test')) throw new Error('Additional moment images require an allow-listed test Stripe Price ID.');
   if (config.MOMENT_LOCATION_BILLING_ENABLED === 'true' && (!config.STRIPE_ADDITIONAL_LOCATION_PRICE_ID.startsWith('price_') || config.STRIPE_ENVIRONMENT !== 'test')) throw new Error('Additional moment places require an allow-listed test Stripe Price ID.');
   if (config.BILLING_PORTAL_ENABLED === 'true' && !config.STRIPE_PORTAL_CONFIGURATION_ID.startsWith('bpc_')) {
     throw new Error('Stripe Customer Portal requires an allow-listed configuration ID beginning with bpc_.');

@@ -6,7 +6,8 @@ import { PlatformError } from './platform.js';
 export const STRIPE_API_VERSION = '2026-02-25.clover';
 const CAPABILITY = 'additional-journey-capacity';
 const OFFER_ID = 'additional-person-monthly';
-const IMAGE_OFFER_ID = 'additional-moment-image-monthly';
+const IMAGE_OFFER_ID = 'additional-moment-image-once';
+const LEGACY_IMAGE_OFFER_ID = 'additional-moment-image-monthly';
 const LOCATION_OFFER_ID = 'additional-moment-location-monthly';
 const UNIT_AMOUNT = 100;
 const CURRENCY = 'USD';
@@ -79,7 +80,7 @@ export class DisabledBillingService {
   async createLocationCheckoutSession() { throw new PlatformError(503, 'billing_unavailable', 'Additional place billing is not available yet.'); }
   async assertLocationCapacity() { throw new PlatformError(409, 'location_payment_required', 'Another place needs an active monthly place add-on.'); }
   async imageSlots() { return []; }
-  async assertImageSlot() { throw new PlatformError(409, 'image_payment_required', 'Another image needs the monthly image add-on.'); }
+  async assertImageSlot() { throw new PlatformError(409, 'image_payment_required', 'Another image needs a verified one-time photo payment.'); }
 
   async assertAccountDeletable() {}
 
@@ -266,10 +267,11 @@ export class StripeBillingService {
     const moment = await this.pool.query(`SELECT id FROM journey_moments WHERE id=$1 AND journey_id=$2 AND (visibility='shared-now' OR created_by_user_id=$3)`, [momentId, journeyId, userId]);
     if (!moment.rowCount) throw new PlatformError(404, 'not_found', 'The requested moment was not found.');
     const price = await this.stripe.prices.retrieve(this.config.STRIPE_ADDITIONAL_IMAGE_PRICE_ID);
-    if (!price.active || price.type !== 'recurring' || Boolean(price.livemode) !== (this.environment === 'live') || price.currency !== 'usd' || price.unit_amount !== 100 || price.recurring?.interval !== 'month') throw new PlatformError(503, 'billing_price_mismatch', 'The image price must be an active $1 monthly Stripe price.');
+    if (!price.active || price.type !== 'one_time' || price.livemode || price.currency !== 'usd' || price.unit_amount !== 100 || this.environment !== 'test') throw new PlatformError(503, 'billing_price_mismatch', 'The image price must be an active test $1 one-time Stripe price.');
     const slotId = randomUUID();
     const customerId = await this.customerFor(member.rows[0]);
-    const session = await this.stripe.checkout.sessions.create({ mode: 'subscription', customer: customerId, line_items: [{ price: price.id, quantity: 1 }], success_url: `${this.config.PUBLIC_ORIGIN}/?image=success&session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${this.config.PUBLIC_ORIGIN}/?image=canceled`, metadata: { together_offer_id: IMAGE_OFFER_ID, together_image_slot_id: slotId, together_user_id: userId, together_journey_id: journeyId, together_moment_id: momentId, together_environment: this.environment }, subscription_data: { metadata: { together_offer_id: IMAGE_OFFER_ID, together_image_slot_id: slotId, together_user_id: userId, together_journey_id: journeyId, together_moment_id: momentId, together_environment: this.environment } } }, { idempotencyKey: `together-image-checkout-${this.environment}-${slotId}-${requestId}` });
+    const metadata = { together_offer_id: IMAGE_OFFER_ID, together_image_slot_id: slotId, together_user_id: userId, together_journey_id: journeyId, together_moment_id: momentId, together_environment: this.environment };
+    const session = await this.stripe.checkout.sessions.create({ mode: 'payment', customer: customerId, line_items: [{ price: price.id, quantity: 1 }], success_url: `${this.config.PUBLIC_ORIGIN}/?image=success&session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${this.config.PUBLIC_ORIGIN}/?image=canceled`, metadata, payment_intent_data: { metadata } }, { idempotencyKey: `together-image-checkout-${this.environment}-${slotId}-${requestId}` });
     await this.pool.query(`INSERT INTO moment_image_slots (id,journey_id,moment_id,payer_user_id,environment,provider_session_id,state,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,'pending',$7,$7)`, [slotId, journeyId, momentId, userId, this.environment, session.id, this.now()]);
     return { url: session.url, id: session.id };
   }
@@ -302,9 +304,9 @@ export class StripeBillingService {
   }
 
   async assertImageSlot(userId, journeyId, momentId, slotId) {
-    if (!REQUEST_ID.test(String(slotId || ''))) throw new PlatformError(409, 'image_payment_required', 'Another image needs the monthly image add-on.');
-    const slot = await this.pool.query(`SELECT mis.id FROM moment_image_slots mis LEFT JOIN moment_images mi ON mi.paid_slot_id=mis.id WHERE mis.id=$1 AND mis.journey_id=$2 AND mis.moment_id=$3 AND mis.payer_user_id=$4 AND mis.environment=$5 AND mis.state IN ('active','grace') AND mi.id IS NULL`, [slotId, journeyId, momentId, userId, this.environment]);
-    if (!slot.rowCount) throw new PlatformError(409, 'image_payment_required', 'Another image needs an active monthly image add-on.');
+    if (!REQUEST_ID.test(String(slotId || ''))) throw new PlatformError(409, 'image_payment_required', 'Another image needs a verified one-time photo payment.');
+    const slot = await this.pool.query(`SELECT id FROM moment_image_slots WHERE id=$1 AND journey_id=$2 AND moment_id=$3 AND payer_user_id=$4 AND environment=$5 AND state='active' AND used_at IS NULL`, [slotId, journeyId, momentId, userId, this.environment]);
+    if (!slot.rowCount) throw new PlatformError(409, 'image_payment_required', 'Another image needs an unused verified one-time photo payment.');
   }
 
   async createPortalSession(userId, journeyId) {
@@ -688,6 +690,13 @@ export class StripeBillingService {
   }
 
   async processCheckout(client, session) {
+    if (session.metadata?.together_offer_id === IMAGE_OFFER_ID) {
+      const slotId = session.metadata?.together_image_slot_id;
+      const paymentId = objectId(session.payment_intent);
+      if (session.mode !== 'payment' || session.payment_status !== 'paid' || !REQUEST_ID.test(String(slotId || '')) || !paymentId) return;
+      await client.query(`UPDATE moment_image_slots SET provider_payment_id=$1,state='active',updated_at=$2 WHERE id=$3 AND environment=$4 AND provider_session_id=$5 AND state='pending'`, [paymentId, this.now(), slotId, this.environment, session.id]);
+      return;
+    }
     if (session.mode !== 'subscription' || session.metadata?.together_offer_id !== OFFER_ID) return;
     const context = await this.billingContextFor(client, session);
     if (!context) return;
@@ -705,7 +714,7 @@ export class StripeBillingService {
   }
 
   async processSubscription(client, subscription, eventCreatedAt) {
-    if (subscription.metadata?.together_offer_id === IMAGE_OFFER_ID) {
+    if (subscription.metadata?.together_offer_id === LEGACY_IMAGE_OFFER_ID) {
       const slotId = subscription.metadata?.together_image_slot_id;
       if (!REQUEST_ID.test(String(slotId || ''))) return;
       const state = ACTIVE_STATES.has(subscription.status) ? 'active' : GRACE_STATES.has(subscription.status) ? 'grace' : ['canceled', 'incomplete_expired'].includes(subscription.status) ? 'canceled' : 'pending';
