@@ -594,7 +594,7 @@ test('synthetic group mode reserves independent places without advertising its c
   assert.equal(existingMember.statusCode, 409);
   assert.equal(existingMember.json().error.code, 'already_member');
 
-  for (let index = 0; index < 96; index += 1) {
+  for (let index = 0; index < 98; index += 1) {
     const response = await app.inject({
       method: 'POST', url: `/api/v1/journeys/${journeyId}/invitations`, headers: authHeaders(owner),
       payload: { email: `waiting-${String(index).padStart(2, '0')}@example.test` },
@@ -607,7 +607,7 @@ test('synthetic group mode reserves independent places without advertising its c
   assert.equal(full.statusCode, 409, full.body);
   assert.equal(full.json().error.code, 'journey_full');
   snapshot = (await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: { cookie: owner.cookie } })).json().data;
-  assert.deepEqual(snapshot.capacity, { peopleHere: 3, openInvitations: 96, canInvite: false, mode: 'test-groups' });
+  assert.deepEqual(snapshot.capacity, { peopleHere: 3, openInvitations: 98, canInvite: false, mode: 'test-groups' });
 });
 
 test('public service routes expose health and only the intended static app', async (t) => {

@@ -1,0 +1,4 @@
+ALTER TABLE billing_checkout_sessions DROP CONSTRAINT IF EXISTS billing_checkout_sessions_paid_capacity_check;
+ALTER TABLE billing_checkout_sessions ADD CONSTRAINT billing_checkout_sessions_paid_capacity_check CHECK (paid_capacity BETWEEN 1 AND 99);
+ALTER TABLE billing_subscriptions DROP CONSTRAINT IF EXISTS billing_subscriptions_paid_capacity_check;
+ALTER TABLE billing_subscriptions ADD CONSTRAINT billing_subscriptions_paid_capacity_check CHECK (paid_capacity BETWEEN 1 AND 99);
