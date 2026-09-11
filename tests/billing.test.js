@@ -44,7 +44,7 @@ async function billingPool() {
   });
   const adapter = memory.adapters.createPg();
   const pool = new adapter.Pool();
-  for (const migration of ['001_platform.sql', '003_private_usernames.sql', '004_shared_moments.sql', '005_make-shared-journeys-more-humane.sql', '006_expand-shared-moment-vocabulary.sql', '007_person_specific_moment_visibility.sql', '008_stripe_web_billing.sql', '010_stripe_reconciliation_runs.sql', '014_hold-places-with-shared-moments.sql', '015_bill-additional-moment-places.sql']) {
+  for (const migration of ['001_platform.sql', '003_private_usernames.sql', '004_shared_moments.sql', '005_make-shared-journeys-more-humane.sql', '006_expand-shared-moment-vocabulary.sql', '007_person_specific_moment_visibility.sql', '008_stripe_web_billing.sql', '010_stripe_reconciliation_runs.sql', '011_hold-one-image-with-each-moment.sql', '012_bill-additional-moment-images.sql', '013_name-moment-image-attachments.sql', '014_hold-places-with-shared-moments.sql', '015_bill-additional-moment-places.sql', '016_make-extra-image-payments-one-time.sql']) {
     await pool.query(await readFile(new URL(`../server/migrations/${migration}`, import.meta.url), 'utf8'));
   }
   await pool.query(
@@ -87,7 +87,8 @@ function fakeStripe({
     calls,
     prices: {
       async retrieve(id) {
-        assert.ok(['price_additional_person_test', 'price_additional_location_test'].includes(id));
+        assert.ok(['price_additional_person_test', 'price_additional_location_test', 'price_additional_image_test'].includes(id));
+        if (id === 'price_additional_image_test') return { id, active: true, livemode: false, type: 'one_time', currency: 'usd', unit_amount: 100 };
         return { id, active: true, livemode: false, type: 'recurring', currency: 'usd', unit_amount: 100, recurring: { interval: 'month', usage_type: 'licensed' } };
       },
     },
@@ -235,6 +236,43 @@ test('a test-only additional place stays pending until its verified webhook arri
     billing.handleWebhook(Buffer.from(JSON.stringify({ ...event, id: 'evt_live_location_subscription', livemode: true })), 'valid-signature'),
     (error) => error.code === 'stripe_environment_mismatch',
   );
+});
+
+test('a test-only extra photo becomes one consumable credit after its paid checkout webhook', async (t) => {
+  const pool = await billingPool();
+  t.after(async () => pool.end());
+  const momentId = '14141414-1414-4141-8141-141414141414';
+  await pool.query(
+    `INSERT INTO journey_moments (id,journey_id,kind,kind_label,occurred_on,title,detail,visibility,money_cents,money_currency,locations,created_by_user_id,updated_by_user_id)
+     VALUES ($1,$2,'memory','',$3,$4,'','shared-now',NULL,'USD','[]'::jsonb,$5,$5)`,
+    [momentId, journeyId, '2026-09-07', 'A second photo', userId],
+  );
+  const stripe = fakeStripe();
+  const billing = new StripeBillingService({
+    pool,
+    config: billingConfig({ MOMENT_IMAGE_BILLING_ENABLED: 'true', STRIPE_ADDITIONAL_IMAGE_PRICE_ID: 'price_additional_image_test' }),
+    stripe,
+    now: () => now,
+  });
+
+  const checkout = await billing.createImageCheckoutSession(userId, journeyId, momentId, { requestId: '15151515-1515-4151-8151-151515151515' });
+  assert.equal(stripe.calls.checkouts[0].input.mode, 'payment');
+  assert.equal(stripe.calls.checkouts[0].input.line_items[0].price, 'price_additional_image_test');
+  assert.equal(stripe.calls.checkouts[0].input.subscription_data, undefined);
+  const slot = await pool.query('SELECT id,state FROM moment_image_slots');
+  assert.equal(slot.rows[0].state, 'pending');
+  await assert.rejects(
+    billing.assertImageSlot(userId, journeyId, momentId, slot.rows[0].id),
+    (error) => error.code === 'image_payment_required',
+  );
+
+  await billing.handleWebhook(Buffer.from(JSON.stringify({
+    id: 'evt_test_image_payment', type: 'checkout.session.completed', created: 1788807600, livemode: false,
+    data: { object: { id: checkout.id, mode: 'payment', payment_status: 'paid', payment_intent: 'pi_test_image_payment', metadata: { together_offer_id: 'additional-moment-image-once', together_image_slot_id: slot.rows[0].id } } },
+  })), 'valid-signature');
+  const activated = await pool.query('SELECT state,provider_payment_id,used_at FROM moment_image_slots WHERE id=$1', [slot.rows[0].id]);
+  assert.deepEqual(activated.rows[0], { state: 'active', provider_payment_id: 'pi_test_image_payment', used_at: null });
+  await billing.assertImageSlot(userId, journeyId, momentId, slot.rows[0].id);
 });
 
 test('test-mode webhooks grant access once and reject live events', async (t) => {

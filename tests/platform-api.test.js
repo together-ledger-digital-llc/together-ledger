@@ -33,6 +33,8 @@ async function testPlatform({ mailer = new MemoryMailer(), configOverrides = {},
   await pool.query(await readFile(new URL('../server/migrations/012_bill-additional-moment-images.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../server/migrations/013_name-moment-image-attachments.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../server/migrations/014_hold-places-with-shared-moments.sql', import.meta.url), 'utf8'));
+  await pool.query(await readFile(new URL('../server/migrations/016_make-extra-image-payments-one-time.sql', import.meta.url), 'utf8'));
+  await pool.query(await readFile(new URL('../server/migrations/017_keep-one-removed-photo-per-moment.sql', import.meta.url), 'utf8'));
   const config = loadConfig({
     NODE_ENV: 'test',
     PUBLIC_ORIGIN: origin,
@@ -164,8 +166,8 @@ test('hosted moment images can be named, retrieved, and removed by an authorized
   assert.deepEqual(fetched.rawPayload, Buffer.from('image-bytes'));
   const removed = await app.inject({ method: 'DELETE', url: `/api/v1/journeys/${journey.id}/moments/${moment.id}/images/${image.id}`, headers: authHeaders(alice) });
   assert.equal(removed.statusCode, 204, removed.body);
-  const missing = await app.inject({ method: 'GET', url: `/api/v1/journeys/${journey.id}/moments/${moment.id}/images/${image.id}`, headers: { cookie: alice.cookie } });
-  assert.equal(missing.statusCode, 404, missing.body);
+  const retained = await app.inject({ method: 'GET', url: `/api/v1/journeys/${journey.id}/moments/${moment.id}/images/${image.id}`, headers: { cookie: alice.cookie } });
+  assert.equal(retained.statusCode, 200, retained.body);
 });
 
 test('TC-00010 through TC-00120 prove the shared journey is clear and durable', async (t) => {
