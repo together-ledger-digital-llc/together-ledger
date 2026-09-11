@@ -31,7 +31,7 @@ const START_DATE_STATUSES = new Set(['exact', 'unknown']);
 const END_DATE_STATUSES = new Set(['date', 'unsure', 'forever']);
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const INCLUDED_JOURNEY_CAPACITY = 2;
-const MAX_JOURNEY_CAPACITY = 99;
+const MAX_JOURNEY_CAPACITY = 101;
 
 function cleanText(value, label, max) {
   const text = String(value || '').trim();

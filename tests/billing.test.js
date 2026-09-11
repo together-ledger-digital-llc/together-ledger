@@ -44,7 +44,7 @@ async function billingPool() {
   });
   const adapter = memory.adapters.createPg();
   const pool = new adapter.Pool();
-  for (const migration of ['001_platform.sql', '003_private_usernames.sql', '004_shared_moments.sql', '005_make-shared-journeys-more-humane.sql', '006_expand-shared-moment-vocabulary.sql', '007_person_specific_moment_visibility.sql', '008_stripe_web_billing.sql', '010_stripe_reconciliation_runs.sql', '011_hold-one-image-with-each-moment.sql', '012_bill-additional-moment-images.sql', '013_name-moment-image-attachments.sql', '014_hold-places-with-shared-moments.sql', '015_bill-additional-moment-places.sql', '016_make-extra-image-payments-one-time.sql']) {
+  for (const migration of ['001_platform.sql', '003_private_usernames.sql', '004_shared_moments.sql', '005_make-shared-journeys-more-humane.sql', '006_expand-shared-moment-vocabulary.sql', '007_person_specific_moment_visibility.sql', '008_stripe_web_billing.sql', '010_stripe_reconciliation_runs.sql', '011_hold-one-image-with-each-moment.sql', '012_bill-additional-moment-images.sql', '013_name-moment-image-attachments.sql', '014_hold-places-with-shared-moments.sql', '015_bill-additional-moment-places.sql', '016_make-extra-image-payments-one-time.sql', '017_keep-one-removed-photo-per-moment.sql', '018_allow-ninety-nine-paid-journey-places.sql']) {
     await pool.query(await readFile(new URL(`../server/migrations/${migration}`, import.meta.url), 'utf8'));
   }
   await pool.query(
@@ -180,9 +180,12 @@ test('checkout creates one journey-scoped monthly subscription with a fixed quan
     (error) => error.code === 'invalid_billing_offer',
   );
   await assert.rejects(
-    billing.createCheckoutSession(userId, journeyId, { offerId: 'additional-person-monthly', paidCapacity: 2, requestId }),
+    billing.createCheckoutSession(userId, journeyId, { offerId: 'additional-person-monthly', paidCapacity: 100, requestId }),
     (error) => error.code === 'invalid_paid_capacity',
   );
+  const largerCheckout = await billing.createCheckoutSession(userId, journeyId, { offerId: 'additional-person-monthly', paidCapacity: 99, requestId: '34333333-3333-4333-8333-333333333333' });
+  assert.equal(largerCheckout.environment, 'test');
+  assert.equal(stripe.calls.checkouts[1].input.line_items[0].quantity, 99);
 
   const status = await billing.status(userId, journeyId);
   assert.equal(status.enabled, true);

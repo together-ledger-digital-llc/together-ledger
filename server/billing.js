@@ -11,7 +11,7 @@ const LEGACY_IMAGE_OFFER_ID = 'additional-moment-image-monthly';
 const LOCATION_OFFER_ID = 'additional-moment-location-monthly';
 const UNIT_AMOUNT = 100;
 const CURRENCY = 'USD';
-const MAX_PAID_CAPACITY = 97;
+const MAX_PAID_CAPACITY = 99;
 const ACTIVE_STATES = new Set(['active', 'trialing']);
 const GRACE_STATES = new Set(['past_due', 'unpaid', 'paused']);
 const REQUEST_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -203,8 +203,8 @@ export class StripeBillingService {
       throw new PlatformError(400, 'invalid_request_id', 'Refresh the page before trying checkout again.');
     }
     const quantity = Number(paidCapacity);
-    if (quantity !== 1) {
-      throw new PlatformError(400, 'invalid_paid_capacity', 'This test offer opens one additional place.');
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_PAID_CAPACITY) {
+      throw new PlatformError(400, 'invalid_paid_capacity', 'Choose between 1 and 99 additional places.');
     }
     const user = await this.requireJourneyOwner(userId, journeyId);
     const existingSubscription = await this.pool.query(
