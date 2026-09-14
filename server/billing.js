@@ -659,8 +659,8 @@ export class StripeBillingService {
 
   paidCapacityFor(subscription, fallback) {
     const quantity = Number(subscription.items?.data?.[0]?.quantity ?? fallback);
-    if (quantity !== 1) {
-      throw new Error('Stripe subscription quantity does not match the approved one-person test offer.');
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_PAID_CAPACITY) {
+      throw new Error('Stripe subscription quantity does not match the approved additional-capacity offer.');
     }
     return quantity;
   }
