@@ -36,10 +36,15 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
   });
   await app.register(fastifyStatic, { root: join(rootDirectory, 'src'), prefix: '/src/' });
   const indexMarkup = await readFile(join(rootDirectory, 'index.html'), 'utf8');
-  const hostedIndexMarkup = indexMarkup.replace(
-    '<meta name="together-accounts-enabled" content="false" />',
-    '<meta name="together-accounts-enabled" content="true" />',
-  );
+  const hostedIndexMarkup = indexMarkup
+    .replace(
+      '<meta name="together-accounts-enabled" content="false" />',
+      '<meta name="together-accounts-enabled" content="true" />',
+    )
+    .replace(
+      /<meta name="together-api-origin" content="[^"]*" \/>/,
+      `<meta name="together-api-origin" content="${config.API_ORIGIN}" />`,
+    );
   const allowedOrigins = new Set([
     config.PUBLIC_ORIGIN,
     config.API_ORIGIN,
