@@ -545,7 +545,7 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .log-types button { cursor: pointer; }
 .log-types button:hover, .log-types button:focus-visible { border-color: var(--teal); outline: 2px solid color-mix(in srgb, var(--teal) 30%, transparent); outline-offset: 2px; }
 .moment-card { background: color-mix(in srgb, var(--soft) 72%, var(--card)); border: 1px solid var(--line); border-left: 5px solid var(--teal); border-radius: 18px; color: var(--ink); padding: 18px; }
-.moment-card[data-moment-theme] { --bg: var(--moment-bg); --fg: var(--moment-fg); --muted: var(--moment-muted); --accent: var(--moment-accent); --border: var(--moment-border); --meta-bg: var(--moment-meta); --on-accent: var(--moment-on-accent); --card: color-mix(in srgb, var(--bg) 96%, var(--fg)); --ink: var(--fg); --spruce: var(--accent); --teal: var(--accent); --red: var(--accent); --line: var(--border); --soft: var(--meta-bg); background: color-mix(in srgb, var(--soft) 72%, var(--card)); }
+.moment-card[data-moment-theme] { --bg: var(--moment-bg); --fg: var(--moment-fg); --muted: var(--moment-muted); --accent: var(--moment-accent); --border: var(--moment-border); --meta-bg: var(--moment-meta); --on-accent: var(--moment-on-accent); --card: var(--moment-bg); --ink: var(--fg); --spruce: var(--accent); --teal: var(--accent); --red: var(--accent); --line: var(--border); --soft: color-mix(in srgb, var(--moment-bg) 96%, var(--moment-fg)); background: var(--card); }
 [data-moment-theme="light"] { --moment-bg: #F3EFE6; --moment-fg: #1E1B17; --moment-muted: #6B645A; --moment-accent: #8C3A3A; --moment-border: rgba(30,27,23,0.10); --moment-meta: rgba(30,27,23,0.025); --moment-on-accent: #FFFFFF; }
 [data-moment-theme="dark"] { --moment-bg: #1A1815; --moment-fg: #EDEAE3; --moment-muted: #9A9188; --moment-accent: #D9877A; --moment-border: rgba(237,234,227,0.12); --moment-meta: rgba(255,255,255,0.03); --moment-on-accent: #1A1815; }
 [data-moment-theme="green"] { --moment-bg: #071109; --moment-fg: #E0F2E4; --moment-muted: #92B39A; --moment-accent: #58D987; --moment-border: rgba(224,242,228,0.13); --moment-meta: rgba(224,242,228,0.05); --moment-on-accent: #071109; }
@@ -698,6 +698,7 @@ footer p { color: var(--on-accent); margin-bottom: 0; opacity: .8; }
 
 @media (forced-colors: active) {
   .moment-card, .moment-theme-options label, .moment-theme-swatch { border: 1px solid CanvasText; }
+  .moment-card { border-left: 5px solid CanvasText; }
   .moment-card.private, .moment-card.share-later { border-left: 5px solid CanvasText; }
   .moment-theme-options label:has(input:checked) { outline: 2px solid Highlight; }
 }
