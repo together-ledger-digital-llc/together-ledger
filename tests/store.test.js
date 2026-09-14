@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { appendJourneyEvent, demoState, normalizeConcern } from '../src/model.js';
+import { appendJourneyEvent, demoState, normalizeConcern, normalizeMoment } from '../src/model.js';
 import { exportState, importState, LEGACY_STORAGE_KEY, loadState, PREVIOUS_STORAGE_KEY, STORAGE_KEY } from '../src/store.js';
 
 function memoryStorage(seed = {}) {
@@ -23,11 +23,11 @@ test('legacy browser state migrates to the current schema without deleting the r
   const storage = memoryStorage({ [LEGACY_STORAGE_KEY]: JSON.stringify(legacy) });
   globalThis.localStorage = storage;
   const loaded = loadState();
-  assert.equal(loaded.schemaVersion, 5);
+  assert.equal(loaded.schemaVersion, 6);
   assert.deepEqual(loaded.entries, legacy.entries);
   assert.equal(loaded.moments.length, legacy.entries.length);
   assert.equal(storage.value(LEGACY_STORAGE_KEY), JSON.stringify(legacy));
-  assert.equal(JSON.parse(storage.value(STORAGE_KEY)).schemaVersion, 5);
+  assert.equal(JSON.parse(storage.value(STORAGE_KEY)).schemaVersion, 6);
   delete globalThis.localStorage;
 });
 
@@ -37,7 +37,7 @@ test('v2 browser data remains available from its former storage key', () => {
   delete v2.moments;
   globalThis.localStorage = memoryStorage({ [PREVIOUS_STORAGE_KEY]: JSON.stringify(v2) });
   const loaded = loadState();
-  assert.equal(loaded.schemaVersion, 5);
+  assert.equal(loaded.schemaVersion, 6);
   assert.equal(loaded.entries.length, state.entries.length);
   assert.equal(loaded.moments.length, state.entries.length);
   delete globalThis.localStorage;
@@ -49,9 +49,11 @@ test('exports round-trip every journey and rejects malformed imports', () => {
   state.preferences.onboardingComplete = true;
   const concern = normalizeConcern({ title: 'Confirm the deposit', detail: 'Ask before arrival.', status: 'open' }, state.activeTripId, 'Alex');
   state.concerns.push(concern);
+  state.moments.push(normalizeMoment({ kind: 'memory', title: 'A themed memory', detail: '', occurredOn: '2026-09-13', visibility: 'shared-now', theme: 'flexoki', money: '' }, state.activeTripId));
   appendJourneyEvent(state, { tripId: state.activeTripId, actorName: 'Alex', action: 'concern_added', entityType: 'concern', entityId: concern.id, summary: `Logged concern: ${concern.title}`, before: null, after: concern });
   const imported = importState(exportState(state));
   assert.deepEqual(imported, state);
+  assert.equal(imported.moments[0].theme, 'flexoki');
   assert.throws(() => importState('{"schemaVersion":2,"trips":[]}'), /valid Together Ledger export/);
   delete globalThis.localStorage;
 });

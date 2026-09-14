@@ -87,7 +87,7 @@ test('schema version 1 migrates losslessly into multiple-journey state', () => {
     entries: current.entries.map((entry) => ({ ...entry })),
   };
   const migrated = migrateState(legacy);
-  assert.equal(migrated.schemaVersion, 5);
+  assert.equal(migrated.schemaVersion, 6);
   assert.equal(migrated.preferences.onboardingComplete, false);
   assert.deepEqual(migrated.events, []);
   assert.deepEqual(migrated.concerns, []);
@@ -112,10 +112,13 @@ test('moments keep optional money as context and require an honest visibility ch
     detail: 'Could we try again with ten quiet minutes?',
     occurredOn: '2026-08-16',
     visibility: 'share-later',
+    theme: 'rose-pine',
     money: '12.50',
   }, state.activeTripId);
   assert.equal(moment.moneyCents, 1250);
   assert.equal(moment.visibility, 'share-later');
+  assert.equal(moment.theme, 'rose-pine');
+  assert.equal(normalizeMoment({ ...moment, theme: 'retired-theme' }, state.activeTripId, moment).theme, '');
   assert.throws(() => normalizeMoment({ ...moment, visibility: 'everyone' }, state.activeTripId), /who can see/);
 });
 

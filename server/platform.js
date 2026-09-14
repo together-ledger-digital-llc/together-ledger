@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { withTransaction } from './db.js';
+import { normalizeMomentTheme } from '../src/moment-themes.js';
 import {
   assertPassword,
   csrfForSession,
@@ -175,6 +176,7 @@ function publicMoment(row) {
     title: row.title,
     detail: row.detail,
     visibility: row.visibility,
+    theme: normalizeMomentTheme(row.theme),
     moneyCents: row.money_cents,
     moneyCurrency: row.money_currency || '',
     createdByUserId: row.created_by_user_id,
@@ -246,6 +248,7 @@ function cleanMoment(input, existing = null) {
     moneyCents,
     moneyCurrency,
     visibility,
+    theme: normalizeMomentTheme(Object.hasOwn(input, 'theme') ? input.theme : existing?.theme),
     locations,
   };
 }
@@ -459,11 +462,11 @@ export class PlatformService {
     return { id, ...event, eventHash };
   }
 
-  async appendPrivateMomentEvent(client, { journeyId, momentId, ownerUserId, action, beforeVisibility = null, afterVisibility = null }) {
+  async appendPrivateMomentEvent(client, { journeyId, momentId, ownerUserId, action, beforeVisibility = null, afterVisibility = null, beforeTheme = null, afterTheme = null }) {
     await client.query(
-      `INSERT INTO private_moment_events (id,journey_id,moment_id,owner_user_id,action,before_visibility,after_visibility,created_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [randomUUID(), journeyId, momentId, ownerUserId, action, beforeVisibility, afterVisibility, this.now()],
+      `INSERT INTO private_moment_events (id,journey_id,moment_id,owner_user_id,action,before_visibility,after_visibility,before_theme,after_theme,created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [randomUUID(), journeyId, momentId, ownerUserId, action, beforeVisibility, afterVisibility, beforeTheme || null, afterTheme || null, this.now()],
     );
   }
 
@@ -723,15 +726,15 @@ export class PlatformService {
       const id = randomUUID();
       const next = cleanMoment(input);
       const created = await client.query(
-        `INSERT INTO journey_moments (id,journey_id,kind,kind_label,occurred_on,title,detail,visibility,money_cents,money_currency,locations,created_by_user_id,updated_by_user_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12,$13) RETURNING *`,
-        [id, journeyId, next.kind, next.kindLabel, next.occurredOn, next.title, next.detail, next.visibility, next.moneyCents, next.moneyCurrency, JSON.stringify(next.locations), userId, userId],
+        `INSERT INTO journey_moments (id,journey_id,kind,kind_label,occurred_on,title,detail,visibility,theme,money_cents,money_currency,locations,created_by_user_id,updated_by_user_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14) RETURNING *`,
+        [id, journeyId, next.kind, next.kindLabel, next.occurredOn, next.title, next.detail, next.visibility, next.theme || null, next.moneyCents, next.moneyCurrency, JSON.stringify(next.locations), userId, userId],
       );
       const moment = publicMoment(created.rows[0]);
       if (moment.visibility === 'shared-now') {
         await this.appendEvent(client, { journeyId, actorUserId: userId, action: 'moment_added', entityType: 'moment', entityId: id, summary: `Held ${moment.kindLabel || moment.kind}: ${moment.title}`, after: auditMoment(moment) });
       } else {
-        await this.appendPrivateMomentEvent(client, { journeyId, momentId: id, ownerUserId: userId, action: 'moment_added', afterVisibility: moment.visibility });
+        await this.appendPrivateMomentEvent(client, { journeyId, momentId: id, ownerUserId: userId, action: 'moment_added', afterVisibility: moment.visibility, afterTheme: moment.theme });
       }
       return moment;
     });
@@ -747,7 +750,7 @@ export class PlatformService {
       if (Number(input.version) !== before.version) throw new PlatformError(409, 'conflict', 'This moment changed on another device.');
       if (remove) {
         if (before.visibility !== 'shared-now') {
-          await this.appendPrivateMomentEvent(client, { journeyId, momentId, ownerUserId: userId, action: 'moment_deleted', beforeVisibility: before.visibility });
+          await this.appendPrivateMomentEvent(client, { journeyId, momentId, ownerUserId: userId, action: 'moment_deleted', beforeVisibility: before.visibility, beforeTheme: before.theme });
         }
         await client.query('DELETE FROM journey_moments WHERE id=$1', [momentId]);
         if (before.visibility === 'shared-now') {
@@ -757,8 +760,8 @@ export class PlatformService {
       }
       const next = cleanMoment(input, before);
       const updated = await client.query(
-        `UPDATE journey_moments SET kind=$1,kind_label=$2,occurred_on=$3,title=$4,detail=$5,visibility=$6,money_cents=$7,money_currency=$8,locations=$9::jsonb,updated_by_user_id=$10,version=version+1,updated_at=$11 WHERE id=$12 RETURNING *`,
-        [next.kind, next.kindLabel, next.occurredOn, next.title, next.detail, next.visibility, next.moneyCents, next.moneyCurrency, JSON.stringify(next.locations), userId, this.now(), momentId],
+        `UPDATE journey_moments SET kind=$1,kind_label=$2,occurred_on=$3,title=$4,detail=$5,visibility=$6,theme=$7,money_cents=$8,money_currency=$9,locations=$10::jsonb,updated_by_user_id=$11,version=version+1,updated_at=$12 WHERE id=$13 RETURNING *`,
+        [next.kind, next.kindLabel, next.occurredOn, next.title, next.detail, next.visibility, next.theme || null, next.moneyCents, next.moneyCurrency, JSON.stringify(next.locations), userId, this.now(), momentId],
       );
       const after = publicMoment(updated.rows[0]);
       if (before.visibility !== 'shared-now') {
@@ -769,7 +772,19 @@ export class PlatformService {
           action: before.visibility === after.visibility ? 'moment_updated' : 'visibility_changed',
           beforeVisibility: before.visibility,
           afterVisibility: after.visibility === 'shared-now' ? null : after.visibility,
+          beforeTheme: before.theme,
+          afterTheme: after.visibility === 'shared-now' ? null : after.theme,
         });
+        if (before.theme !== after.theme) {
+          await this.appendPrivateMomentEvent(client, {
+            journeyId,
+            momentId,
+            ownerUserId: userId,
+            action: 'moment_theme_changed',
+            beforeTheme: before.theme,
+            afterTheme: after.theme,
+          });
+        }
       }
       if (after.visibility === 'shared-now') {
         const newlyShared = before.visibility !== 'shared-now';
@@ -783,6 +798,18 @@ export class PlatformService {
           before: newlyShared ? { visibility: before.visibility } : auditMoment(before),
           after: newlyShared ? { visibility: 'shared-now' } : auditMoment(after),
         });
+        if (before.visibility === 'shared-now' && before.theme !== after.theme) {
+          await this.appendEvent(client, {
+            journeyId,
+            actorUserId: userId,
+            action: 'moment_theme_changed',
+            entityType: 'moment',
+            entityId: momentId,
+            summary: 'Changed moment theme',
+            before: { theme: before.theme },
+            after: { theme: after.theme },
+          });
+        }
       }
       return after;
     });

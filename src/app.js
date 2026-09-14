@@ -20,6 +20,7 @@ import {
 } from './model.js';
 import { exportState, importState, loadState, resetState, saveState } from './store.js';
 import { ApiError, TogetherApi } from './api.js';
+import { MOMENT_THEMES, momentThemeLabel, normalizeMomentTheme } from './moment-themes.js';
 
 let state = loadState();
 const api = new TogetherApi();
@@ -333,6 +334,11 @@ function momentLabel(kind, kindLabel = '') {
   return MOMENT_TYPES.find(([value]) => value === kind)?.[1] || 'Moment';
 }
 
+function momentThemeAttribute(value) {
+  const theme = normalizeMomentTheme(value);
+  return theme ? ` data-moment-theme="${theme}"` : '';
+}
+
 function localDayKey() {
   return new Intl.DateTimeFormat('en-CA').format(new Date());
 }
@@ -379,7 +385,8 @@ function renderSharedJourney(trip, moments, isEmptyStart) {
     const removed = moment.removedImages?.length ? `<details class="moment-removed-photos"><summary>Removed photo</summary>${moment.removedImages.map((image) => `<button type="button" class="moment-image-attachment" data-open-moment-image="${escapeHtml(image.id)}" aria-label="Open removed photo ${escapeHtml(image.filename || 'Image')}"><span class="moment-image-attachment-copy"><span>Removed photo</span><strong>${escapeHtml(image.filename || 'Image')}</strong><small>Open larger</small></span></button>`).join('')}</details>` : '';
     const locations = Array.isArray(moment.locations) ? moment.locations : [];
     const locationContext = locations.length ? `<div class="location-context">${escapeHtml(locations.map((location) => location.label).join(' · '))}</div>` : '';
-    return `<article class="moment-card ${moment.visibility}"><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn)}</span><span class="visibility-chip ${moment.visibility}">${escapeHtml(moment.visibility.replaceAll('-', ' '))}</span></div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${locationContext}${attachments}${removed}${moment.moneyCents != null ? `<details class="money-context"><summary>Practical money context</summary><p>${money(moment.moneyCents, moment.moneyCurrency)} is held here as context, not a score.</p></details>` : ''}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">Edit</button></div></article>`;
+    const themeName = normalizeMomentTheme(moment.theme) ? `<span class="moment-theme-chip">${escapeHtml(momentThemeLabel(moment.theme))} theme</span>` : '';
+    return `<article class="moment-card ${moment.visibility}"${momentThemeAttribute(moment.theme)}><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn)}</span><span class="visibility-chip ${moment.visibility}">${escapeHtml(moment.visibility.replaceAll('-', ' '))}</span>${themeName}</div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${locationContext}${attachments}${removed}${moment.moneyCents != null ? `<details class="money-context"><summary>Practical money context</summary><p>${money(moment.moneyCents, moment.moneyCurrency)} is held here as context, not a score.</p></details>` : ''}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">Edit</button></div></article>`;
   }).join('') : isEmptyStart ? `<div class="log-types"><p>There are no examples here—only possibilities:</p><div>${MOMENT_TYPES.filter(([value]) => value !== 'other').map(([, label]) => `<span>${escapeHtml(label)}</span>`).join('')}<button type="button" data-open-custom-moment>＋ Add your own moment</button></div></div>` : '<p class="empty">No moments in this view yet. A small truth is enough to begin.</p>';
   $$('[data-edit-moment]').forEach((button) => button.addEventListener('click', () => openMoment(button.dataset.editMoment)));
   $$('[data-open-moment-image]').forEach((button) => button.addEventListener('click', () => openMomentImage(button.dataset.openMomentImage)));
@@ -446,6 +453,22 @@ function updateMomentKindField(form) {
   form.elements.kindLabel.disabled = !custom;
 }
 
+function syncMomentThemePreview(form) {
+  const theme = normalizeMomentTheme(form.elements.theme?.value);
+  const preview = $('#moment-theme-preview');
+  if (theme) preview.dataset.momentTheme = theme;
+  else delete preview.dataset.momentTheme;
+  $('#moment-theme-preview-name').textContent = momentThemeLabel(theme);
+}
+
+function renderMomentThemeChooser(form, selectedTheme = '') {
+  const selected = normalizeMomentTheme(selectedTheme);
+  const choices = [{ id: '', label: 'Use my theme' }, ...MOMENT_THEMES];
+  $('#moment-theme-options').innerHTML = choices.map(({ id, label }) => `<label><input type="radio" name="theme" value="${id}"${id === selected ? ' checked' : ''} /><span class="moment-theme-swatch${id ? '' : ' inherited'}"${momentThemeAttribute(id)} aria-hidden="true"></span><span>${escapeHtml(label)}</span></label>`).join('');
+  $$('input[name="theme"]', form).forEach((input) => input.addEventListener('change', () => syncMomentThemePreview(form)));
+  syncMomentThemePreview(form);
+}
+
 function renderMomentLocations() {
   const list = $('#moment-locations');
   list.innerHTML = momentLocations.map((location, index) => `<li><strong>${escapeHtml(location.label)}</strong><small>${index === 0 ? 'Included' : '$1/month'}</small><button type="button" data-remove-location="${index}" aria-label="Remove ${escapeHtml(location.label)}">Remove</button></li>`).join('');
@@ -473,6 +496,7 @@ function openMoment(id = '', initialKind = '') {
   form.elements.kind.innerHTML = MOMENT_TYPES.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
   form.elements.occurredOn.value = new Date().toISOString().slice(0, 10);
   form.elements.visibility.value = 'shared-now';
+  renderMomentThemeChooser(form, moment?.theme);
   momentLocations = [];
   $('#moment-dialog-title').textContent = moment ? 'Edit this moment' : 'Hold a moment';
   $('#save-moment').textContent = moment ? 'Save moment' : 'Hold this moment';
@@ -524,7 +548,7 @@ async function shareMoment(id) {
   if (!moment || !isCloudJourney(trip) || moment.visibility !== 'share-later') return;
   if (!window.confirm('Share this moment now? Both journeyers will be able to see it, and that access cannot be undone.')) return;
   try {
-    const payload = { kind: moment.kind, kindLabel: moment.kindLabel || '', title: moment.title, detail: moment.detail, occurredOn: moment.occurredOn, visibility: 'shared-now', moneyCents: moment.moneyCents, moneyCurrency: moment.moneyCurrency || '', version: moment.version };
+    const payload = { kind: moment.kind, kindLabel: moment.kindLabel || '', title: moment.title, detail: moment.detail, occurredOn: moment.occurredOn, visibility: 'shared-now', theme: normalizeMomentTheme(moment.theme), moneyCents: moment.moneyCents, moneyCurrency: moment.moneyCurrency || '', locations: moment.locations || [], version: moment.version };
     await api.mutate(`/journeys/${trip.id}/moments/${moment.id}`, 'PATCH', payload);
     await refreshCloudState();
     showToast('Moment shared with your journeyer.');
@@ -738,6 +762,7 @@ function meaningfulChanges(before, after) {
 function valueLabel(key, value) {
   if (value == null || value === '') return 'none';
   if (key === 'budgetCents' || key === 'amountCents') return money(value);
+  if (key === 'theme') return momentThemeLabel(value);
   if (Array.isArray(value)) return value.join(', ');
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
@@ -1003,7 +1028,7 @@ $('#moment-form').addEventListener('submit', async (event) => {
     const before = existingIndex >= 0 ? structuredClone(state.moments[existingIndex]) : null;
     if (isCloudJourney(trip)) {
       const moneyCents = input.money === '' ? null : Math.round(Number(input.money) * 100);
-      const payload = { kind: input.kind, kindLabel: input.kindLabel || '', title: input.title, detail: input.detail, occurredOn: input.occurredOn, visibility: input.visibility, moneyCents, moneyCurrency: input.moneyCurrency || '', locations: input.locations, ...(before ? { version: before.version } : {}) };
+      const payload = { kind: input.kind, kindLabel: input.kindLabel || '', title: input.title, detail: input.detail, occurredOn: input.occurredOn, visibility: input.visibility, theme: normalizeMomentTheme(input.theme), moneyCents, moneyCurrency: input.moneyCurrency || '', locations: input.locations, ...(before ? { version: before.version } : {}) };
       const result = before ? await api.mutate(`/journeys/${trip.id}/moments/${before.id}`, 'PATCH', payload) : await api.mutate(`/journeys/${trip.id}/moments`, 'POST', payload);
       const image = form.elements.image.files[0];
       if (image) await api.uploadMomentImage(trip.id, result.moment.id, image, form.dataset.paidSlotId || '');
@@ -1017,6 +1042,7 @@ $('#moment-form').addEventListener('submit', async (event) => {
     if (existingIndex >= 0) state.moments[existingIndex] = moment;
     else state.moments.push(moment);
     eventRecord({ action: existingIndex >= 0 ? 'moment_updated' : 'moment_added', entityType: 'moment', entityId: moment.id, summary: `${existingIndex >= 0 ? 'Updated' : 'Held'} ${momentLabel(moment.kind, moment.kindLabel).toLowerCase()}: ${moment.title}`, before, after: moment });
+    if (before && before.theme !== moment.theme) eventRecord({ action: 'moment_theme_changed', entityType: 'moment', entityId: moment.id, summary: 'Changed moment theme', before: { theme: before.theme }, after: { theme: moment.theme } });
     $('#moment-dialog').close();
     persistAndRender(existingIndex >= 0 ? 'Moment updated.' : 'Moment held in this browser.');
   } catch (error) {
