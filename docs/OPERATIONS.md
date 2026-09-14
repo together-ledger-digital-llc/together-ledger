@@ -124,7 +124,7 @@ Use this procedure only after a deployed release. It does not replace the incide
 
 ## App Worker delivery and rollback
 
-`app.together-ledger.com` is the independently deployed public application. Protected `main` reaches it only after the `CI` workflow for that exact push succeeds. The delivery workflow rebuilds from the lockfile, repeats the repository checks, packages the static Worker, deploys it with the `app` environment's `CLOUDFLARE_API_TOKEN`, and then checks its public release marker and welcome control.
+`app.together-ledger.com` is the independently deployed public application. Protected `main` reaches it only after the `CI` workflow for that exact push succeeds. The delivery workflow rebuilds from the lockfile, repeats the repository checks, packages the static Worker, deploys it with the `app` environment's `CLOUDFLARE_API_TOKEN`, and then retries its public release-marker and welcome-control check for up to three minutes while the custom hostname settles.
 
 Keep that token scoped only to the production app Worker deployment path. Store it as an environment secret, not in repository files, workflow text, command arguments, or issue discussion. A missing token intentionally fails the delivery job before it can claim the reviewed release is live.
 

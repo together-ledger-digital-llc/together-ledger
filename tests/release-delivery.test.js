@@ -41,6 +41,27 @@ test('Worker release verifier fails closed when the marker is stale', async () =
   );
 });
 
+test('Worker release verifier allows a transient public marker denial to settle', async () => {
+  let markerRequests = 0;
+  const fetchImpl = async (url) => {
+    if (new URL(url).pathname === '/release.json') {
+      markerRequests += 1;
+      if (markerRequests === 1) return new Response('Still propagating', { status: 403 });
+      return new Response(JSON.stringify({ revision }), { status: 200 });
+    }
+    return new Response('<button>Keep what matters, together.</button>', { status: 200 });
+  };
+  const result = await verifyWorkerRelease({
+    baseUrl: 'https://app.example.test',
+    revision,
+    requiredText: 'Keep what matters,',
+    attempts: 2,
+    delayMs: 0,
+    fetchImpl,
+  });
+  assert.equal(result.attempt, 2);
+});
+
 test('release delivery workflows keep their explicit protected-main boundaries', () => {
   const pages = readFileSync(join(root, '.github/workflows/pages.yml'), 'utf8');
   const worker = readFileSync(join(root, '.github/workflows/app-worker.yml'), 'utf8');
