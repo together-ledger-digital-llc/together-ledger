@@ -485,6 +485,12 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .billing-panel .eyebrow { color: var(--accent); }
 .billing-mode { background: var(--soft); border: 1px solid var(--line); border-radius: 15px; color: var(--muted); margin: 0; padding: 15px 17px; }
 .billing-offers { display: flex; flex-wrap: wrap; gap: 8px; }
+.billing-capacity-picker { display: grid; gap: 9px; }
+.billing-capacity-picker .field { margin: 0; }
+.billing-capacity-controls { align-items: center; display: flex; gap: 12px; }
+.billing-capacity-controls input[type="range"] { flex: 1; min-height: 44px; }
+.billing-capacity-controls input[type="number"] { min-height: 44px; text-align: center; width: 4.5em; }
+.billing-capacity-total { color: var(--muted); font-weight: 700; margin: 0; }
 .billing-boundary { color: var(--muted); font-size: 13px; line-height: 1.55; }
 .inline-form { align-items: end; display: flex; gap: 8px; }
 .inline-form .field { flex: 1; }

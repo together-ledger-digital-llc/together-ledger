@@ -169,6 +169,78 @@ test('a journey owner sees only the approved test billing controls', async ({ pa
   expect(accessibilityScan.violations).toEqual([]);
 });
 
+test('a journey owner without paid capacity can choose 1-99 additional places before checkout', async ({ page }) => {
+  const owner = { id: 'user-1', username: 'journeyer', displayName: 'Journeyer', email: 'journeyer@example.test', emailVerified: true };
+  let lastCheckoutBody = null;
+  await page.route('https://api.together-ledger.com/api/v1/session', (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ data: { user: owner, csrfToken: 'csrf-test' } }),
+  }));
+  await page.route('https://api.together-ledger.com/api/v1/journeys', (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ data: { journeys: [{ id: 'journey-billing' }] } }),
+  }));
+  await page.route('https://api.together-ledger.com/api/v1/journeys/journey-billing/snapshot', (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ data: {
+      journey: { id: 'journey-billing', name: 'A wider circle', location: '', startDate: '', startDateStatus: 'unknown', endDate: '', endDateStatus: 'forever', budgetCents: 0, version: 1, role: 'owner', createdAt: '2026-09-07T18:00:00.000Z', updatedAt: '2026-09-07T18:00:00.000Z' },
+      members: [{ id: owner.id, displayName: owner.displayName, role: 'owner', joinedAt: '2026-09-07T18:00:00.000Z' }],
+      invitations: [], expenses: [], moments: [], concerns: [], milestones: [],
+      events: [{ id: 'event-1', sequence: 1, actorUserId: owner.id, action: 'journey_created', entityType: 'journey', entityId: 'journey-billing', summary: 'Created journey', before: null, after: null, previousHash: '', eventHash: '', createdAt: '2026-09-07T18:00:00.000Z' }],
+      eventChainValid: true,
+    } }),
+  }));
+  await page.route('https://api.together-ledger.com/api/v1/journeys/journey-billing/billing', (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ data: {
+      enabled: true,
+      portalEnabled: false,
+      environment: 'test',
+      journey: { id: 'journey-billing', name: 'A wider circle' },
+      offers: [{ id: 'additional-person-monthly', label: 'Another person', cadence: 'month', currency: 'USD', unitAmount: 100 }],
+      entitlement: null,
+      subscription: null,
+      invoices: [],
+    } }),
+  }));
+  await page.route('https://api.together-ledger.com/api/v1/journeys/journey-billing/billing/checkout-sessions', async (route) => {
+    lastCheckoutBody = route.request().postDataJSON();
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ data: { url: 'https://checkout.stripe.com/c/pay/test', environment: 'test' } }) });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Account settings', exact: true }).first().click();
+  await expect(page.locator('#billing-panel')).toBeVisible();
+  const range = page.locator('#billing-capacity-range');
+  const number = page.locator('#billing-capacity-number');
+  await expect(range).toBeVisible();
+  await expect(range).toHaveAttribute('min', '1');
+  await expect(range).toHaveAttribute('max', '99');
+  await expect(number).toHaveValue('1');
+  await expect(page.locator('#billing-capacity-total')).toContainText('$1.00');
+
+  await number.fill('99');
+  await number.dispatchEvent('change');
+  await expect(range).toHaveValue('99');
+  await expect(page.locator('#billing-capacity-total')).toContainText('$99.00');
+
+  await number.fill('150');
+  await number.dispatchEvent('change');
+  await expect(number).toHaveValue('99');
+  await expect(range).toHaveValue('99');
+
+  await number.fill('12');
+  await number.dispatchEvent('change');
+  await expect(range).toHaveValue('12');
+  await expect(page.locator('#billing-capacity-total')).toContainText('$12.00');
+
+  const accessibilityScan = await new AxeBuilder({ page }).include('#account-dialog').analyze();
+  expect(accessibilityScan.violations).toEqual([]);
+
+  await page.getByRole('button', { name: 'Add another person · $1.00 USD / month' }).click();
+  await expect.poll(() => lastCheckoutBody?.paidCapacity).toBe(12);
+});
+
 test('beginning locally keeps the account and hosted privacy boundaries separate', async ({ page }) => {
   const mutations = [];
   page.on('request', (request) => {
