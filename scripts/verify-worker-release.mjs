@@ -1,5 +1,5 @@
 const defaults = {
-  attempts: 12,
+  attempts: 36,
   delayMs: 5000,
 };
 
