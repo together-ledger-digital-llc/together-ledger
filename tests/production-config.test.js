@@ -70,6 +70,7 @@ test('production deployment bundle keeps the database private and requires delib
   assert.match(readiness, /budget alert is monitoring/);
   assert.match(readiness, /api\.together-ledger\.com/);
   assert.match(dockerfile, /FROM node:24\.21\.0-alpine3\.24@sha256:be80f76cf40ec8e42b9bec49f60a55e0660f30af58d3e5a25530785b30ea67e2 AS dependencies/);
+  assert.equal(dockerfile.match(/RUN apk upgrade --no-cache/g)?.length, 2);
   assert.match(dockerfile, /apk add --no-cache python3 make g\+\+/);
   assert.match(dockerfile, /FROM node:24\.21\.0-alpine3\.24@sha256:be80f76cf40ec8e42b9bec49f60a55e0660f30af58d3e5a25530785b30ea67e2\nENV NODE_ENV=production/);
 });
