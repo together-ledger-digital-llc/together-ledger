@@ -122,6 +122,27 @@ Use this procedure only after a deployed release. It does not replace the incide
 5. If database integrity is in doubt, freeze writes and stop. Choose the newest validated encrypted logical backup, restore it only into an isolated database, verify HMAC event chains and synthetic checks, then make a separate promotion decision.
 6. Record the outcome in the product journey document without secrets, IP addresses, account identifiers, or user data.
 
+## App Worker delivery and rollback
+
+`app.together-ledger.com` is the independently deployed public application. Protected `main` reaches it only after the `CI` workflow for that exact push succeeds. The delivery workflow rebuilds from the lockfile, repeats the repository checks, packages the static Worker, and deploys it with the `app` environment's `CLOUDFLARE_API_TOKEN`.
+
+The final parity check is deliberately made through a separate, fixed-purpose Cloudflare Worker. The probe accepts only a full revision SHA, fetches only the public app's release marker and home page, and succeeds only when both the deployed SHA and the `Keep what matters,` control agree. Its `workers.dev` endpoint is verification-only; it serves no app traffic, takes no secrets or user input beyond the revision, and is not an authority for the root site. This separates delivery evidence from the GitHub runner network path without weakening app protections.
+
+Keep that token scoped only to the production app Worker deployment path. Store it as an environment secret, not in repository files, workflow text, command arguments, or issue discussion. A missing token intentionally fails the delivery job before it can claim the reviewed release is live.
+
+`together-ledger.com` remains the separate GitHub Pages root site. Its Pages workflow builds the same public bundle but does not deploy the app Worker or the API.
+
+If a Worker release needs to be rolled back, first record the symptoms and the current release revision. From a reviewed checkout with the authorized deployment credential available only in the process environment:
+
+```sh
+npm ci
+./node_modules/.bin/wrangler versions list --config wrangler.jsonc
+./node_modules/.bin/wrangler versions deploy <previous-worker-version-id>@100 --config wrangler.jsonc --message "Return app Worker to reviewed revision"
+node scripts/verify-worker-release.mjs --base-url https://app.together-ledger.com --revision <previous-reviewed-commit-sha> --required-text "Keep what matters,"
+```
+
+Choose the prior Worker version by its recorded reviewed-main message and use its matching commit SHA in the last command. A Worker rollback changes only the static app bundle. It does not roll back the API container, database schema or data, billing state, DNS, or release-specific behavioral decisions.
+
 ## Incident rule
 
 Never promote GCP merely because one health check fails. Confirm the AWS database state, freeze writes, select the newest valid cross-cloud backup, verify the HMAC event chains, restore, smoke test, then change DNS. Record every failover and restore in the product journey document without including secrets or user data.
