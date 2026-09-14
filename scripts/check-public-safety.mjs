@@ -85,7 +85,9 @@ for (const requiredWorkerDeliveryStep of [
   'TOGETHER_LEDGER_RELEASE_REVISION',
   'CLOUDFLARE_API_TOKEN',
   'wrangler deploy --dry-run',
-  'verify-worker-release.mjs',
+  'probes/app-release-probe/wrangler.jsonc',
+  'deploy-release-probe.mjs',
+  'verify-release-probe.mjs',
 ]) {
   if (!workerWorkflow.includes(requiredWorkerDeliveryStep)) {
     violations.push(`App Worker workflow is missing ${requiredWorkerDeliveryStep}`);

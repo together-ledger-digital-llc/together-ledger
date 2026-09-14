@@ -3,6 +3,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { createAppReleaseProbe } from '../probes/app-release-probe/app-release-probe.mjs';
+import { findWorkersDevUrl } from '../scripts/deploy-release-probe.mjs';
+import { verifyReleaseProbe } from '../scripts/verify-release-probe.mjs';
 import { verifyWorkerRelease } from '../scripts/verify-worker-release.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -62,6 +65,60 @@ test('Worker release verifier allows a transient public marker denial to settle'
   assert.equal(result.attempt, 2);
 });
 
+test('external release probe permits only a matching public revision', async () => {
+  const probe = createAppReleaseProbe(async (url) => {
+    if (new URL(url).pathname === '/release.json') {
+      return new Response(JSON.stringify({ revision }), { status: 200 });
+    }
+    return new Response('<button>Keep what matters, together.</button>', { status: 200 });
+  });
+  const response = await probe.fetch(new Request(`https://probe.example.test/verify/${revision}`));
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { verified: true, revision });
+});
+
+test('external release probe fails closed for stale or non-probe requests', async () => {
+  const probe = createAppReleaseProbe(async () => new Response(JSON.stringify({ revision: 'b'.repeat(40) }), { status: 200 }));
+  const stale = await probe.fetch(new Request(`https://probe.example.test/verify/${revision}`));
+  assert.equal(stale.status, 503);
+  assert.deepEqual(await stale.json(), { verified: false, revision });
+  assert.equal((await probe.fetch(new Request('https://probe.example.test/anything'))).status, 404);
+  assert.equal((await probe.fetch(new Request(`https://probe.example.test/verify/${revision}`, { method: 'POST' }))).status, 405);
+});
+
+test('release probe verifier retries its public workers.dev endpoint and requires parity', async () => {
+  let attempts = 0;
+  const result = await verifyReleaseProbe({
+    probeUrl: 'https://together-ledger-app-public-release-probe.example.workers.dev',
+    revision,
+    attempts: 2,
+    delayMs: 0,
+    fetchImpl: async () => {
+      attempts += 1;
+      return attempts === 1
+        ? new Response('Waiting', { status: 503 })
+        : Response.json({ verified: true, revision });
+    },
+  });
+  assert.equal(result.attempt, 2);
+  await assert.rejects(
+    verifyReleaseProbe({
+      probeUrl: 'https://together-ledger-app-public-release-probe.example.workers.dev',
+      revision,
+      attempts: 1,
+      delayMs: 0,
+      fetchImpl: async () => Response.json({ verified: true, revision: 'b'.repeat(40) }),
+    }),
+    /did not confirm the expected public revision/,
+  );
+});
+
+test('release-probe deployer finds only the fixed public probe URL', () => {
+  const output = 'Published together-ledger-app-public-release-probe\nhttps://together-ledger-app-public-release-probe.example.workers.dev\n';
+  assert.equal(findWorkersDevUrl(output), 'https://together-ledger-app-public-release-probe.example.workers.dev');
+  assert.equal(findWorkersDevUrl('Published without an endpoint'), undefined);
+});
+
 test('release delivery workflows keep their explicit protected-main boundaries', () => {
   const pages = readFileSync(join(root, '.github/workflows/pages.yml'), 'utf8');
   const worker = readFileSync(join(root, '.github/workflows/app-worker.yml'), 'utf8');
@@ -72,5 +129,7 @@ test('release delivery workflows keep their explicit protected-main boundaries',
   assert.match(worker, /github\.event\.workflow_run\.event == 'push'/);
   assert.match(worker, /name: app/);
   assert.match(worker, /CLOUDFLARE_API_TOKEN/);
-  assert.match(worker, /verify-worker-release\.mjs/);
+  assert.match(worker, /probes\/app-release-probe\/wrangler\.jsonc/);
+  assert.match(worker, /deploy-release-probe\.mjs/);
+  assert.match(worker, /verify-release-probe\.mjs/);
 });
