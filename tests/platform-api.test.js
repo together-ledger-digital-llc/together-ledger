@@ -641,9 +641,18 @@ test('public service routes expose health and only the intended static app', asy
   const root = await app.inject({ method: 'GET', url: '/' });
   assert.match(root.body, /Together Ledger/);
   assert.match(root.body, /together-accounts-enabled" content="true"/);
+  assert.match(root.body, new RegExp(`together-api-origin" content="${apiOrigin}"`));
   assert.equal((await app.inject({ method: 'GET', url: '/src/app.js' })).statusCode, 200);
   assert.equal((await app.inject({ method: 'GET', url: '/src/api.js' })).statusCode, 200);
   assert.equal((await app.inject({ method: 'GET', url: '/server/platform.js' })).statusCode, 404);
+});
+
+test('a same-origin deployment serves a relative API origin instead of the checked-in production value', async (t) => {
+  const { app, pool } = await testPlatform({ configOverrides: { API_ORIGIN: '' } });
+  t.after(async () => { await app.close(); await pool.end(); });
+  const root = await app.inject({ method: 'GET', url: '/' });
+  assert.match(root.body, /together-api-origin" content=""/);
+  assert.doesNotMatch(root.body, /content="https:\/\/api\.together-ledger\.com"/);
 });
 
 test('email outages preserve account recovery but revoke undelivered invitations', async (t) => {
