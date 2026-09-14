@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS billing_entitlements (
   environment text NOT NULL CHECK (environment IN ('test','live','sandbox')),
   source_record_id text NOT NULL,
   state text NOT NULL CHECK (state IN ('pending','active','grace','revoked','expired')),
-  quantity integer NOT NULL CHECK (quantity BETWEEN 0 AND 97),
+  quantity integer NOT NULL CHECK (quantity BETWEEN 0 AND 99),
   effective_at timestamptz,
   expires_at timestamptz,
   last_verified_at timestamptz NOT NULL,
