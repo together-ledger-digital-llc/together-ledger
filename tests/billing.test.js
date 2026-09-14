@@ -44,7 +44,7 @@ async function billingPool() {
   });
   const adapter = memory.adapters.createPg();
   const pool = new adapter.Pool();
-  for (const migration of ['001_platform.sql', '003_private_usernames.sql', '004_shared_moments.sql', '005_make-shared-journeys-more-humane.sql', '006_expand-shared-moment-vocabulary.sql', '007_person_specific_moment_visibility.sql', '008_stripe_web_billing.sql', '010_stripe_reconciliation_runs.sql', '011_hold-one-image-with-each-moment.sql', '012_bill-additional-moment-images.sql', '013_name-moment-image-attachments.sql', '014_hold-places-with-shared-moments.sql', '015_bill-additional-moment-places.sql', '016_make-extra-image-payments-one-time.sql', '017_keep-one-removed-photo-per-moment.sql', '018_allow-ninety-nine-paid-journey-places.sql']) {
+  for (const migration of ['001_platform.sql', '003_private_usernames.sql', '004_shared_moments.sql', '005_make-shared-journeys-more-humane.sql', '006_expand-shared-moment-vocabulary.sql', '007_person_specific_moment_visibility.sql', '008_stripe_web_billing.sql', '010_stripe_reconciliation_runs.sql', '011_hold-one-image-with-each-moment.sql', '012_bill-additional-moment-images.sql', '013_name-moment-image-attachments.sql', '014_hold-places-with-shared-moments.sql', '015_bill-additional-moment-places.sql', '016_make-extra-image-payments-one-time.sql', '017_keep-one-removed-photo-per-moment.sql', '018_allow-ninety-nine-paid-journey-places.sql', '020_let-entitlements-hold-ninety-nine-places.sql']) {
     await pool.query(await readFile(new URL(`../server/migrations/${migration}`, import.meta.url), 'utf8'));
   }
   await pool.query(
@@ -416,6 +416,51 @@ test('webhooks reject subscriptions outside the approved owner, customer, and pr
   );
   assert.equal((await pool.query('SELECT count(*)::int AS count FROM billing_subscriptions')).rows[0].count, 0);
   assert.equal((await pool.query('SELECT count(*)::int AS count FROM billing_entitlements')).rows[0].count, 0);
+});
+
+test('webhooks project the approved 1-99 paid capacity from the subscription quantity', async (t) => {
+  const pool = await billingPool();
+  t.after(async () => pool.end());
+  const billing = new StripeBillingService({ pool, config: billingConfig(), stripe: fakeStripe(), now: () => now });
+  await billing.createCheckoutSession(userId, journeyId, {
+    offerId: 'additional-person-monthly',
+    paidCapacity: 99,
+    requestId: '99999999-9999-4999-8999-999999999999',
+  });
+  const subscriptionEvent = (id, quantity) => ({
+    id,
+    type: 'customer.subscription.created',
+    created: 1788807600,
+    livemode: false,
+    data: {
+      object: {
+        id: 'sub_wide_capacity',
+        customer: 'cus_test_member',
+        status: 'active',
+        current_period_start: 1788807600,
+        current_period_end: 1791399600,
+        cancel_at_period_end: false,
+        metadata: {
+          together_user_id: userId,
+          together_journey_id: journeyId,
+          together_offer_id: 'additional-person-monthly',
+          together_paid_capacity: '99',
+        },
+        items: { data: [{ quantity, price: { id: 'price_additional_person_test' } }] },
+      },
+    },
+  });
+
+  await billing.handleWebhook(Buffer.from(JSON.stringify(subscriptionEvent('evt_wide_capacity_active', 99))), 'valid-signature');
+  const entitlement = (await pool.query(
+    `SELECT state,quantity FROM billing_entitlements WHERE source_record_id='sub_wide_capacity'`,
+  )).rows[0];
+  assert.deepEqual(entitlement, { state: 'active', quantity: 99 });
+
+  await assert.rejects(
+    billing.handleWebhook(Buffer.from(JSON.stringify(subscriptionEvent('evt_wide_capacity_over_max', 100))), 'valid-signature'),
+    /does not match the approved additional-capacity offer/,
+  );
 });
 
 test('an invoice cannot grant capacity before its approved subscription is known', async (t) => {
