@@ -47,11 +47,18 @@ jobs:
             exit 1
           fi
           ./node_modules/.bin/wrangler deploy --config wrangler.jsonc --keep-vars --message "Reviewed main $TOGETHER_LEDGER_RELEASE_REVISION frontend"
-      - name: Verify the public app revision
+      - name: Validate external release-probe packaging
+        run: ./node_modules/.bin/wrangler deploy --dry-run --config probes/app-release-probe/wrangler.jsonc
+      - name: Deploy the external release probe
+        id: release_probe
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TOGETHER_LEDGER_RELEASE_REVISION: ${{ github.event.workflow_run.head_sha }}
+        run: node scripts/deploy-release-probe.mjs
+      - name: Verify the public app revision through the external probe
         env:
           TOGETHER_LEDGER_RELEASE_REVISION: ${{ github.event.workflow_run.head_sha }}
         run: >-
-          node scripts/verify-worker-release.mjs
-          --base-url https://app.together-ledger.com
+          node scripts/verify-release-probe.mjs
+          --probe-url "${{ steps.release_probe.outputs.url }}"
           --revision "$TOGETHER_LEDGER_RELEASE_REVISION"
-          --required-text "Keep what matters,"
