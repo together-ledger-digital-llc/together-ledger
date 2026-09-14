@@ -71,6 +71,26 @@ const pagesWorkflow = readFileSync(join(root, '.github/workflows/pages.yml'), 'u
 if (!pagesWorkflow.includes('node scripts/build-public-site.mjs')) {
   violations.push('Pages workflow does not use the shared public-site build');
 }
+if (!pagesWorkflow.includes('actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a')) {
+  violations.push('Pages workflow does not use the reviewed immutable artifact action');
+}
+if (pagesWorkflow.includes('actions/upload-pages-artifact@')) {
+  violations.push('Pages workflow still uses the nested artifact action rejected by immutable-action policy');
+}
+const workerWorkflow = readFileSync(join(root, '.github/workflows/app-worker.yml'), 'utf8');
+for (const requiredWorkerDeliveryStep of [
+  'workflow_run:',
+  'github.event.workflow_run.conclusion == \'success\'',
+  'github.event.workflow_run.event == \'push\'',
+  'TOGETHER_LEDGER_RELEASE_REVISION',
+  'CLOUDFLARE_API_TOKEN',
+  'wrangler deploy --dry-run',
+  'verify-worker-release.mjs',
+]) {
+  if (!workerWorkflow.includes(requiredWorkerDeliveryStep)) {
+    violations.push(`App Worker workflow is missing ${requiredWorkerDeliveryStep}`);
+  }
+}
 const shareCardPath = join(root, 'public/social/together-ledger-card.png');
 if (existsSync(shareCardPath)) {
   const shareCard = readFileSync(shareCardPath);
