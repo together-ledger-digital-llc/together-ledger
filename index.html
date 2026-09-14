@@ -301,6 +301,14 @@
           <h3 id="billing-title">Make room for another person</h3>
           <p id="billing-environment" class="billing-mode" hidden></p>
           <p id="billing-status" aria-live="polite">Checking this journey’s paid capacity…</p>
+          <div id="billing-capacity-picker" class="billing-capacity-picker" hidden>
+            <label class="field" for="billing-capacity-range"><span>Additional people to add</span></label>
+            <div class="billing-capacity-controls">
+              <input type="range" id="billing-capacity-range" min="1" max="99" step="1" value="1" aria-describedby="billing-capacity-total" />
+              <input type="number" id="billing-capacity-number" min="1" max="99" step="1" value="1" inputmode="numeric" aria-label="Additional people to add, 1 through 99" aria-describedby="billing-capacity-total" />
+            </div>
+            <p id="billing-capacity-total" aria-live="polite">$1.00 USD / month</p>
+          </div>
           <div id="billing-offers" class="billing-offers"></div>
           <button class="button quiet" type="button" id="billing-portal-button" hidden>Manage payment and cancellation</button>
           <p class="billing-boundary">This is for purchases made on the web. Apple App Store and future Google Play purchases remain with those stores and are never recreated as Stripe charges.</p>

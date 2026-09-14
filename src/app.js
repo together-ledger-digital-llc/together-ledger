@@ -144,7 +144,8 @@ function renderBillingState() {
   const offers = $('#billing-offers');
   const hasCurrentSubscription = billingState.subscription
     && !['canceled', 'incomplete_expired'].includes(billingState.subscription.status);
-  offers.replaceChildren(...(!hasCurrentSubscription ? billingState.offers : []).map((offer) => {
+  const availableOffers = !hasCurrentSubscription ? billingState.offers : [];
+  offers.replaceChildren(...availableOffers.map((offer) => {
     const button = document.createElement('button');
     button.className = 'button primary';
     button.type = 'button';
@@ -152,7 +153,47 @@ function renderBillingState() {
     button.textContent = `Add another person · $${(offer.unitAmount / 100).toFixed(2)} ${offer.currency} / month`;
     return button;
   }));
+
+  const picker = $('#billing-capacity-picker');
+  const showPicker = Boolean(availableOffers.length);
+  if (showPicker && picker.hidden) {
+    $('#billing-capacity-range').value = '1';
+    $('#billing-capacity-number').value = '1';
+  }
+  picker.hidden = !showPicker;
+  if (showPicker) updateCapacityTotal(availableOffers[0]);
   $('#billing-portal-button').hidden = !billingState.portalEnabled;
+}
+
+function clampCapacity(value) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) ? Math.min(99, Math.max(1, parsed)) : 1;
+}
+
+function capacityQuantity() {
+  return clampCapacity($('#billing-capacity-number').value);
+}
+
+function updateCapacityTotal(offer) {
+  const total = $('#billing-capacity-total');
+  if (!offer) { total.textContent = ''; return; }
+  total.textContent = `${money(offer.unitAmount * capacityQuantity(), offer.currency)} / month`;
+}
+
+function syncCapacityFromRange() {
+  const quantity = clampCapacity($('#billing-capacity-range').value);
+  $('#billing-capacity-number').value = String(quantity);
+  updateCapacityTotal(billingState?.offers?.[0]);
+}
+
+function previewCapacityFromNumber() {
+  $('#billing-capacity-range').value = String(capacityQuantity());
+  updateCapacityTotal(billingState?.offers?.[0]);
+}
+
+function normalizeCapacityNumber() {
+  $('#billing-capacity-number').value = String(capacityQuantity());
+  previewCapacityFromNumber();
 }
 
 async function refreshBillingState() {
@@ -1192,6 +1233,10 @@ $('#refresh-sync-button').addEventListener('click', async () => {
   } catch (error) { showToast(accountMessage(error)); }
 });
 
+$('#billing-capacity-range').addEventListener('input', syncCapacityFromRange);
+$('#billing-capacity-number').addEventListener('input', previewCapacityFromNumber);
+$('#billing-capacity-number').addEventListener('change', normalizeCapacityNumber);
+
 $('#billing-offers').addEventListener('click', async (event) => {
   const button = event.target.closest('[data-billing-offer]');
   if (!button) return;
@@ -1201,7 +1246,7 @@ $('#billing-offers').addEventListener('click', async (event) => {
     if (!isCloudJourney(journey) || journey.role !== 'owner') throw new Error('Only a hosted journey owner can add another person.');
     const result = await api.mutate(`/journeys/${journey.id}/billing/checkout-sessions`, 'POST', {
       offerId: button.dataset.billingOffer,
-      paidCapacity: 1,
+      paidCapacity: capacityQuantity(),
       requestId: crypto.randomUUID(),
     });
     const checkout = new URL(result.url);
