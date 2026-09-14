@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 await import(join(root, 'src', 'themes.js'));
+const { MOMENT_THEMES } = await import(join(root, 'src', 'moment-themes.js'));
 const themes = globalThis.TOGETHER_THEMES || [];
 const css = await readFile(join(root, 'src', 'styles.css'), 'utf8');
 const requiredTokens = ['--bg', '--fg', '--muted', '--accent', '--border', '--meta-bg', '--on-accent'];
@@ -22,6 +23,10 @@ const contrastContract = [
 const painted = new Map();
 for (const match of css.matchAll(/:root\[data-theme=["']([^"']+)["']\]\s*\{([^}]*)\}/g)) {
   painted.set(match[1], match[2]);
+}
+const momentPainted = new Map();
+for (const match of css.matchAll(/\[data-moment-theme=["']([^"']+)["']\]\s*\{([^}]*)\}/g)) {
+  momentPainted.set(match[1], match[2]);
 }
 const rootBlock = css.match(/:root\s*\{([^}]*)\}/)?.[1];
 
@@ -75,6 +80,25 @@ for (const id of painted.keys()) {
   if (!themes.some((theme) => theme.id === id)) problems.push(`${id} has CSS but is not registered`);
 }
 
+const momentTokenMap = new Map([
+  ['--bg', '--moment-bg'], ['--fg', '--moment-fg'], ['--muted', '--moment-muted'],
+  ['--accent', '--moment-accent'], ['--border', '--moment-border'], ['--meta-bg', '--moment-meta'], ['--on-accent', '--moment-on-accent'],
+]);
+for (const momentTheme of MOMENT_THEMES) {
+  const pageBlock = momentTheme.id === 'light' ? rootBlock : painted.get(momentTheme.id);
+  const momentBlock = momentPainted.get(momentTheme.id);
+  if (!pageBlock || !momentBlock) {
+    problems.push(`${momentTheme.id} approved moment theme is missing its named page or card treatment`);
+    continue;
+  }
+  const pageValues = tokens(pageBlock);
+  const momentValues = tokens(momentBlock);
+  for (const [pageToken, momentToken] of momentTokenMap) {
+    if (pageValues.get(pageToken)?.replaceAll(' ', '') !== momentValues.get(momentToken)?.replaceAll(' ', '')) problems.push(`${momentTheme.id} moment ${momentToken} must match its named ${pageToken}`);
+  }
+}
+if (MOMENT_THEMES.length !== 6) problems.push(`expected 6 approved moment themes, found ${MOMENT_THEMES.length}`);
+
 if (problems.length) {
   console.error(`Theme check failed:\n${problems.map((problem) => `- ${problem}`).join('\n')}`);
   process.exit(1);
@@ -82,4 +106,4 @@ if (problems.length) {
 
 const light = themes.filter(({ base }) => base === 'light').length;
 const dark = themes.filter(({ base }) => base === 'dark').length;
-console.log(`✓ theme check passed — ${themes.length} themes (${light} light, ${dark} dark), ${contrastResults.length} WCAG AA text pairs, minimum ${Math.min(...contrastResults).toFixed(2)}:1.`);
+console.log(`✓ theme check passed — ${themes.length} page themes (${light} light, ${dark} dark), ${MOMENT_THEMES.length} approved moment themes, ${themes.length * MOMENT_THEMES.length} scoped pairings, ${contrastResults.length} WCAG AA text pairs, minimum ${Math.min(...contrastResults).toFixed(2)}:1.`);

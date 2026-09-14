@@ -9,6 +9,7 @@ const publicFiles = [
   'src/api.js',
   'src/app.js',
   'src/model.js',
+  'src/moment-themes.js',
   'src/store.js',
   'src/styles.css',
   'src/themes.js',
