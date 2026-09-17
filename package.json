@@ -29,10 +29,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/surojito-com/together-ledger.git"
+    "url": "git+https://github.com/together-ledger-digital-llc/together-ledger.git"
   },
   "bugs": {
-    "url": "https://github.com/surojito-com/together-ledger/issues"
+    "url": "https://github.com/together-ledger-digital-llc/together-ledger/issues"
   },
   "homepage": "https://together-ledger.com/",
   "engines": {

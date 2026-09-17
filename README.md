@@ -42,7 +42,7 @@ This is not couples therapy, financial advice, surveillance software, or a relat
 Requirements: Node.js 22 or newer.
 
 ```bash
-git clone https://github.com/surojito-com/together-ledger.git
+git clone https://github.com/together-ledger-digital-llc/together-ledger.git
 cd together-ledger
 npm run check
 npm run dev
