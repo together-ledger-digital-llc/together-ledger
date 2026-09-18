@@ -273,6 +273,14 @@ test('Journey settings welcomes a group without exposing an internal ceiling', a
   await expect(page.locator('#sharing-settings')).not.toContainText(/99|seat|license/i);
   const accessibilityScan = await new AxeBuilder({ page }).include('#sharing-settings').analyze();
   expect(accessibilityScan.violations).toEqual([]);
+
+  // Membership is where someone acts on another person, so its controls carry the same
+  // target floor as the rest of the product rather than shrinking because they sit in a list.
+  const undersized = await page.evaluate(() => [...document.querySelectorAll('#sharing-settings button, #sharing-settings input, #sharing-settings select')]
+    .filter((element) => element.offsetParent !== null && element.getBoundingClientRect().height < 44)
+    .map((element) => element.textContent.trim() || element.id || element.type));
+  expect(undersized).toEqual([]);
+
   await page.locator('.journey-record-row').filter({ hasText: 'second-person' }).getByRole('button', { name: 'Make owner' }).click();
   await page.locator('#consequence-dialog').getByRole('button', { name: 'Transfer ownership' }).click();
   await expect.poll(() => ownershipRequest).toEqual({ userId: 'group-two' });

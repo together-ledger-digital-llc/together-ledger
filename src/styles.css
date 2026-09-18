@@ -451,11 +451,15 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .journey-record-row strong, .journey-record-row small { display: block; overflow-wrap: anywhere; }
 .journey-record-row small { color: var(--muted); font-size: 14px; margin-top: 4px; }
 .journey-member-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
-.journey-member-actions .button { font-size: 14px; min-height: 34px; padding: 7px 10px; }
+/* Transferring ownership and removing a journeyer act on another person. They are the last
+   controls that should be harder to hit than the rest of the product. */
+.journey-member-actions .button { font-size: 14px; min-height: 44px; padding: 10px 14px; }
 .journey-role, .invitation-status { border: 1px solid var(--line); border-radius: var(--radius-pill); flex: 0 0 auto; font-size: 12px; font-weight: 900; letter-spacing: .06em; padding: 5px 8px; text-transform: uppercase; }
-.invitation-status.pending { background: var(--teal); border-color: var(--teal); color: var(--on-accent); }
-.invitation-status.accepted { background: color-mix(in srgb, var(--teal) 18%, var(--card)); border-color: var(--teal); color: var(--ink); }
-.invitation-status.expired, .invitation-status.revoked { color: var(--muted); }
+/* An invitation's state is told by the role that means it, not by the accent. Waiting should
+   not shout louder than done, which is what a solid accent on Pending was doing. */
+.invitation-status.accepted { border-color: var(--positive); color: var(--positive); }
+.invitation-status.pending { border-color: var(--caution); color: var(--caution); }
+.invitation-status.expired, .invitation-status.revoked { border-color: var(--line); color: var(--private); }
 .settings-actions { display: flex; flex-wrap: wrap; gap: 7px; }
 .concern-manager { align-items: center; background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius-l); display: flex; justify-content: space-between; margin-top: 22px; padding: 17px; }
 .concern-manager h3, .event-list-section > h3 { font-family: Georgia, serif; font-size: 27px; font-weight: 500; margin: 0; }
