@@ -187,6 +187,16 @@ test('release delivery workflows keep their explicit protected-main boundaries',
   assert.match(worker, /name: app/);
   assert.match(worker, /CLOUDFLARE_API_TOKEN/);
   assert.match(worker, /probes\/app-release-probe\/wrangler\.jsonc/);
+  // The gate is the runner's own view of the public app, because it is outside Cloudflare and
+  // is the closest thing here to what a visitor's browser does. The probe observes alongside
+  // it: on 26cf2d1 the runner saw the revision in 52 seconds while the probe said otherwise
+  // for 450, so a probe that cannot see the app must not be able to stop a release.
+  assert.match(worker, /scripts\/verify-worker-release\.mjs/);
+  assert.match(worker, /--base-url "https:\/\/app\.together-ledger\.com"/);
+  const probeStep = worker.slice(worker.indexOf('Observe the external release probe'));
+  assert.match(probeStep, /continue-on-error: true/);
+  const gateStep = worker.slice(worker.indexOf('Verify the public app revision from the runner'), worker.indexOf('Validate external release-probe packaging'));
+  assert.doesNotMatch(gateStep, /continue-on-error/);
   assert.match(worker, /deploy-release-probe\.mjs/);
   assert.match(worker, /verify-release-probe\.mjs/);
 });
