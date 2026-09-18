@@ -469,6 +469,11 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 /* Transferring ownership and removing a journeyer act on another person. They are the last
    controls that should be harder to hit than the rest of the product. */
 .journey-member-actions .button { font-size: 14px; min-height: 44px; padding: 10px 14px; }
+#unpaid-capacity-rest { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 16px; }
+#unpaid-capacity-rest h4 { margin-bottom: 6px; }
+#unpaid-capacity-copy { color: var(--muted); }
+.rest-queue-copy { color: var(--muted); font-size: 14px; margin: 12px 0 8px; }
+
 .journey-role, .invitation-status { border: 1px solid var(--line); border-radius: var(--radius-pill); flex: 0 0 auto; font-size: 12px; font-weight: 900; letter-spacing: .06em; padding: 5px 8px; text-transform: uppercase; }
 /* An invitation's state is told by the role that means it, not by the accent. Waiting should
    not shout louder than done, which is what a solid accent on Pending was doing. */
