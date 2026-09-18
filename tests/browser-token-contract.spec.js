@@ -94,3 +94,25 @@ test('a destructive action never borrows the ordinary accent', async ({ page }) 
     expect(destructive, `${theme}: destructive must not read as the accent`).not.toBe(await token(page, '--accent'));
   }
 });
+
+// The destructive role only means something if it is rare. A `--red` alias pointed at it and was
+// then borrowed for a section label, a selected day and a location glyph, none of which destroy
+// anything — and two of those had already been patched back to the accent by hand rather than the
+// alias being fixed. The label it reached is the worst possible one: the notice that reassures a
+// visitor no name, email or password has left the screen, titled in the colour of alarm.
+test('the destructive colour is spent only on what cannot be undone', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).first().click();
+  await page.evaluate(() => document.querySelector('#account-unavailable').removeAttribute('hidden'));
+  const notice = page.locator('#account-unavailable .eyebrow');
+  await expect(notice).toBeVisible();
+
+  for (const theme of THEMES) {
+    await page.locator('#theme-select').selectOption(theme);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+
+    const label = await colourOf(page, '#account-unavailable .eyebrow', 'color');
+    expect(label, `${theme}: a reassurance is not a warning`).not.toBe(await token(page, '--destructive'));
+    expect(label, `${theme}: a section label carries the accent`).toBe(await token(page, '--accent'));
+  }
+});

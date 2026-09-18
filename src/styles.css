@@ -11,7 +11,6 @@
   --ink: var(--fg);
   --spruce: var(--accent);
   --teal: var(--accent);
-  --red: var(--destructive);
   --gold: var(--caution);
   --line: var(--border);
   --soft: var(--meta-bg);
@@ -152,7 +151,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .button { align-items: center; border: 1px solid transparent; border-radius: var(--radius-pill); display: inline-flex; font-weight: 800; justify-content: center; min-height: 48px; padding: 10px 18px; text-decoration: none; }
 .button.primary { background: var(--spruce); color: var(--on-accent); }
 .button.quiet { background: transparent; border-color: var(--line); color: var(--ink); }
-.button.danger { background: var(--red); color: var(--on-accent); }
+.button.danger { background: var(--destructive); color: var(--on-accent); }
 .button:hover { transform: translateY(-1px); }
 .button:active { transform: translateY(1px); }
 .button:disabled, .button[aria-disabled="true"] { background: var(--soft); border-color: var(--line); box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); cursor: not-allowed; transform: none; }
@@ -233,7 +232,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .hero::after { background: var(--on-accent); border-radius: 50%; content: ""; height: 330px; opacity: 0.11; position: absolute; right: -90px; top: -115px; width: 330px; }
 .hero-copy, .hero-note { position: relative; z-index: 1; }
-.eyebrow { color: var(--red); font-size: 12px; font-weight: 900; letter-spacing: 0.16em; margin: 0 0 10px; text-transform: uppercase; }
+/* An eyebrow names the section it sits above. It is a label, not a warning, so it carries the
+   accent rather than the one colour reserved for what cannot be undone. */
+.eyebrow { color: var(--accent); font-size: 12px; font-weight: 900; letter-spacing: 0.16em; margin: 0 0 10px; text-transform: uppercase; }
 .hero .eyebrow { color: var(--on-accent); opacity: .78; }
 h1, h2 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; letter-spacing: -0.035em; line-height: 1.03; }
 h1 { font-size: clamp(49px, 7.2vw, 96px); margin: 0; max-width: 1050px; }
@@ -347,6 +348,8 @@ details[open] .expando { transform: rotate(45deg); }
 .status-banner-glyph { color: var(--caution); flex: 0 0 auto; font-size: 14px; }
 .status-banner.problem .status-banner-glyph { color: var(--destructive); }
 .status-banner p { color: var(--fg); flex: 1 1 auto; margin: 0; }
+/* Inside a dialog the region is the first thing in the box rather than a page-width strip. */
+dialog > .status-banner { margin: 0 0 16px; }
 .status-banner-dismiss { background: transparent; border: 1px solid var(--line); border-radius: var(--radius-pill); color: var(--ink); flex: 0 0 auto; font-size: 14px; font-weight: 800; min-height: 44px; padding: 8px 14px; }
 
 .timeline-panel { padding: 25px; }
@@ -357,7 +360,7 @@ details[open] .expando { transform: rotate(45deg); }
 .day-bar { background: var(--teal); border-radius: var(--radius-s) var(--radius-s) 0 0; display: block; min-height: 2px; position: relative; width: min(44px, 70%); }
 .day-bar em { color: var(--ink); font-size: 14px; font-style: normal; font-weight: 900; left: 50%; position: absolute; top: -25px; transform: translateX(-50%); white-space: nowrap; }
 .day-label { color: var(--muted); font-size: 14px; padding: 10px 2px; }
-.day-button.selected .day-bar { background: var(--red); }
+.day-button.selected .day-bar { background: var(--accent); }
 .day-button.selected .day-label { color: var(--ink); font-weight: 900; }
 .timeline-detail { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius-l); margin-top: 20px; overflow: hidden; }
 .detail-head { align-items: start; display: flex; justify-content: space-between; padding: 19px; }
@@ -406,7 +409,7 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .moment-image-attachment.image-unavailable img { background: var(--soft); }
 .image-viewer { max-width: min(92vw, 960px); padding: 22px; width: 100%; }
 .image-viewer img { display: block; max-height: 70vh; max-width: 100%; object-fit: contain; width: 100%; }
-.image-load-error { color: var(--red); }
+.image-load-error { color: var(--destructive); }
 .sr-only { clip: rect(0, 0, 0, 0); height: 1px; margin: -1px; overflow: hidden; position: absolute; width: 1px; }
 .radio-row { display: grid; gap: 9px; grid-template-columns: 1fr 1fr; }
 .radio-row label { border: 1px solid var(--line); border-radius: var(--radius-m); padding: 13px; }
@@ -430,7 +433,6 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .account-panel hr { border: 0; border-top: 1px solid var(--line); margin: 8px 0; width: 100%; }
 .billing-panel { display: grid; gap: 13px; }
 .billing-panel > hr { margin-bottom: 4px; }
-.billing-panel .eyebrow { color: var(--accent); }
 .billing-offers { display: flex; flex-wrap: wrap; gap: 8px; }
 .billing-capacity-picker { display: grid; gap: 9px; }
 .billing-capacity-picker .field { margin: 0; }
@@ -527,7 +529,7 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .log-types button { cursor: pointer; }
 .log-types button:hover, .log-types button:focus-visible { border-color: var(--teal); outline: 2px solid color-mix(in srgb, var(--teal) 30%, transparent); outline-offset: 2px; }
 .moment-card { background: color-mix(in srgb, var(--soft) 72%, var(--card)); border: 1px solid var(--line); border-left: 5px solid var(--teal); border-radius: var(--radius-l); color: var(--ink); padding: 18px; }
-.moment-card[data-moment-theme] { --bg: var(--moment-bg); --fg: var(--moment-fg); --muted: var(--moment-muted); --accent: var(--moment-accent); --border: var(--moment-border); --meta-bg: var(--moment-meta); --on-accent: var(--moment-on-accent); --private: var(--moment-private); --shared-now: var(--moment-shared-now); --share-later: var(--moment-share-later); --card: var(--moment-bg); --ink: var(--fg); --spruce: var(--accent); --teal: var(--accent); --red: var(--accent); --line: var(--border); --soft: color-mix(in srgb, var(--moment-bg) 96%, var(--moment-fg)); background: var(--card); }
+.moment-card[data-moment-theme] { --bg: var(--moment-bg); --fg: var(--moment-fg); --muted: var(--moment-muted); --accent: var(--moment-accent); --border: var(--moment-border); --meta-bg: var(--moment-meta); --on-accent: var(--moment-on-accent); --private: var(--moment-private); --shared-now: var(--moment-shared-now); --share-later: var(--moment-share-later); --card: var(--moment-bg); --ink: var(--fg); --spruce: var(--accent); --teal: var(--accent); --line: var(--border); --soft: color-mix(in srgb, var(--moment-bg) 96%, var(--moment-fg)); background: var(--card); }
 [data-moment-theme="light"] { --moment-bg: #F3EFE6; --moment-fg: #1E1B17; --moment-muted: #6B645A; --moment-accent: #1F5257; --moment-border: rgba(30,27,23,0.10); --moment-meta: rgba(30,27,23,0.025); --moment-on-accent: #FFFFFF; --moment-private: #5E5952; --moment-shared-now: #2F6B45; --moment-share-later: #7D5510; }
 [data-moment-theme="dark"] { --moment-bg: #1A1815; --moment-fg: #EDEAE3; --moment-muted: #9A9188; --moment-accent: #7FBDC2; --moment-border: rgba(237,234,227,0.12); --moment-meta: rgba(255,255,255,0.03); --moment-on-accent: #1A1815; --moment-private: #9C958B; --moment-shared-now: #7FC8A0; --moment-share-later: #E0B458; }
 [data-moment-theme="green"] { --moment-bg: #071109; --moment-fg: #E0F2E4; --moment-muted: #92B39A; --moment-accent: #58D987; --moment-border: rgba(224,242,228,0.13); --moment-meta: rgba(224,242,228,0.05); --moment-on-accent: #071109; --moment-private: #7E8A81; --moment-shared-now: #6EE7A0; --moment-share-later: #E8C35C; }
@@ -553,7 +555,7 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .money-context[open] summary::after { content: ' −'; }
 .money-context p { margin: 7px 0 0; }
 .location-context { align-items: center; color: var(--muted); display: flex; flex-wrap: wrap; font-size: 14px; font-weight: 800; gap: 7px; margin-top: 13px; }
-.location-context::before { content: '⌖'; color: var(--red); font-size: 17px; }
+.location-context::before { content: '⌖'; color: var(--accent); font-size: 17px; }
 .location-heading { align-items: baseline; display: flex; flex-wrap: wrap; gap: 9px; justify-content: space-between; }
 .location-heading > span { font-weight: 800; }
 .location-heading > small, .field-help { color: var(--muted); font-size: 14px; line-height: 1.45; }
@@ -565,7 +567,8 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .location-list li { align-items: center; background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius-m); display: flex; gap: 10px; padding: 9px 10px; }
 .location-list strong { font-size: 14px; overflow-wrap: anywhere; }
 .location-list small { color: var(--muted); font-size: 14px; font-weight: 800; margin-left: auto; white-space: nowrap; }
-.location-list button { background: transparent; border: 0; color: var(--red); cursor: pointer; font: inherit; font-size: 14px; font-weight: 800; padding: 3px; }
+/* This one keeps the destructive role: it removes a place, which is what the role is for. */
+.location-list button { background: transparent; border: 0; color: var(--destructive); cursor: pointer; font: inherit; font-size: 14px; font-weight: 800; padding: 3px; }
 .threads-section { padding-bottom: 12px; }
 #open-threads { display: grid; gap: 0; padding: 0 28px 17px; }
 .thread-row { align-items: start; border-top: 1px solid var(--line); display: flex; gap: 15px; justify-content: space-between; padding: 17px 0; }

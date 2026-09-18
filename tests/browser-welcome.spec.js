@@ -123,6 +123,46 @@ test('a pending account action is announced and cannot be submitted twice', asyn
   await expect(page.locator('#account-dialog')).not.toBeVisible();
 });
 
+// The status region is deliberately placed above the work so nothing is covered. A modal dialog
+// is the one surface where that stopped being true: it paints over the page and dims it, so a
+// refused sign-in wrote its reason behind the dialog that asked for it. The region is one region;
+// it has to follow the work into the dialog and leave with it.
+test('a problem raised inside a dialog is shown inside that dialog', async ({ page }) => {
+  await page.route('https://api.together-ledger.com/api/v1/session', (route) => route.fulfill({
+    status: 401,
+    contentType: 'application/json',
+    body: JSON.stringify({ error: { code: 'unauthorized', message: 'Sign in first.' } }),
+  }));
+  await page.route('https://api.together-ledger.com/api/v1/auth/login', (route) => route.fulfill({
+    status: 401,
+    contentType: 'application/json',
+    body: JSON.stringify({ error: { code: 'invalid_credentials', message: 'Those details did not match.' } }),
+  }));
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).first().click();
+  await page.locator('#login-form [name="identifier"]').fill('journeyer');
+  await page.locator('#login-form [name="password"]').fill('a-long-careful-password');
+  await page.locator('#login-form').getByRole('button', { name: 'Sign in', exact: true }).click();
+
+  const banner = page.locator('#status-banner');
+  await expect(banner).toBeVisible();
+  // Inside the dialog, and genuinely the topmost thing at its own position rather than merely
+  // present in the DOM behind a backdrop.
+  await expect(page.locator('#account-dialog #status-banner')).toBeVisible();
+  expect(await page.evaluate(() => {
+    const element = document.querySelector('#status-banner');
+    const box = element.getBoundingClientRect();
+    const onTop = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+    return !!(onTop && element.contains(onTop));
+  }), 'the reason must not be painted behind the dialog reporting it').toBe(true);
+
+  // Closing the dialog takes its problem with it and returns the region above the work.
+  await page.locator('[data-close-account]').first().click();
+  await expect(banner).toBeHidden();
+  await expect(page.locator('#account-dialog #status-banner')).toHaveCount(0);
+});
+
 test('a journey owner sees only the approved test billing controls', async ({ page }) => {
   const owner = { id: 'user-1', username: 'journeyer', displayName: 'Journeyer', email: 'journeyer@example.test', emailVerified: true };
   await page.route('https://api.together-ledger.com/api/v1/session', (route) => route.fulfill({
