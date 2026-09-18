@@ -195,17 +195,30 @@ function renderBillingState() {
   const periodEnd = billingState.subscription?.currentPeriodEnd || entitlement?.expiresAt;
   const until = periodEnd ? ` through ${dateTimeLabel(periodEnd)}` : '';
   const paidCapacity = billingState.subscription?.paidCapacity || entitlement?.quantity || 0;
-  $('#billing-status').textContent = billingState.subscription?.cancelAtPeriodEnd
-    ? `Cancellation is set for renewal${until}. Existing people, shared history, and valid invitation reservations remain.`
+  // Tone as well as words: settled and waiting look different, and neither is a failure, so
+  // neither takes the destructive role. A glyph carries the distinction without the colour.
+  const capacity = billingState.subscription?.cancelAtPeriodEnd
+    ? { tone: 'waiting', message: `Cancellation is set for renewal${until}. Existing people, shared history, and valid invitation reservations remain.` }
     : !entitlement
-    ? `The first two people in ${billingState.journey.name} are included. Add another person for $1 USD each month.`
+    ? { tone: '', message: `The first two people in ${billingState.journey.name} are included. Add another person for $1 USD each month.` }
     : entitlement.state === 'active'
-      ? `${paidCapacity} additional ${paidCapacity === 1 ? 'person is' : 'people are'} covered for this journey${until}.`
+      ? { tone: 'settled', message: `${paidCapacity} additional ${paidCapacity === 1 ? 'person is' : 'people are'} covered for this journey${until}.` }
       : entitlement.state === 'grace'
-        ? `This journey's paid capacity needs payment attention${until}. No person or shared history is removed automatically.`
+        ? { tone: 'waiting', message: `This journey's paid capacity needs payment attention${until}. No person or shared history is removed automatically.` }
         : entitlement.state === 'pending'
-          ? 'This journey is waiting for payment confirmation.'
-          : 'This journey does not currently have paid additional-person capacity.';
+          ? { tone: 'waiting', message: 'This journey is waiting for payment confirmation.' }
+          : { tone: '', message: 'This journey does not currently have paid additional-person capacity.' };
+  const status = $('#billing-status');
+  status.className = `billing-status ${capacity.tone}`.trim();
+  status.replaceChildren();
+  if (capacity.tone) {
+    const glyph = document.createElement('span');
+    glyph.className = 'billing-status-glyph';
+    glyph.setAttribute('aria-hidden', 'true');
+    glyph.textContent = capacity.tone === 'settled' ? '\u25CF' : '\u25B2';
+    status.append(glyph);
+  }
+  status.append(document.createTextNode(capacity.message));
 
   const offers = $('#billing-offers');
   const hasCurrentSubscription = billingState.subscription
