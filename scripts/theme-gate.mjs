@@ -26,6 +26,8 @@ const EMERGING_CONTRAST = [
   { name: 'destructive status text', foreground: '--destructive', background: '--bg', minimum: 4.5 },
   { name: 'focus ring', foreground: '--focus', background: '--bg', minimum: 3 },
   { name: 'focus ring on raised surface', foreground: '--focus', background: '--surface', minimum: 3 },
+  // A destructive button borrows the accent's text colour, so that pairing has to hold too.
+  { name: 'text on a destructive action', foreground: '--on-accent', background: '--destructive', minimum: 4.5 },
 ];
 
 // A destructive action must not read as the ordinary accent, and the three privacy states must
@@ -156,9 +158,13 @@ export function auditThemes({ css, themes, momentThemes }) {
       }
     }
 
+    // A pair is checked once both its ends exist: an emerging role must be in force, and a
+    // base token is always in force. Guarding only the foreground would skip a rule whose
+    // emerging half is the background.
+    const inForce = (token) => (EMERGING_ROLES.includes(token) ? activeRoles.includes(token) : true);
     for (const { name, foreground, background, minimum } of EMERGING_CONTRAST) {
-      if (!activeRoles.includes(foreground)) continue;
-      if (background !== '--bg' && !values.has(background)) continue;
+      if (!inForce(foreground) || !inForce(background)) continue;
+      if (!values.has(foreground) || !values.has(background)) continue;
       const ratio = contrast(values.get(foreground) || '', values.get(background) || '');
       if (ratio === null) problems.push(`${theme.id} cannot contrast-check ${name}: ${foreground} on ${background}`);
       else {
