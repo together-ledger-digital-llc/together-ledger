@@ -407,8 +407,11 @@ function inviteProposalRow(proposal, trip) {
   // Whoever asked can stop asking, and so can the owner. Withdrawing settles the question
   // without recording a refusal against anybody who simply had not answered yet.
   const mayWithdraw = proposal.status === 'open' && (proposal.proposedByUserId === accountUser?.id || trip?.role === 'owner');
+  // Agreeing and declining carry the same weight on purpose. A solid primary on one of them is
+  // the product having an opinion about how somebody should answer a question about another
+  // person's access to everything this journey has shared. It does not get one.
   const buttons = [
-    proposal.viewerMayDecide ? `<button class="button primary" type="button" data-agree-proposal="${escapeHtml(proposal.id)}">Agree to add them</button>` : '',
+    proposal.viewerMayDecide ? `<button class="button quiet" type="button" data-agree-proposal="${escapeHtml(proposal.id)}">Agree to add them</button>` : '',
     proposal.viewerMayDecide ? `<button class="button quiet" type="button" data-decline-proposal="${escapeHtml(proposal.id)}">Decline</button>` : '',
     mayWithdraw ? `<button class="button quiet" type="button" data-withdraw-proposal="${escapeHtml(proposal.id)}">Withdraw</button>` : '',
   ].filter(Boolean).join('');

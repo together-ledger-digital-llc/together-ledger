@@ -478,10 +478,26 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 
 .journey-role, .invitation-status { border: 1px solid var(--line); border-radius: var(--radius-pill); flex: 0 0 auto; font-size: 12px; font-weight: 900; letter-spacing: .06em; padding: 5px 8px; text-transform: uppercase; }
 /* An invitation's state is told by the role that means it, not by the accent. Waiting should
-   not shout louder than done, which is what a solid accent on Pending was doing. */
-.invitation-status.accepted { border-color: var(--positive); color: var(--positive); }
-.invitation-status.pending { border-color: var(--caution); color: var(--caution); }
-.invitation-status.expired, .invitation-status.revoked { border-color: var(--line); color: var(--private); }
+   not shout louder than done, which is what a solid accent on Pending was doing.
+
+   A proposal's life has the same three tiers, and until now had none of them: five of its states
+   fell through to plain ink, so Waiting was the only coloured thing in the record while Agreed
+   and Declined were the same grey as each other.
+
+   Declining is somebody's considered answer, not a fault, so it never takes the destructive role.
+   It sits in the same receded tier as withdrawing and lapsing, which is what keeps time running
+   out from reading as a refusal. Which of the three it was is carried by the word. */
+.invitation-status.accepted,
+.invitation-status.agreed,
+.invitation-status.agree { border-color: var(--positive); color: var(--positive); }
+.invitation-status.pending,
+.invitation-status.open { border-color: var(--caution); color: var(--caution); }
+.invitation-status.expired,
+.invitation-status.revoked,
+.invitation-status.declined,
+.invitation-status.decline,
+.invitation-status.withdrawn,
+.invitation-status.lapsed { border-color: var(--line); color: var(--private); }
 .settings-actions { display: flex; flex-wrap: wrap; gap: 7px; }
 .concern-manager { align-items: center; background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius-l); display: flex; justify-content: space-between; margin-top: 22px; padding: 17px; }
 .concern-manager h3, .event-list-section > h3 { font-family: Georgia, serif; font-size: 27px; font-weight: 500; margin: 0; }
