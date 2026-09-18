@@ -6,12 +6,8 @@ const BASE = {
   '--bg': '#FFFFFF', '--fg': '#1A1A1A', '--muted': '#595959', '--accent': '#0B5AA8',
   '--border': '#DDDDDD', '--meta-bg': '#F2F2F2', '--on-accent': '#FFFFFF',
 };
-const THEME_IDS = [
-  'light', 'dark', 'solar-red', 'green', 'catppuccin', 'tokyo-night', 'kanagawa', 'amber',
-  'rose-pine', 'catppuccin-latte', 'flexoki', 'rose-pine-dawn', 'kanagawa-lotus', 'primer-light',
-  'ayu-light', 'tokyo-night-day',
-];
-const MOMENT_IDS = ['light', 'dark', 'green', 'rose-pine', 'flexoki', 'tokyo-night-day'];
+const THEME_IDS = ['light', 'dark', 'green', 'flexoki'];
+const MOMENT_IDS = ['light', 'dark', 'green', 'flexoki'];
 
 function declaration(values) {
   return Object.entries(values).map(([name, value]) => `${name}: ${value};`).join(' ');
@@ -40,9 +36,9 @@ test('a conforming stylesheet passes with the base seven tokens only', () => {
   const { problems, activeRoles, stats } = audit();
   assert.deepEqual(problems, []);
   assert.deepEqual(activeRoles, []);
-  assert.equal(stats.themes, 16);
-  assert.equal(stats.momentThemes, 6);
-  assert.equal(stats.pairings, 96);
+  assert.equal(stats.themes, 4);
+  assert.equal(stats.momentThemes, 4);
+  assert.equal(stats.pairings, 16);
 });
 
 test('a semantic role declared by one theme becomes required in every theme', () => {
