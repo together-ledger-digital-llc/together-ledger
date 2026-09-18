@@ -358,3 +358,36 @@ test('representative light, dark, and high-chroma surfaces keep their visual con
   await page.getByRole('button', { name: 'Journey settings' }).click();
   await expect(page).toHaveScreenshot('settings-green-desktop.png', { animations: 'disabled' });
 });
+
+test('the small screen keeps one primary action and its own section navigation', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Begin your ledger/ }).first().click();
+  await page.locator('#moment-form [name="title"]').fill('A first small truth');
+  await page.getByRole('button', { name: 'Hold this moment' }).click();
+  await expect(page.locator('#moment-timeline')).toContainText('A first small truth');
+
+  // The desktop layout offers the same action three times. A small screen keeps the one in
+  // the persistent bar and stands the inline copies down, rather than stacking them.
+  const actions = page.locator('[data-open-moment]:visible');
+  await expect(actions).toHaveCount(1);
+  await expect(page.locator('.mobile-action [data-open-moment]')).toBeVisible();
+
+  const sections = page.locator('.ledger-sections a');
+  await expect(sections).toHaveCount(2);
+  await expect(sections.first()).toHaveAttribute('href', '#moments');
+  await expect(sections.last()).toHaveAttribute('href', '#threads');
+
+  // A personal view setting stays in reach on a phone rather than moving behind journey settings.
+  await expect(page.locator('#workspace-theme-select')).toBeVisible();
+
+  const undersized = await page.evaluate(() => [...document.querySelectorAll('.ledger-sections a, .mobile-action button, .header-actions button, .header-actions select')]
+    .filter((element) => element.offsetParent !== null && element.getBoundingClientRect().height < 44)
+    .map((element) => element.textContent.trim() || element.id));
+  expect(undersized).toEqual([]);
+
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+  const accessibilityScan = await new AxeBuilder({ page }).include('header').include('main').analyze();
+  expect(accessibilityScan.violations).toEqual([]);
+});
