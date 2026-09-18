@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { createAppReleaseProbe } from '../probes/app-release-probe/app-release-probe.mjs';
 import { findWorkersDevUrl } from '../scripts/deploy-release-probe.mjs';
 import { verifyReleaseProbe } from '../scripts/verify-release-probe.mjs';
+import { verifyReleaseBundle } from '../scripts/verify-release-bundle.mjs';
 import { verifyWorkerRelease } from '../scripts/verify-worker-release.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -191,12 +192,20 @@ test('release delivery workflows keep their explicit protected-main boundaries',
   // is the closest thing here to what a visitor's browser does. The probe observes alongside
   // it: on 26cf2d1 the runner saw the revision in 52 seconds while the probe said otherwise
   // for 450, so a probe that cannot see the app must not be able to stop a release.
-  assert.match(worker, /scripts\/verify-worker-release\.mjs/);
-  assert.match(worker, /--base-url "https:\/\/app\.together-ledger\.com"/);
-  const probeStep = worker.slice(worker.indexOf('Observe the external release probe'));
-  assert.match(probeStep, /continue-on-error: true/);
-  const gateStep = worker.slice(worker.indexOf('Verify the public app revision from the runner'), worker.indexOf('Validate external release-probe packaging'));
-  assert.doesNotMatch(gateStep, /continue-on-error/);
+  // The gate proves the bundle before it ships and asks nothing of the network. Bot fight mode
+  // refuses automated traffic — correctly — so every check that visits the site can only
+  // observe. A release gate that needs that protection weakened would not survive contact with
+  // the first person who turns the protection back on.
+  assert.match(worker, /scripts\/verify-release-bundle\.mjs/);
+  const bundleGate = worker.slice(worker.indexOf('Verify the assembled bundle is the reviewed revision'), worker.indexOf('Validate Worker packaging'));
+  assert.doesNotMatch(bundleGate, /continue-on-error/);
+  // And it must run before the upload, so a wrong bundle is never published.
+  assert.ok(worker.indexOf('scripts/verify-release-bundle.mjs') < worker.indexOf('Publish the reviewed public bundle'));
+
+  for (const observer of ['Observe the public app from the runner', 'Observe the external release probe']) {
+    const step = worker.slice(worker.indexOf(observer));
+    assert.match(step.slice(0, 400), /continue-on-error: true/, `${observer} must not be able to fail a release`);
+  }
   assert.match(worker, /deploy-release-probe\.mjs/);
   assert.match(worker, /verify-release-probe\.mjs/);
 });
@@ -208,4 +217,37 @@ test('the release marker is declared uncacheable at the edge', () => {
   const headers = readFileSync(join(root, 'public', '_headers'), 'utf8');
   const marker = headers.slice(headers.indexOf('/release.json'));
   assert.match(marker, /^\/release\.json\s*\n\s+Cache-Control:\s*no-store/m);
+});
+
+test('the release bundle verifier proves the revision and the visible control before shipping', async () => {
+  const bundle = {
+    '_site/release.json': JSON.stringify({ revision }),
+    '_site/index.html': '<h1>Keep what matters, together.</h1>',
+  };
+  const readFileImpl = async (path) => {
+    const key = String(path).replaceAll('\\', '/');
+    if (!(key in bundle)) throw new Error('missing');
+    return bundle[key];
+  };
+
+  const result = await verifyReleaseBundle({ directory: '_site', revision, requiredText: 'Keep what matters,', readFileImpl });
+  assert.equal(result.revision, revision);
+
+  // A bundle built from the wrong commit must never be uploaded.
+  await assert.rejects(
+    verifyReleaseBundle({ directory: '_site', revision: 'b'.repeat(40), requiredText: 'Keep what matters,', readFileImpl }),
+    /carries revision .* instead of the reviewed/,
+  );
+
+  // A marker alone proves a build ran, not that the page is the product.
+  await assert.rejects(
+    verifyReleaseBundle({ directory: '_site', revision, requiredText: 'A control that is not there', readFileImpl }),
+    /does not contain the required user-visible control/,
+  );
+
+  // A missing bundle is a failure, never a pass by absence.
+  await assert.rejects(
+    verifyReleaseBundle({ directory: '_site', revision, requiredText: 'Keep what matters,', readFileImpl: async () => { throw new Error('missing'); } }),
+    /has no release marker/,
+  );
 });
