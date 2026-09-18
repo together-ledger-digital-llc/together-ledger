@@ -63,16 +63,46 @@ const STATUS_TONES = Object.freeze({
   problem: { glyph: '■', className: 'problem' },
 });
 let statusBannerSource = '';
+const statusHomeParent = document.querySelector('#status-banner')?.parentNode || null;
+const statusHomeNext = document.querySelector('#status-banner')?.nextSibling || null;
+
+// The status region sits above the work so nothing is covered. A modal dialog is the one place
+// that stops being true: it draws over the page and dims it, so a problem raised inside a dialog
+// was being written behind the dialog reporting it — a wrong password said nothing a person could
+// see. There is still one region; it moves to wherever the work currently is.
+function modalOnTop() {
+  const open = Array.from(document.querySelectorAll('dialog[open]'));
+  for (let index = open.length - 1; index >= 0; index -= 1) {
+    try {
+      if (open[index].matches(':modal')) return open[index];
+    } catch {
+      return open[index];
+    }
+  }
+  return null;
+}
+
+function placeStatus(banner) {
+  const modal = modalOnTop();
+  const target = modal || statusHomeParent;
+  if (!target || banner.parentNode === target) return;
+  if (modal) modal.prepend(banner);
+  else statusHomeParent.insertBefore(banner, statusHomeNext);
+}
 
 function showStatus(message, { tone = 'problem', source = 'action' } = {}) {
   const banner = document.querySelector('#status-banner');
   if (!banner) return;
+  placeStatus(banner);
   const shape = STATUS_TONES[tone] || STATUS_TONES.problem;
   banner.querySelector('.status-banner-glyph').textContent = shape.glyph;
   banner.querySelector('#status-banner-message').textContent = message;
   banner.className = `status-banner ${shape.className}`;
   banner.hidden = false;
   statusBannerSource = source;
+  // A dialog holds whatever scroll position it already had, so a region placed at its top can
+  // still sit above the fold. Being in the right box is not the same as being seen.
+  if (banner.parentNode !== statusHomeParent) banner.scrollIntoView({ block: 'nearest' });
 }
 
 function clearStatus(source) {
@@ -1314,23 +1344,33 @@ $('#recovery-button').addEventListener('click', () => {
 $$('[data-close-recovery-request]').forEach((button) => button.addEventListener('click', () => $('#recovery-request-dialog').close()));
 $('#recovery-request-form').addEventListener('submit', async (event) => {
   event.preventDefault();
+  // Recovery sends mail, so it is the slowest thing in the dialog and the one reached by
+  // someone already locked out. It should say it is working, as every other form does.
+  const button = event.currentTarget.querySelector('button[type="submit"], button:not([type])');
+  setButtonPending(button, true, 'Sending…');
   try {
     await api.request('/recovery/request', { method: 'POST', body: Object.fromEntries(new FormData(event.currentTarget)) });
     $('#recovery-request-dialog').close();
     showToast('If that account exists, a recovery link is on its way.');
   } catch (error) {
     showStatus(accountMessage(error));
+  } finally {
+    setButtonPending(button, false);
   }
 });
 $$('[data-close-recovery-confirm]').forEach((button) => button.addEventListener('click', () => $('#recovery-confirm-dialog').close()));
 $('#recovery-confirm-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const input = Object.fromEntries(new FormData(event.currentTarget));
+  // A mismatch has to be fixed by retyping, which takes longer than a toast lasts. It stays.
   if (input.password !== input.confirmPassword) {
-    showToast('The new passwords do not match.');
+    showStatus('The new passwords do not match.');
     return;
   }
+  const button = event.currentTarget.querySelector('button[type="submit"], button:not([type])');
+  setButtonPending(button, true, 'Changing…');
   try {
+    clearStatus();
     await api.request('/recovery/confirm', { method: 'POST', body: { token: input.token, password: input.password } });
     accountUser = null;
     billingState = null;
@@ -1341,6 +1381,8 @@ $('#recovery-confirm-form').addEventListener('submit', async (event) => {
     showToast('Password changed. Sign in again on every device.');
   } catch (error) {
     showStatus(accountMessage(error));
+  } finally {
+    setButtonPending(button, false);
   }
 });
 
@@ -1662,6 +1704,16 @@ async function initializeAccount() {
 initializeAccount();
 
 document.querySelector('#status-banner-dismiss')?.addEventListener('click', () => clearStatus());
+
+// A problem belonging to a dialog leaves with it, and the region goes back above the work so
+// the next page-level problem is not stranded inside something that is closed.
+document.querySelectorAll('dialog').forEach((dialog) => dialog.addEventListener('close', () => {
+  const banner = document.querySelector('#status-banner');
+  if (!banner || !dialog.contains(banner)) return;
+  banner.hidden = true;
+  statusBannerSource = '';
+  statusHomeParent?.insertBefore(banner, statusHomeNext);
+}));
 
 // Being offline is a condition, not a failure. It is stated plainly, and it clears itself
 // when the connection returns rather than leaving a stale warning on the page.
