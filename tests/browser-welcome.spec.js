@@ -324,6 +324,9 @@ test('a complete browser-only journey remains reachable at the narrowest support
 });
 
 test('representative light, dark, and high-chroma surfaces keep their visual contract', async ({ page }) => {
+  // Hold a moment prefills its date from the clock, so a live clock would bake the run's own
+  // date into the committed image and fail every day after. Timers still run; only Date is fixed.
+  await page.clock.setFixedTime(new Date('2026-09-14T12:00:00.000Z'));
   await page.route('https://api.together-ledger.com/api/v1/session', (route) => route.fulfill({
     status: 401,
     contentType: 'application/json',
