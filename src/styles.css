@@ -337,6 +337,17 @@ details[open] .expando { transform: rotate(45deg); }
 .entry-actions { display: flex; gap: 6px; }
 .entry-actions button { background: transparent; border: 1px solid var(--line); border-radius: var(--radius-pill); font-size: 14px; font-weight: 800; min-height: 40px; padding: 7px 11px; }
 .empty { color: var(--muted); padding: 45px 25px; text-align: center; }
+.empty strong { color: var(--fg); display: block; font-family: Georgia, serif; font-size: 19px; font-weight: 500; }
+.empty p { margin: 6px 0 0; }
+
+/* A problem stays until it is read. It sits above the work rather than over it, so nothing
+   is covered and nothing has to be caught before it fades. */
+.status-banner { align-items: center; border: 1px solid var(--line); border-left: 5px solid var(--caution); border-radius: var(--radius-m); display: flex; gap: 12px; margin: 16px clamp(18px, 4vw, 58px) 0; padding: 12px 14px; }
+.status-banner.problem { border-left-color: var(--destructive); }
+.status-banner-glyph { color: var(--caution); flex: 0 0 auto; font-size: 14px; }
+.status-banner.problem .status-banner-glyph { color: var(--destructive); }
+.status-banner p { color: var(--fg); flex: 1 1 auto; margin: 0; }
+.status-banner-dismiss { background: transparent; border: 1px solid var(--line); border-radius: var(--radius-pill); color: var(--ink); flex: 0 0 auto; font-size: 14px; font-weight: 800; min-height: 44px; padding: 8px 14px; }
 
 .timeline-panel { padding: 25px; }
 .timeline-axis-label { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
