@@ -92,6 +92,18 @@ test('a focus ring too faint against the background is rejected', () => {
   assert.ok(complains(problems, 'focus ring'));
 });
 
+test('unreadable text on a destructive action is rejected', () => {
+  // The rule's emerging half is the background, so it also guards against a pair being
+  // skipped because only the foreground was checked for being in force.
+  const { problems } = audit({ extra: { '--destructive': '#F2C4C4' } });
+  assert.ok(complains(problems, 'text on a destructive action'));
+});
+
+test('a legible destructive action is accepted', () => {
+  const { problems } = audit({ extra: { '--destructive': '#B3261E' } });
+  assert.ok(!complains(problems, 'text on a destructive action'));
+});
+
 test('existing contrast and registry rules still hold', () => {
   const broken = fixture();
   broken.css = broken.css.replace('--muted: #595959;', '--muted: #BBBBBB;');
