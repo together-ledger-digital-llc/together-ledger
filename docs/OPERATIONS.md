@@ -130,7 +130,7 @@ The final parity check is deliberately made through a separate, fixed-purpose Cl
 
 Keep that token scoped only to the production app Worker deployment path. Store it as an environment secret, not in repository files, workflow text, command arguments, or issue discussion. A missing token intentionally fails the delivery job before it can claim the reviewed release is live.
 
-`together-ledger.com` remains the separate GitHub Pages root site. Its Pages workflow builds the same public bundle but does not deploy the app Worker or the API.
+`together-ledger.com` is the company site. It is served through Cloudflare from the separate `together-ledger.com` repository and is deployed by that repository's own workflow. Nothing in this repository builds or deploys the apex, and no check here can speak for it.
 
 If a Worker release needs to be rolled back, first record the symptoms and the current release revision. From a reviewed checkout with the authorized deployment credential available only in the process environment:
 

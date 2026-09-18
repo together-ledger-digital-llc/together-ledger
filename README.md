@@ -80,7 +80,7 @@ UI → localStorage                    UI → same-origin API
                                           → append-only event chain
 ```
 
-The public static deployment remains safe to explore without an account. Its account screen states plainly when the protected service is unavailable; it never sends a name, email, or password to GitHub Pages. Signing in never uploads existing browser journey data. Private sync is an explicit mode for newly created hosted journeys and is not production-ready until the operational release gate passes. **Browser-only visibility is a local cue, not separate-account privacy.** In private sync, private and share-later moments remain visible only to their creator; shared-now moments are visible to both authorized journeyers. Read [PRIVACY.md](PRIVACY.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
+The public static deployment remains safe to explore without an account. Its account screen states plainly when the protected service is unavailable; it never sends a name, email, or password to the static origin that serves it. Signing in never uploads existing browser journey data. Private sync is an explicit mode for newly created hosted journeys and is not production-ready until the operational release gate passes. **Browser-only visibility is a local cue, not separate-account privacy.** In private sync, private and share-later moments remain visible only to their creator; shared-now moments are visible to both authorized journeyers. Read [PRIVACY.md](PRIVACY.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 
 The Event Manager remains browser-local in browser-only mode. The private-service candidate creates events inside the authorized PostgreSQL mutation transaction and chains them with HMAC evidence. HMAC chaining is tamper-evident, not magically immutable; deployment secret isolation and backup controls still matter.
 
@@ -99,7 +99,7 @@ The deeper rationale is in [docs/PRODUCT_PRINCIPLES.md](docs/PRODUCT_PRINCIPLES.
 
 Together Ledger is an early public prototype. Browser-only journeys are live. The PR#0003 branch contains a tested private-service candidate, but it is not a production multi-user claim until SMTP, cloud PostgreSQL, cross-cloud backup restoration, independent review, and DNS cutover pass.
 
-The next public home is planned as `together-ledger.com`; the present Surojito address remains live until that migration is checked with care. See [docs/DOMAIN_MIGRATION.md](docs/DOMAIN_MIGRATION.md) for the safe cutover sequence and [ROADMAP.md](ROADMAP.md) for the boundary between the current safe starter and possible future collaboration features.
+The app's public home is `app.together-ledger.com`, served by this repository's Cloudflare Worker. The apex `together-ledger.com` is the company site and is deployed from the separate `together-ledger.com` repository; nothing in this repository serves it. See [docs/DOMAIN_MIGRATION.md](docs/DOMAIN_MIGRATION.md) for the safe cutover sequence and [ROADMAP.md](ROADMAP.md) for the boundary between the current safe starter and possible future collaboration features.
 
 ## Contributing
 
