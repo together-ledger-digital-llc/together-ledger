@@ -357,7 +357,7 @@ test('hosted moments enforce private, shared-now, and share-later visibility bet
   const invitationToken = mailer.messages.findLast((message) => message.type === 'invitation' && message.to === 'visibility-b@example.test').token;
   await app.inject({ method: 'POST', url: `/api/v1/invitations/${invitationToken}/accept`, headers: authHeaders(bob) });
 
-  async function createMoment(client, visibility, title, locations = [], theme = visibility === 'shared-now' ? 'rose-pine' : 'green') {
+  async function createMoment(client, visibility, title, locations = [], theme = visibility === 'shared-now' ? 'flexoki' : 'green') {
     const response = await app.inject({
       method: 'POST', url: `/api/v1/journeys/${journey.id}/moments`, headers: authHeaders(client),
       payload: { kind: 'memory', title, detail: `${title} detail`, occurredOn: '2026-08-30', visibility, theme, moneyCents: null, moneyCurrency: '', locations },
@@ -375,7 +375,7 @@ test('hosted moments enforce private, shared-now, and share-later visibility bet
   const bobSnapshot = await app.inject({ method: 'GET', url: `/api/v1/journeys/${journey.id}/snapshot`, headers: { cookie: bob.cookie } });
   assert.deepEqual(aliceSnapshot.json().data.moments.map((moment) => moment.id).sort(), [alicePrivate.id, aliceLater.id, aliceShared.id].sort());
   assert.deepEqual(bobSnapshot.json().data.moments.map((moment) => moment.id).sort(), [aliceShared.id, bobPrivate.id].sort());
-  assert.equal(bobSnapshot.json().data.moments.find((moment) => moment.id === aliceShared.id).theme, 'rose-pine');
+  assert.equal(bobSnapshot.json().data.moments.find((moment) => moment.id === aliceShared.id).theme, 'flexoki');
   assert.equal(JSON.stringify(bobSnapshot.json().data.events).includes(alicePrivate.title), false);
   assert.equal(JSON.stringify(bobSnapshot.json().data.events).includes(aliceLater.title), false);
   assert.equal(JSON.stringify(bobSnapshot.json().data).includes('Alice private place'), false);
@@ -406,7 +406,7 @@ test('hosted moments enforce private, shared-now, and share-later visibility bet
   assert.equal(themedShared.statusCode, 200, themedShared.body);
   const themeEventSnapshot = await app.inject({ method: 'GET', url: `/api/v1/journeys/${journey.id}/snapshot`, headers: { cookie: alice.cookie } });
   const themeEvent = themeEventSnapshot.json().data.events.find((event) => event.action === 'moment_theme_changed' && event.entityId === aliceShared.id);
-  assert.deepEqual(themeEvent.before, { theme: 'rose-pine' });
+  assert.deepEqual(themeEvent.before, { theme: 'flexoki' });
   assert.deepEqual(themeEvent.after, { theme: 'dark' });
   assert.equal(JSON.stringify(themeEvent).includes(aliceShared.title), false);
 

@@ -42,16 +42,16 @@ test('the public welcome earns the first browser-only moment without making a pr
   await page.locator('#moment-form [name="title"]').fill('We made room to listen');
   await page.locator('#moment-form [name="detail"]').fill('We paused before trying to solve anything.');
   await page.locator('#moment-form [name="visibility"][value="share-later"]').check();
-  await expect(page.locator('#moment-theme-options input')).toHaveCount(7);
-  await page.getByLabel('Rosé Pine', { exact: true }).check();
-  await expect(page.locator('#moment-theme-preview')).toHaveAttribute('data-moment-theme', 'rose-pine');
+  await expect(page.locator('#moment-theme-options input')).toHaveCount(5);
+  await page.getByLabel('Flexoki', { exact: true }).check();
+  await expect(page.locator('#moment-theme-preview')).toHaveAttribute('data-moment-theme', 'flexoki');
   await page.locator('#moment-form [name="money"]').fill('19.95');
   await page.getByRole('button', { name: 'Hold this moment' }).click();
 
   await expect(page.locator('#moment-timeline')).toContainText('We made room to listen');
   await expect(page.locator('.trip-bar')).toBeVisible();
   await expect(page.locator('#moment-timeline')).toContainText('share later');
-  await expect(page.locator('#moment-timeline .moment-card[data-moment-theme="rose-pine"]')).toContainText('Rosé Pine theme');
+  await expect(page.locator('#moment-timeline .moment-card[data-moment-theme="flexoki"]')).toContainText("Flexoki theme");
   await expect(page.locator('#moment-timeline')).toContainText('19.95 is held here as context, not a score.');
   await expect(page.locator('#moment-timeline')).toContainText('Practical money context');
   await expect(page.locator('#guidance')).toBeVisible();
@@ -62,7 +62,7 @@ test('the public welcome earns the first browser-only moment without making a pr
 
   await page.locator('#actor-select').selectOption('Your journeyer');
   await page.getByRole('button', { name: 'Edit', exact: true }).click();
-  await expect(page.getByLabel('Rosé Pine', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('Flexoki', { exact: true })).toBeChecked();
   await page.locator('#moment-form [name="detail"]').fill('We both returned to this moment with care.');
   await page.getByRole('button', { name: 'Save moment' }).click();
   await expect(page.locator('.moment-collaboration-badge')).toHaveText('Shaped by both journeyers');
@@ -70,7 +70,7 @@ test('the public welcome earns the first browser-only moment without making a pr
   const accessibilityScan = await new AxeBuilder({ page }).include('main').analyze();
   expect(accessibilityScan.violations).toEqual([]);
   await page.reload();
-  await expect(page.locator('#moment-timeline .moment-card[data-moment-theme="rose-pine"]')).toContainText('We made room to listen');
+  await expect(page.locator('#moment-timeline .moment-card[data-moment-theme="flexoki"]')).toContainText('We made room to listen');
 });
 
 test('the browser-only starter holds the requested everyday moment kinds', async ({ page }) => {

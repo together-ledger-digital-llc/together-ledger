@@ -67,12 +67,12 @@ test('mobile welcome actions remain large, reachable, and keyboard clear', async
   expect(accessibilityScan.violations).toEqual([]);
 });
 
-test('all sixteen personal themes keep one registry, one meaning, and no decorative emoji', async ({ page }) => {
+test('the four curated themes keep one registry, one meaning, and no decorative emoji', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
 
   const themes = await page.evaluate(() => window.TOGETHER_THEMES.map(({ id, label, base }) => ({ id, label, base })));
-  expect(themes).toHaveLength(16);
+  expect(themes).toHaveLength(4);
   const optionLabels = await page.locator('#theme-select option').allTextContents();
   expect(optionLabels).toEqual(themes.map(({ label }) => label));
   expect(optionLabels.join('')).not.toMatch(/[☀️🌙🔴🟢🟣🔵🟤🟡🌸☕📜🌅🪷🐙🌤️🏙️]/u);
@@ -336,9 +336,9 @@ test('representative light, dark, and high-chroma surfaces keep their visual con
   await page.goto('/');
   await expect(page).toHaveScreenshot('welcome-light-desktop.png', { fullPage: true, animations: 'disabled' });
 
-  await page.locator('#theme-select').selectOption('solar-red');
+  await page.locator('#theme-select').selectOption('green');
   await expect(page.locator('#toast')).not.toHaveClass(/show/, { timeout: 4_000 });
-  await expect(page).toHaveScreenshot('welcome-solar-red-desktop.png', { fullPage: true, animations: 'disabled' });
+  await expect(page).toHaveScreenshot('welcome-green-desktop.png', { fullPage: true, animations: 'disabled' });
 
   await page.setViewportSize({ width: 320, height: 568 });
   await page.locator('.welcome-menu > summary').click();
@@ -353,8 +353,8 @@ test('representative light, dark, and high-chroma surfaces keep their visual con
   await expect(page).toHaveScreenshot('ledger-dark-mobile.png', { fullPage: true, animations: 'disabled' });
 
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.locator('#workspace-theme-select').selectOption('solar-red');
+  await page.locator('#workspace-theme-select').selectOption('green');
   await expect(page.locator('#toast')).not.toHaveClass(/show/, { timeout: 4_000 });
   await page.getByRole('button', { name: 'Journey settings' }).click();
-  await expect(page).toHaveScreenshot('settings-solar-red-desktop.png', { animations: 'disabled' });
+  await expect(page).toHaveScreenshot('settings-green-desktop.png', { animations: 'disabled' });
 });

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { normalizeMomentTheme } from '../src/moment-themes.js';
 import {
   activeEntries,
   activeMoments,
@@ -112,12 +113,12 @@ test('moments keep optional money as context and require an honest visibility ch
     detail: 'Could we try again with ten quiet minutes?',
     occurredOn: '2026-08-16',
     visibility: 'share-later',
-    theme: 'rose-pine',
+    theme: 'flexoki',
     money: '12.50',
   }, state.activeTripId);
   assert.equal(moment.moneyCents, 1250);
   assert.equal(moment.visibility, 'share-later');
-  assert.equal(moment.theme, 'rose-pine');
+  assert.equal(moment.theme, 'flexoki');
   assert.equal(normalizeMoment({ ...moment, theme: 'retired-theme' }, state.activeTripId, moment).theme, '');
   assert.throws(() => normalizeMoment({ ...moment, visibility: 'everyone' }, state.activeTripId), /who can see/);
 });
@@ -210,4 +211,15 @@ test('concerns have an explicit lifecycle separate from private check-in prompts
   assert.equal(resolved.id, concern.id);
   assert.equal(resolved.createdBy, 'Alex');
   assert.equal(resolved.updatedBy, 'Jordan');
+});
+
+test('a moment saved with a retired treatment keeps the nearest surviving one', () => {
+  // The stored-state validator requires normalize(theme) === theme, so this mapping has to
+  // be idempotent or every existing moment carrying a retired treatment would fail to load.
+  assert.equal(normalizeMomentTheme('rose-pine'), 'dark');
+  assert.equal(normalizeMomentTheme('tokyo-night-day'), 'light');
+  assert.equal(normalizeMomentTheme(normalizeMomentTheme('rose-pine')), 'dark');
+  assert.equal(normalizeMomentTheme('flexoki'), 'flexoki');
+  assert.equal(normalizeMomentTheme('a-theme-that-never-existed'), '');
+  assert.equal(normalizeMomentTheme(''), '');
 });

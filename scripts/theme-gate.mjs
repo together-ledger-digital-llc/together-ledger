@@ -120,7 +120,7 @@ export function auditThemes({ css, themes, momentThemes }) {
   }
   const rootBlock = css.match(/:root\s*\{([^}]*)\}/)?.[1];
 
-  if (themes.length !== 16) problems.push(`expected 16 registered themes, found ${themes.length}`);
+  if (themes.length !== 4) problems.push(`expected 4 registered themes, found ${themes.length}`);
   if (new Set(themes.map(({ id }) => id)).size !== themes.length) problems.push('theme ids must be unique');
   if (!rootBlock) problems.push('default :root token block is missing');
 
@@ -206,7 +206,7 @@ export function auditThemes({ css, themes, momentThemes }) {
       }
     }
   }
-  if (momentThemes.length !== 6) problems.push(`expected 6 approved moment themes, found ${momentThemes.length}`);
+  if (momentThemes.length !== 4) problems.push(`expected 4 approved moment themes, found ${momentThemes.length}`);
 
   for (const { name, line } of undefinedVariables(css)) {
     problems.push(`${name} is used at styles.css:${line} but never defined; it paints nothing`);

@@ -30,7 +30,7 @@ This is not couples therapy, financial advice, surveillance software, or a relat
 - Per-journey action milestones that describe shared actions—not relationship quality.
 - Honest local settings for themes, full backup/restore, and demo reset.
 - A visible Event Manager under every journey for locally attributable moment, thread, milestone, and practical-detail changes, including deletion tombstones.
-- All 16 Surojito brand themes, with a global switcher that persists the user’s choice.
+- Four curated themes carrying the full semantic colour contract, with a global switcher that persists the user’s choice.
 - Synthetic demo data featuring Alex and Jordan—no household records.
 - An explicit browser-only mode that never uploads existing local journey data.
 - Private sync for separate accounts, verified-email invitations, PostgreSQL journeys, recovery, deletion, conflict protection, server-authoritative shared moments, and HMAC-chained events.
@@ -56,18 +56,17 @@ The web-billing candidate is documented in [docs/STRIPE.md](docs/STRIPE.md). Nev
 
 ## Brand themes
 
-Every current surface—navigation, hero, cards, timeline, dialogs, forms, footer, and mobile action bar—uses the same theme tokens as `surojito.com`.
+Every current surface—navigation, hero, cards, timeline, dialogs, forms, footer, and mobile action bar—reads from one set of semantic colour roles, so a theme is a set of values rather than a set of exceptions.
 
 | Light themes | Dark themes |
 |---|---|
 | Light | Dark |
-| Catppuccin Latte | Solar Red |
 | Flexoki | Green |
-| Rosé Pine Dawn | Catppuccin Mocha |
-| Kanagawa Lotus | Tokyo Night |
-| Primer Light (GitHub) | Kanagawa Wave |
-| Ayu Light | Amber |
-| Tokyo Night Day | Rosé Pine |
+
+Four themes, not sixteen. Each one defines all seventeen semantic roles, and `npm run check:themes`
+refuses a theme that leaves any role undefined, unreadable, or too close in hue to a role it must
+never be mistaken for. A theme retired in an earlier release resolves to the surviving surface
+closest to it, so a saved choice is migrated rather than dropped.
 
 The selected theme is saved in the browser and restored before the page paints.
 
