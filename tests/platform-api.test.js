@@ -11,7 +11,7 @@ const origin = 'http://127.0.0.1:4174';
 const appOrigin = 'https://app.together-ledger.com';
 const apiOrigin = 'https://api.example.test';
 
-async function testPlatform({ mailer = new MemoryMailer(), configOverrides = {}, billing } = {}) {
+async function testPlatform({ mailer = new MemoryMailer(), configOverrides = {}, billing, now = () => new Date('2026-08-02T12:00:00.000Z') } = {}) {
   const memory = newDb({ autoCreateForeignKeyIndices: true });
   memory.public.registerFunction({
     name: 'char_length',
@@ -39,6 +39,7 @@ async function testPlatform({ mailer = new MemoryMailer(), configOverrides = {},
   await pool.query(await readFile(new URL('../server/migrations/019_let-moments-carry-their-own-atmosphere.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../server/migrations/020_let-entitlements-hold-ninety-nine-places.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../server/migrations/021_let-unpaid-capacity-rest-without-losing-history.sql', import.meta.url), 'utf8'));
+  await pool.query(await readFile(new URL('../server/migrations/022_agree-together-before-adding-someone.sql', import.meta.url), 'utf8'));
   const config = loadConfig({
     NODE_ENV: 'test',
     PUBLIC_ORIGIN: origin,
@@ -49,7 +50,7 @@ async function testPlatform({ mailer = new MemoryMailer(), configOverrides = {},
     AUDIT_HMAC_KEY: 'a'.repeat(32),
     ...configOverrides,
   });
-  const platform = new PlatformService({ pool, config, mailer, now: () => new Date('2026-08-02T12:00:00.000Z') });
+  const platform = new PlatformService({ pool, config, mailer, now });
   const app = await buildApp({ platform, config, ...(billing ? { billing } : {}) });
   return { app, mailer, pool };
 }
@@ -117,6 +118,12 @@ test('dual-host frontend can start an account lifecycle', async (t) => {
   assert.equal(response.statusCode, 201, response.body);
   assert.equal(mailer.messages.findLast((message) => message.type === 'verification').accountOrigin, appOrigin);
 });
+
+async function signIn(app, identifier) {
+  const response = await app.inject({ method: 'POST', url: '/api/v1/auth/login', headers: { origin }, payload: { identifier, password: 'correct horse battery staple' } });
+  assert.equal(response.statusCode, 200, response.body);
+  return { cookie: cookieFrom(response), csrf: response.json().data.csrfToken };
+}
 
 function authHeaders(client) {
   return { origin, cookie: client.cookie, 'x-together-csrf': client.csrf };
@@ -619,20 +626,42 @@ test('synthetic group mode reserves independent places without advertising its c
   assert.equal(existingMember.statusCode, 409);
   assert.equal(existingMember.json().error.code, 'already_member');
 
-  for (let index = 0; index < 98; index += 1) {
+  // Growing a group no longer rests on one person. Three journeyers are here now, so a proposal
+  // waits on them and reserves nothing while it waits.
+  const proposed = await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journeyId}/invitations`, headers: authHeaders(owner),
+    payload: { email: 'waiting-on-everyone@example.test' },
+  });
+  assert.equal(proposed.statusCode, 202, proposed.body);
+  assert.equal(proposed.json().data.invitationSent, false);
+  snapshot = (await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: { cookie: owner.cookie } })).json().data;
+  assert.equal(snapshot.capacity.openInvitations, 0);
+  const waiting = snapshot.inviteProposals.find((entry) => entry.email === 'waiting-on-everyone@example.test');
+  assert.equal(waiting.status, 'open');
+  assert.equal(waiting.pendingCount, 2);
+
+  // The ceiling is still the ceiling, and it is still never advertised. A journey held by one
+  // person has nobody else to ask, so there each proposal becomes an invitation as it is made.
+  const soloCreated = await app.inject({
+    method: 'POST', url: '/api/v1/journeys', headers: authHeaders(third),
+    payload: { name: 'A wider circle still', location: '', startDateStatus: 'unknown', endDateStatus: 'forever', budgetCents: 0 },
+  });
+  const soloId = soloCreated.json().data.journey.id;
+  for (let index = 0; index < 100; index += 1) {
     const response = await app.inject({
-      method: 'POST', url: `/api/v1/journeys/${journeyId}/invitations`, headers: authHeaders(owner),
-      payload: { email: `waiting-${String(index).padStart(2, '0')}@example.test` },
+      method: 'POST', url: `/api/v1/journeys/${soloId}/invitations`, headers: authHeaders(third),
+      payload: { email: `waiting-${String(index).padStart(3, '0')}@example.test` },
     });
     assert.equal(response.statusCode, 202, `${index}: ${response.body}`);
   }
   const full = await app.inject({
-    method: 'POST', url: `/api/v1/journeys/${journeyId}/invitations`, headers: authHeaders(owner), payload: { email: 'one-too-many@example.test' },
+    method: 'POST', url: `/api/v1/journeys/${soloId}/invitations`, headers: authHeaders(third), payload: { email: 'one-too-many@example.test' },
   });
   assert.equal(full.statusCode, 409, full.body);
   assert.equal(full.json().error.code, 'journey_full');
-  snapshot = (await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: { cookie: owner.cookie } })).json().data;
-  assert.deepEqual(snapshot.capacity, { peopleHere: 3, openInvitations: 98, canInvite: false, mode: 'test-groups', unpaidCapacityMode: 'read-only', restingMemberIds: [] });
+  snapshot = (await app.inject({ method: 'GET', url: `/api/v1/journeys/${soloId}/snapshot`, headers: { cookie: third.cookie } })).json().data;
+  assert.deepEqual(snapshot.capacity, { peopleHere: 1, openInvitations: 100, canInvite: false, mode: 'test-groups', unpaidCapacityMode: 'read-only', restingMemberIds: [] });
+  assert.equal(Object.hasOwn(snapshot.capacity, 'limit'), false);
 });
 
 test('public service routes expose health and only the intended static app', async (t) => {
@@ -819,6 +848,189 @@ test('read-only resting still shows the shared journey', async (t) => {
   const snapshot = (await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: { cookie: resting.cookie } })).json().data;
   assert.equal(snapshot.capacity.unpaidCapacityMode, 'read-only');
   assert.equal(snapshot.moments.some((moment) => moment.title === 'Still visible while resting'), true);
+});
+
+async function groupOfThree(overrides = {}) {
+  const context = await testPlatform({ configOverrides: { JOURNEY_CAPACITY_MODE: 'test-groups' }, ...overrides });
+  const { app, mailer } = context;
+  const owner = await register(app, mailer, { email: 'consent-owner@example.test', username: 'consent-owner' });
+  const second = await register(app, mailer, { email: 'consent-second@example.test', username: 'consent-second' });
+  const third = await register(app, mailer, { email: 'consent-third@example.test', username: 'consent-third' });
+  const created = await app.inject({
+    method: 'POST', url: '/api/v1/journeys', headers: authHeaders(owner),
+    payload: { name: 'A journey held together', location: '', startDateStatus: 'unknown', endDateStatus: 'forever', budgetCents: 0 },
+  });
+  const journeyId = created.json().data.journey.id;
+  // The owner is alone, so there is nobody to ask and the first invitation goes straight out.
+  // By the time the third is proposed the second is here, and has to agree to them.
+  for (const client of [second, third]) {
+    const proposal = await app.inject({ method: 'POST', url: `/api/v1/journeys/${journeyId}/invitations`, headers: authHeaders(owner), payload: { email: client.user.email } });
+    assert.equal(proposal.statusCode, 202, proposal.body);
+    if (!proposal.json().data.invitationSent) {
+      const decision = await app.inject({
+        method: 'POST', url: `/api/v1/journeys/${journeyId}/invite-proposals/${proposal.json().data.proposalId}/decision`,
+        headers: authHeaders(second), payload: { decision: 'agree' },
+      });
+      assert.equal(decision.statusCode, 202, decision.body);
+    }
+    const token = mailer.messages.findLast((message) => message.type === 'invitation' && message.to === client.user.email).token;
+    const accepted = await app.inject({ method: 'POST', url: `/api/v1/invitations/${token}/accept`, headers: authHeaders(client) });
+    assert.equal(accepted.statusCode, 200, accepted.body);
+  }
+  return { ...context, owner, second, third, journeyId };
+}
+
+async function proposalFor(app, client, journeyId, email) {
+  const response = await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: { cookie: client.cookie } });
+  return response.json().data.inviteProposals.find((proposal) => proposal.email === email);
+}
+
+test('a new person waits on every journeyer, and a decline is named and dated', async (t) => {
+  const { app, mailer, pool, owner, second, third, journeyId } = await groupOfThree();
+  t.after(async () => { await app.close(); await pool.end(); });
+
+  // Any journeyer may ask. Nobody, including the owner, may decide it by themselves.
+  const sentSoFar = mailer.messages.length;
+  const proposed = await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journeyId}/invitations`, headers: authHeaders(second),
+    payload: { email: 'newcomer@example.test', note: 'My sister, who has been asking after you both.' },
+  });
+  assert.equal(proposed.statusCode, 202, proposed.body);
+  assert.equal(proposed.json().data.invitationSent, false);
+
+  // The person being proposed learns nothing at all while the journey is deciding.
+  assert.equal(mailer.messages.some((message) => message.to === 'newcomer@example.test'), false);
+  const notified = mailer.messages.slice(sentSoFar).filter((message) => message.type === 'invite-proposal').map((message) => message.to);
+  assert.deepEqual(notified.sort(), [owner.user.email, third.user.email].sort());
+
+  let proposal = await proposalFor(app, owner, journeyId, 'newcomer@example.test');
+  assert.equal(proposal.status, 'open');
+  assert.equal(proposal.note, 'My sister, who has been asking after you both.');
+  assert.equal(proposal.agreedCount, 1);
+  assert.equal(proposal.pendingCount, 2);
+  assert.equal(proposal.viewerMayDecide, true);
+  // Proposing is agreeing, and it is recorded as a decision with a time on it like any other.
+  const proposer = proposal.decisions.find((entry) => entry.email === second.user.email);
+  assert.equal(proposer.decision, 'agree');
+  assert.ok(proposer.requestedAt && proposer.decidedAt);
+
+  const agreed = await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journeyId}/invite-proposals/${proposal.id}/decision`,
+    headers: authHeaders(owner), payload: { decision: 'agree' },
+  });
+  assert.equal(agreed.statusCode, 202, agreed.body);
+  assert.equal(agreed.json().data.invitationSent, false);
+  assert.equal(mailer.messages.some((message) => message.to === 'newcomer@example.test'), false);
+
+  const declined = await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journeyId}/invite-proposals/${proposal.id}/decision`,
+    headers: authHeaders(third), payload: { decision: 'decline' },
+  });
+  assert.equal(declined.statusCode, 202, declined.body);
+
+  proposal = await proposalFor(app, owner, journeyId, 'newcomer@example.test');
+  assert.equal(proposal.status, 'declined');
+  assert.equal(proposal.declinedCount, 1);
+  // The record says who declined, and when they were asked as well as when they answered.
+  const decliner = proposal.decisions.find((entry) => entry.decision === 'decline');
+  assert.equal(decliner.email, third.user.email);
+  assert.ok(decliner.displayName);
+  assert.ok(decliner.requestedAt && decliner.decidedAt);
+  assert.equal(mailer.messages.some((message) => message.to === 'newcomer@example.test'), false);
+
+  // One no settles it: the question cannot be reopened by answering it again.
+  const again = await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journeyId}/invite-proposals/${proposal.id}/decision`,
+    headers: authHeaders(owner), payload: { decision: 'agree' },
+  });
+  assert.equal(again.statusCode, 409);
+  assert.equal(again.json().error.code, 'proposal_closed');
+});
+
+test('when everyone agrees the newcomer is invited by email exactly as before', async (t) => {
+  const { app, mailer, pool, owner, second, third, journeyId } = await groupOfThree();
+  t.after(async () => { await app.close(); await pool.end(); });
+  const newcomer = await register(app, mailer, { email: 'fourth@example.test', username: 'fourth' });
+
+  await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journeyId}/invitations`, headers: authHeaders(owner),
+    payload: { email: newcomer.user.email },
+  });
+  let proposal = await proposalFor(app, owner, journeyId, newcomer.user.email);
+  const secondAgrees = await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journeyId}/invite-proposals/${proposal.id}/decision`,
+    headers: authHeaders(second), payload: { decision: 'agree' },
+  });
+  assert.equal(secondAgrees.json().data.invitationSent, false);
+  const lastAgrees = await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journeyId}/invite-proposals/${proposal.id}/decision`,
+    headers: authHeaders(third), payload: { decision: 'agree' },
+  });
+  assert.equal(lastAgrees.statusCode, 202, lastAgrees.body);
+  assert.equal(lastAgrees.json().data.invitationSent, true);
+
+  proposal = await proposalFor(app, owner, journeyId, newcomer.user.email);
+  assert.equal(proposal.status, 'agreed');
+  assert.equal(proposal.agreedCount, 3);
+
+  // The invitation itself is unchanged: the newcomer still joins from the mail they are sent.
+  const invitation = mailer.messages.findLast((message) => message.type === 'invitation' && message.to === newcomer.user.email);
+  assert.ok(invitation.token);
+  const accepted = await app.inject({ method: 'POST', url: `/api/v1/invitations/${invitation.token}/accept`, headers: authHeaders(newcomer) });
+  assert.equal(accepted.statusCode, 200, accepted.body);
+  const snapshot = (await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: { cookie: owner.cookie } })).json().data;
+  assert.equal(snapshot.members.length, 4);
+});
+
+test('a proposal nobody answers lapses after a month, and adds nobody', async (t) => {
+  let clock = new Date('2026-08-02T12:00:00.000Z');
+  const { app, mailer, pool, owner, journeyId } = await groupOfThree({ now: () => clock });
+  t.after(async () => { await app.close(); await pool.end(); });
+
+  await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journeyId}/invitations`, headers: authHeaders(owner),
+    payload: { email: 'never-answered@example.test' },
+  });
+  let proposal = await proposalFor(app, owner, journeyId, 'never-answered@example.test');
+  assert.equal(proposal.status, 'open');
+
+  // A month really passes here, which also ends the sessions open at the time, so both people
+  // sign in again on the other side of it exactly as they would have to.
+  clock = new Date('2026-09-02T12:00:01.000Z');
+  const ownerAgain = await signIn(app, 'consent-owner');
+  const thirdAgain = await signIn(app, 'consent-third');
+  proposal = await proposalFor(app, ownerAgain, journeyId, 'never-answered@example.test');
+  // Silence is not agreement, and it never becomes agreement by being left long enough.
+  assert.equal(proposal.status, 'lapsed');
+  assert.equal(mailer.messages.some((message) => message.to === 'never-answered@example.test'), false);
+
+  const late = await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journeyId}/invite-proposals/${proposal.id}/decision`,
+    headers: authHeaders(thirdAgain), payload: { decision: 'agree' },
+  });
+  assert.equal(late.statusCode, 409);
+  assert.equal(late.json().error.code, 'proposal_lapsed');
+  assert.equal(mailer.messages.some((message) => message.to === 'never-answered@example.test'), false);
+});
+
+test('a journey of one has nobody to ask, so inviting is unchanged for two people', async (t) => {
+  const { app, mailer, pool } = await testPlatform();
+  t.after(async () => { await app.close(); await pool.end(); });
+  const owner = await register(app, mailer, { email: 'pair-owner@example.test', username: 'pair-owner' });
+  const created = await app.inject({
+    method: 'POST', url: '/api/v1/journeys', headers: authHeaders(owner),
+    payload: { name: 'Just the two of us', location: '', startDateStatus: 'unknown', endDateStatus: 'forever', budgetCents: 0 },
+  });
+  const journeyId = created.json().data.journey.id;
+  const invited = await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journeyId}/invitations`, headers: authHeaders(owner),
+    payload: { email: 'pair-second@example.test' },
+  });
+  assert.equal(invited.statusCode, 202, invited.body);
+  assert.equal(invited.json().data.invitationSent, true);
+  assert.ok(mailer.messages.findLast((message) => message.type === 'invitation' && message.to === 'pair-second@example.test'));
+  // Nobody was asked to agree, because there was nobody else here to ask.
+  assert.equal(mailer.messages.some((message) => message.type === 'invite-proposal'), false);
 });
 
 test('the owner sets how unpaid capacity rests, and cannot put themselves in the queue', async (t) => {

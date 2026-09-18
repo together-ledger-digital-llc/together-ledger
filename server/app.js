@@ -178,9 +178,23 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
     return { data: { events: snapshot.events } };
   });
 
+  // Proposing is not adding. Nothing reaches the proposed person until every journeyer agrees,
+  // so this answers with what happened rather than always claiming an invitation went out.
   app.post('/api/v1/journeys/:journeyId/invitations', { preHandler: protectMutation }, async (request, reply) => {
-    await platform.createInvitation(request.auth.userId, request.params.journeyId, request.body?.email, accountOriginFor(request));
+    const result = await platform.proposeInvitation(request.auth.userId, request.params.journeyId, request.body?.email, request.body?.note, accountOriginFor(request));
+    return reply.code(202).send({ data: result });
+  });
+  app.post('/api/v1/journeys/:journeyId/invite-proposals/:proposalId/decision', { preHandler: protectMutation }, async (request, reply) => {
+    const result = await platform.decideInviteProposal(request.auth.userId, request.params.journeyId, request.params.proposalId, request.body?.decision, accountOriginFor(request));
+    return reply.code(202).send({ data: result });
+  });
+  app.post('/api/v1/journeys/:journeyId/invite-proposals/:proposalId/send', { preHandler: protectMutation }, async (request, reply) => {
+    await platform.sendAgreedProposal(request.auth.userId, request.params.journeyId, request.params.proposalId, accountOriginFor(request));
     return reply.code(202).send({ data: { invitationSent: true } });
+  });
+  app.delete('/api/v1/journeys/:journeyId/invite-proposals/:proposalId', { preHandler: protectMutation }, async (request, reply) => {
+    await platform.withdrawInviteProposal(request.auth.userId, request.params.journeyId, request.params.proposalId);
+    return reply.code(204).send();
   });
   app.post('/api/v1/invitations/:token/accept', { preHandler: protectMutation }, async (request) => ({ data: { journeyId: await platform.acceptInvitation(request.auth.userId, request.params.token) } }));
   app.delete('/api/v1/journeys/:journeyId/members/:userId', { preHandler: protectMutation }, async (request, reply) => {

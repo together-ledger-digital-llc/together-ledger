@@ -700,3 +700,19 @@ footer p { color: var(--on-accent); margin-bottom: 0; opacity: .8; }
   .moment-card.private, .moment-card.shared-now, .moment-card.share-later { border-left: 5px solid CanvasText; }
   .moment-theme-options label:has(input:checked) { outline: 2px solid Highlight; }
 }
+
+/* The record of who was asked and what they decided folds away to keep the journey screen calm.
+   Folding it away is a choice about reading, never about what is kept. */
+.proposal-detail {
+  margin-top: var(--space-2, 0.5rem);
+}
+
+.proposal-detail > summary {
+  cursor: pointer;
+  color: var(--text-muted, inherit);
+  font-size: 0.875rem;
+}
+
+.proposal-detail[open] > summary {
+  margin-bottom: var(--space-2, 0.5rem);
+}
