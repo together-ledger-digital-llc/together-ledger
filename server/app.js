@@ -171,6 +171,7 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
   app.get('/api/v1/journeys', { preHandler: authenticate }, async (request) => ({ data: { journeys: await platform.listJourneys(request.auth.userId) } }));
   app.post('/api/v1/journeys', { preHandler: protectMutation }, async (request, reply) => reply.code(201).send({ data: { journey: await platform.createJourney(request.auth.userId, request.body || {}) } }));
   app.patch('/api/v1/journeys/:journeyId', { preHandler: protectMutation }, async (request) => ({ data: { journey: await platform.updateJourney(request.auth.userId, request.params.journeyId, request.body || {}) } }));
+  app.patch('/api/v1/journeys/:journeyId/unpaid-capacity', { preHandler: protectMutation }, async (request) => ({ data: { capacity: await platform.setUnpaidCapacityRest(request.auth.userId, request.params.journeyId, request.body || {}) } }));
   app.get('/api/v1/journeys/:journeyId/snapshot', { preHandler: authenticate }, async (request) => ({ data: await platform.snapshot(request.auth.userId, request.params.journeyId, request.query?.after) }));
   app.get('/api/v1/journeys/:journeyId/events', { preHandler: authenticate }, async (request) => {
     const snapshot = await platform.snapshot(request.auth.userId, request.params.journeyId, request.query?.after);
