@@ -476,6 +476,49 @@ export class PlatformService {
 
   // Reading is the exception, and it is passed explicitly: every other caller is a mutation,
   // so a resting journeyer is refused by default rather than by remembering to ask.
+  // The owner decides how a lapse behaves and, when more people are here than are covered,
+  // who rests. Left alone, the queue falls back to whoever joined most recently, so an owner
+  // who never touches this is never asked to rank anyone.
+  async setUnpaidCapacityRest(userId, journeyId, { mode, restOrder }) {
+    if (mode !== undefined && !['read-only', 'paused'].includes(mode)) {
+      throw new PlatformError(400, 'invalid_unpaid_capacity_mode', 'Unpaid capacity rests either read-only or fully paused.');
+    }
+    if (restOrder !== undefined && (!Array.isArray(restOrder) || restOrder.some((id) => typeof id !== 'string' || !id))) {
+      throw new PlatformError(400, 'invalid_rest_order', 'The resting order must be a list of journeyer ids.');
+    }
+    return withTransaction(this.pool, async (client) => {
+      const journey = await this.requireMember(client, userId, journeyId, { owner: true });
+      if (mode !== undefined) {
+        await client.query('UPDATE journeys SET unpaid_capacity_mode=$1,updated_at=$2 WHERE id=$3', [mode, this.now(), journeyId]);
+      }
+      if (restOrder !== undefined) {
+        const members = await client.query('SELECT user_id FROM journey_members WHERE journey_id=$1', [journeyId]);
+        const here = new Set(members.rows.map((row) => row.user_id));
+        if (restOrder.some((id) => !here.has(id))) {
+          throw new PlatformError(400, 'invalid_rest_order', 'The resting order names someone who is not in this journey.');
+        }
+        if (restOrder.includes(journey.owner_user_id)) {
+          throw new PlatformError(400, 'invalid_rest_order', 'The journey owner holds the payment and never rests.');
+        }
+        // Rewriting the whole queue keeps it unambiguous: a position left out is a person who
+        // falls back to joining order rather than one silently keeping an old place.
+        await client.query('UPDATE journey_members SET rest_order=NULL WHERE journey_id=$1', [journeyId]);
+        for (const [index, memberUserId] of restOrder.entries()) {
+          await client.query('UPDATE journey_members SET rest_order=$1 WHERE journey_id=$2 AND user_id=$3', [index + 1, journeyId, memberUserId]);
+        }
+      }
+      await this.appendEvent(client, {
+        journeyId,
+        actorUserId: userId,
+        action: 'unpaid_capacity_rest_updated',
+        entityType: 'journey',
+        entityId: journeyId,
+        summary: 'Updated how unpaid capacity rests',
+      });
+      return this.capacityFor(client, journeyId);
+    });
+  }
+
   async requireMember(client, userId, journeyId, { owner = false, reading = false } = {}) {
     const membership = await client.query(
       `SELECT jm.role,j.* FROM journey_members jm JOIN journeys j ON j.id=jm.journey_id

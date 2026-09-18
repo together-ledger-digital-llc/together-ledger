@@ -341,6 +341,7 @@ function renderAccountState() {
     const proposals = trip.inviteProposalRecords || [];
     $('#invite-proposals').hidden = !proposals.length;
     $('#invite-proposal-list').innerHTML = proposals.map((proposal) => inviteProposalRow(proposal, trip)).join('');
+    renderUnpaidCapacityRest(trip, members);
     const invitations = trip.invitationRecords || [];
     $('#invitation-history').hidden = !invitations.length;
     $('#invitation-list').innerHTML = invitations.map((invitation) => {
@@ -410,6 +411,56 @@ function proposalStatusLabel(status) {
 
 function proposalDecisionLabel(decision) {
   return ({ agree: 'Agreed', decline: 'Declined', pending: 'Waiting' })[decision] || 'Recorded';
+}
+
+// Only the owner sees this: they hold the journey and the payment, and the decision is theirs.
+// It is written as a consequence rather than a setting, because what it chooses is what happens
+// to another person's access when a payment lapses.
+function renderUnpaidCapacityRest(trip, members) {
+  const section = $('#unpaid-capacity-rest');
+  if (!section) return;
+  const capacity = trip.capacity;
+  const owning = trip.role === 'owner' && capacity && capacity.mode === 'billing';
+  section.hidden = !owning;
+  if (!owning) return;
+
+  const mode = capacity.unpaidCapacityMode || 'read-only';
+  $$('input[name="unpaidCapacityMode"]', section).forEach((input) => { input.checked = input.value === mode; });
+  $('#unpaid-capacity-mode-copy').textContent = mode === 'paused'
+    ? 'Resting journeyers keep every moment they wrote themselves. The shared journey waits until payment is restored.'
+    : 'Resting journeyers keep reading the whole journey and cannot add to it until payment is restored.';
+
+  const others = members.filter((member) => member.id !== trip.createdByUserId && member.role !== 'owner');
+  const resting = new Set(capacity.restingMemberIds || []);
+  $('#rest-queue').innerHTML = others.length
+    ? `<p class="rest-queue-copy">Who rests first, if there is not room for everyone.</p>${others.map((member, index) => `<div class="journey-record-row"><div><strong>${escapeHtml(member.displayName)}</strong>${resting.has(member.id) ? '<small>Resting now</small>' : ''}</div><div class="journey-member-actions"><button class="button quiet" type="button" data-rest-earlier="${escapeHtml(member.id)}"${index === 0 ? ' disabled' : ''}>Rest earlier</button><button class="button quiet" type="button" data-rest-later="${escapeHtml(member.id)}"${index === others.length - 1 ? ' disabled' : ''}>Rest later</button></div></div>`).join('')}`
+    : emptyState('No one else is here yet', 'When another journeyer joins, you can choose who rests first.', { compact: true });
+
+  const order = others.map((member) => member.id);
+  $$('[data-rest-earlier]', section).forEach((button) => button.addEventListener('click', () => moveRestOrder(trip, order, button.dataset.restEarlier, -1)));
+  $$('[data-rest-later]', section).forEach((button) => button.addEventListener('click', () => moveRestOrder(trip, order, button.dataset.restLater, 1)));
+  $$('input[name="unpaidCapacityMode"]', section).forEach((input) => {
+    input.addEventListener('change', () => saveUnpaidCapacityRest(trip, { mode: input.value }));
+  });
+}
+
+function moveRestOrder(trip, order, memberUserId, direction) {
+  const from = order.indexOf(memberUserId);
+  const to = from + direction;
+  if (from < 0 || to < 0 || to >= order.length) return;
+  const next = [...order];
+  [next[from], next[to]] = [next[to], next[from]];
+  saveUnpaidCapacityRest(trip, { restOrder: next });
+}
+
+async function saveUnpaidCapacityRest(trip, payload) {
+  try {
+    await api.mutate(`/journeys/${trip.id}/unpaid-capacity`, 'PATCH', payload);
+    await refreshCloudState();
+    showToast('Saved how unpaid capacity rests.');
+  } catch (error) {
+    showStatus(accountMessage(error));
+  }
 }
 
 function invitationStatusLabel(status) {

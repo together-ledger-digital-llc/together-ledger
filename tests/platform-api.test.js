@@ -1032,3 +1032,63 @@ test('a journey of one has nobody to ask, so inviting is unchanged for two peopl
   // Nobody was asked to agree, because there was nobody else here to ask.
   assert.equal(mailer.messages.some((message) => message.type === 'invite-proposal'), false);
 });
+
+test('the owner sets how unpaid capacity rests, and cannot put themselves in the queue', async (t) => {
+  const { app, mailer, pool } = await testPlatform({ configOverrides: { JOURNEY_CAPACITY_MODE: 'billing', BILLING_ENABLED: 'true', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: 'whsec_fake', STRIPE_ADDITIONAL_PERSON_PRICE_ID: 'price_fake' } });
+  t.after(async () => { await app.close(); await pool.end(); });
+  const owner = await register(app, mailer, { email: 'set-owner@example.test', username: 'set-owner' });
+  const second = await register(app, mailer, { email: 'set-second@example.test', username: 'set-second' });
+  const third = await register(app, mailer, { email: 'set-third@example.test', username: 'set-third' });
+  const created = await app.inject({
+    method: 'POST', url: '/api/v1/journeys', headers: authHeaders(owner),
+    payload: { name: 'A journey with a choice', location: '', startDateStatus: 'unknown', endDateStatus: 'forever', budgetCents: 0 },
+  });
+  const journeyId = created.json().data.journey.id;
+  await pool.query('INSERT INTO journey_members (journey_id,user_id,role,joined_at) VALUES ($1,$2,$3,$4)', [journeyId, second.user.id, 'member', '2026-09-08T10:00:00.000Z']);
+  await pool.query('INSERT INTO journey_members (journey_id,user_id,role,joined_at) VALUES ($1,$2,$3,$4)', [journeyId, third.user.id, 'member', '2026-09-09T10:00:00.000Z']);
+
+  // Default: nobody was ranked, so the person who joined most recently rests.
+  const before = (await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: { cookie: owner.cookie } })).json().data.capacity;
+  assert.deepEqual(before.restingMemberIds, [third.user.id]);
+  assert.equal(before.unpaidCapacityMode, 'read-only');
+
+  const set = await app.inject({
+    method: 'PATCH', url: `/api/v1/journeys/${journeyId}/unpaid-capacity`, headers: authHeaders(owner),
+    payload: { mode: 'paused', restOrder: [second.user.id, third.user.id] },
+  });
+  assert.equal(set.statusCode, 200, set.body);
+  assert.equal(set.json().data.capacity.unpaidCapacityMode, 'paused');
+  assert.deepEqual(set.json().data.capacity.restingMemberIds, [second.user.id]);
+
+  // The owner holds the payment, so putting themselves in the queue is refused rather than
+  // quietly ignored: a rule that could pause the only person who can fix it is a trap.
+  const self = await app.inject({
+    method: 'PATCH', url: `/api/v1/journeys/${journeyId}/unpaid-capacity`, headers: authHeaders(owner),
+    payload: { restOrder: [owner.user.id] },
+  });
+  assert.equal(self.statusCode, 400, self.body);
+  assert.equal(self.json().error.code, 'invalid_rest_order');
+
+  const stranger = await app.inject({
+    method: 'PATCH', url: `/api/v1/journeys/${journeyId}/unpaid-capacity`, headers: authHeaders(owner),
+    payload: { restOrder: ['someone-not-here'] },
+  });
+  assert.equal(stranger.statusCode, 400, stranger.body);
+
+  const badMode = await app.inject({
+    method: 'PATCH', url: `/api/v1/journeys/${journeyId}/unpaid-capacity`, headers: authHeaders(owner),
+    payload: { mode: 'deleted' },
+  });
+  assert.equal(badMode.statusCode, 400, badMode.body);
+
+  // Only the owner decides this.
+  const notOwner = await app.inject({
+    method: 'PATCH', url: `/api/v1/journeys/${journeyId}/unpaid-capacity`, headers: authHeaders(second),
+    payload: { mode: 'read-only' },
+  });
+  assert.equal(notOwner.statusCode, 403, notOwner.body);
+
+  // The change is attributable, like every other journey change.
+  const events = (await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: { cookie: owner.cookie } })).json().data.events;
+  assert.ok(events.some((event) => event.action === 'unpaid_capacity_rest_updated'));
+});

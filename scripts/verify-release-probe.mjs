@@ -1,9 +1,9 @@
 const defaults = {
-  // The app Worker takes longer to serve a new revision globally than this window used to
-  // allow. Measured on e123377: verification ran its full 36 attempts over 178 seconds while
-  // the probe answered verified:false throughout, and the same revision confirmed on the
-  // first attempt shortly afterwards. The release was fine; the window was too short.
-  attempts: 90,
+  // Three minutes. This was briefly 90 attempts, widened on the belief that the app propagated
+  // slowly. It does not: Bot fight mode was refusing the checkers, and the probe reported being
+  // blocked as verified:false. Waiting longer never helped, and a longer window only delays the
+  // report when a release really is stuck.
+  attempts: 36,
   delayMs: 5000,
   // The workflow deploys the probe immediately before asking it anything, and a freshly
   // rolled-out Worker answers 5xx while it propagates. Becoming reachable gets its own budget
