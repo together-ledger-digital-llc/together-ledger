@@ -162,6 +162,9 @@ test('a journey owner sees only the approved test billing controls', async ({ pa
   await expect(page.locator('#billing-panel')).toBeVisible();
   await expect(page.locator('#billing-environment')).toContainText('Test mode — checkout cannot create a real charge.');
   await expect(page.locator('#billing-status')).toContainText('1 additional person is covered');
+  // Covered and needing attention must not read alike; the state carries a tone, not just words.
+  await expect(page.locator('#billing-status')).toHaveClass(/settled/);
+  await expect(page.locator('.billing-status-glyph')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add another person · $1.00 USD / month' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Manage payment and cancellation' })).toBeVisible();
   await expect(page.locator('.billing-boundary')).toContainText('Apple App Store and future Google Play purchases remain with those stores');

@@ -431,7 +431,6 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .billing-panel { display: grid; gap: 13px; }
 .billing-panel > hr { margin-bottom: 4px; }
 .billing-panel .eyebrow { color: var(--accent); }
-.billing-mode { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius-m); color: var(--muted); margin: 0; padding: 15px 17px; }
 .billing-offers { display: flex; flex-wrap: wrap; gap: 8px; }
 .billing-capacity-picker { display: grid; gap: 9px; }
 .billing-capacity-picker .field { margin: 0; }
@@ -439,6 +438,22 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .billing-capacity-controls input[type="range"] { flex: 1; min-height: 44px; }
 .billing-capacity-controls input[type="number"] { min-height: 44px; text-align: center; width: 4.5em; }
 .billing-capacity-total { color: var(--muted); font-weight: 700; margin: 0; }
+
+/* The range follows the system the way the milestone checkboxes already do, rather than
+   whatever the browser paints by default. */
+.billing-capacity-controls input[type="range"] { accent-color: var(--accent); }
+
+/* A paid-capacity state is read, not skimmed, so it carries a shape and an edge as well as a
+   colour. Waiting and needing attention are not failures and never take the destructive role. */
+.billing-status { align-items: baseline; border-left: 5px solid var(--line); display: flex; gap: 10px; margin: 0; padding: 2px 0 2px 12px; }
+.billing-status-glyph { flex: 0 0 auto; font-size: 12px; }
+.billing-status.settled { border-left-color: var(--positive); }
+.billing-status.settled .billing-status-glyph { color: var(--positive); }
+.billing-status.waiting { border-left-color: var(--caution); }
+.billing-status.waiting .billing-status-glyph { color: var(--caution); }
+
+/* Test mode must be unmistakable: a quiet grey box is exactly what a reader skips. */
+.billing-mode { background: var(--soft); border: 1px solid var(--caution); border-left: 5px solid var(--caution); border-radius: var(--radius-m); color: var(--fg); margin: 0; padding: 15px 17px; }
 .billing-boundary { color: var(--muted); font-size: 14px; line-height: 1.55; }
 .inline-form { align-items: end; display: flex; gap: 8px; }
 .inline-form .field { flex: 1; }
