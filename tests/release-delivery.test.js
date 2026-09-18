@@ -109,8 +109,65 @@ test('release probe verifier retries its public workers.dev endpoint and require
       delayMs: 0,
       fetchImpl: async () => Response.json({ verified: true, revision: 'b'.repeat(40) }),
     }),
-    /did not confirm the expected public revision/,
+    /never confirmed revision/,
   );
+});
+
+test('the release gate says which question it could not answer', async () => {
+  const probeUrl = 'https://together-ledger-app-public-release-probe.example.workers.dev';
+
+  // A probe that never comes up means the release was not checked. That is a different fact
+  // from the release being wrong, and every delivery on 18 September reported it as the same.
+  await assert.rejects(
+    verifyReleaseProbe({
+      probeUrl,
+      revision,
+      attempts: 4,
+      readinessAttempts: 2,
+      delayMs: 0,
+      fetchImpl: async () => new Response('Waiting', { status: 503 }),
+    }),
+    (error) => {
+      assert.equal(error.reason, 'probe-unavailable');
+      assert.match(error.message, /never became reachable/);
+      assert.match(error.message, /not the same as the release being wrong/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    verifyReleaseProbe({
+      probeUrl,
+      revision,
+      attempts: 1,
+      readinessAttempts: 4,
+      delayMs: 0,
+      fetchImpl: async () => Response.json({ verified: true, revision: 'b'.repeat(40) }),
+    }),
+    (error) => {
+      assert.equal(error.reason, 'release-unconfirmed');
+      return true;
+    },
+  );
+});
+
+test('waiting for the probe does not spend the budget meant for the release', async () => {
+  // The workflow deploys the probe and immediately asks it, so the first answers are 5xx from
+  // a Worker still rolling out. Those attempts belong to readiness; previously they consumed
+  // the revision budget, which is how a healthy release failed its own gate.
+  let calls = 0;
+  const result = await verifyReleaseProbe({
+    probeUrl: 'https://together-ledger-app-public-release-probe.example.workers.dev',
+    revision,
+    attempts: 1,
+    readinessAttempts: 5,
+    delayMs: 0,
+    fetchImpl: async () => {
+      calls += 1;
+      return calls <= 3 ? new Response('Waiting', { status: 503 }) : Response.json({ verified: true, revision });
+    },
+  });
+  assert.equal(result.attempt, 4);
 });
 
 test('release-probe deployer finds only the fixed public probe URL', () => {
