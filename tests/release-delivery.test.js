@@ -7,6 +7,7 @@ import { createAppReleaseProbe } from '../probes/app-release-probe/app-release-p
 import { findWorkersDevUrl } from '../scripts/deploy-release-probe.mjs';
 import { verifyReleaseProbe } from '../scripts/verify-release-probe.mjs';
 import { verifyReleaseBundle } from '../scripts/verify-release-bundle.mjs';
+import { checkPublicAvailability } from '../scripts/check-public-availability.mjs';
 import { verifyWorkerRelease } from '../scripts/verify-worker-release.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -250,4 +251,57 @@ test('the release bundle verifier proves the revision and the visible control be
     verifyReleaseBundle({ directory: '_site', revision, requiredText: 'Keep what matters,', readFileImpl: async () => { throw new Error('missing'); } }),
     /has no release marker/,
   );
+});
+
+test('the availability check separates refused from down from drift', async () => {
+  const base = { baseUrl: 'https://app.example.test', revision, requiredText: 'Keep what matters,', attempts: 1, delayMs: 0 };
+  const page = (body = '<h1>Keep what matters, together.</h1>', status = 200) => new Response(body, { status });
+
+  const healthy = await checkPublicAvailability({
+    ...base,
+    fetchImpl: async (url) => (String(url).endsWith('release.json') ? Response.json({ revision }) : page()),
+  });
+  assert.equal(healthy.state, 'healthy');
+
+  // Being turned away is the protection working. It must never read as the site being broken,
+  // or the check becomes another red light people learn to skip.
+  for (const status of [401, 403, 429]) {
+    const refused = await checkPublicAvailability({ ...base, fetchImpl: async () => new Response('no', { status }) });
+    assert.equal(refused.state, 'refused', `HTTP ${status} is a refusal, not an outage`);
+  }
+
+  // A challenge page answers 200 with HTML where JSON was asked for. Same meaning.
+  const challenged = await checkPublicAvailability({ ...base, fetchImpl: async () => page('<html>checking your browser</html>') });
+  assert.equal(challenged.state, 'refused');
+
+  const down = await checkPublicAvailability({ ...base, fetchImpl: async () => new Response('boom', { status: 503 }) });
+  assert.equal(down.state, 'down');
+
+  const unreachable = await checkPublicAvailability({ ...base, fetchImpl: async () => { throw new Error('getaddrinfo ENOTFOUND'); } });
+  assert.equal(unreachable.state, 'down');
+
+  // Production serving something other than main is worth knowing even while it is healthy.
+  const drifted = await checkPublicAvailability({
+    ...base,
+    fetchImpl: async (url) => (String(url).endsWith('release.json') ? Response.json({ revision: 'b'.repeat(40) }) : page()),
+  });
+  assert.equal(drifted.state, 'drift');
+
+  // A marker alone is not a working page.
+  const hollow = await checkPublicAvailability({
+    ...base,
+    fetchImpl: async (url) => (String(url).endsWith('release.json') ? Response.json({ revision }) : page('<html>an error page</html>')),
+  });
+  assert.equal(hollow.state, 'drift');
+});
+
+test('the availability schedule cannot block a release', () => {
+  const availability = readFileSync(join(root, '.github/workflows/public-availability.yml'), 'utf8');
+  assert.match(availability, /schedule:/);
+  assert.match(availability, /scripts\/check-public-availability\.mjs/);
+  // It runs on its own timer, never on a push or a deployment, so it can never gate one.
+  assert.doesNotMatch(availability, /workflow_run:/);
+  assert.doesNotMatch(availability, /on:\s*\n\s*push:/);
+  const worker = readFileSync(join(root, '.github/workflows/app-worker.yml'), 'utf8');
+  assert.doesNotMatch(worker, /check-public-availability/);
 });
