@@ -190,3 +190,12 @@ test('release delivery workflows keep their explicit protected-main boundaries',
   assert.match(worker, /deploy-release-probe\.mjs/);
   assert.match(worker, /verify-release-probe\.mjs/);
 });
+
+test('the release marker is declared uncacheable at the edge', () => {
+  // The edge ignores query strings on this zone, so the probe's ?revision= cache-buster is
+  // inert. Without this header the probe reads a stale marker and reports a healthy release
+  // as unconfirmed, which is what every delivery on 18 September did.
+  const headers = readFileSync(join(root, 'public', '_headers'), 'utf8');
+  const marker = headers.slice(headers.indexOf('/release.json'));
+  assert.match(marker, /^\/release\.json\s*\n\s+Cache-Control:\s*no-store/m);
+});
