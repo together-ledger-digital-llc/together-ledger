@@ -167,7 +167,7 @@
   --bg: #191724;
   --fg: #E0DEF4;
   --muted: #A5A0BF;
-  --accent: #C4A7E7;
+  --accent: #EBBCBA;
   --border: rgba(224,222,244,0.13);
   --meta-bg: #26233A;
   --on-accent: #191724;
@@ -177,7 +177,7 @@
   --focus: #9CCFD8;
   --positive: #6BD3A0;
   --caution: #F6C177;
-  --destructive: #EB6F92;
+  --destructive: #E052A5;
   --private: #908CAA;
   --shared-now: #6BD3A0;
   --share-later: #F6C177;
@@ -715,7 +715,7 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 [data-moment-theme="light"] { --moment-bg: #F3EFE6; --moment-fg: #1E1B17; --moment-muted: #6B645A; --moment-accent: #1F5257; --moment-border: rgba(30,27,23,0.10); --moment-meta: rgba(30,27,23,0.025); --moment-on-accent: #FFFFFF; }
 [data-moment-theme="dark"] { --moment-bg: #1A1815; --moment-fg: #EDEAE3; --moment-muted: #9A9188; --moment-accent: #7FBDC2; --moment-border: rgba(237,234,227,0.12); --moment-meta: rgba(255,255,255,0.03); --moment-on-accent: #1A1815; }
 [data-moment-theme="green"] { --moment-bg: #071109; --moment-fg: #E0F2E4; --moment-muted: #92B39A; --moment-accent: #58D987; --moment-border: rgba(224,242,228,0.13); --moment-meta: rgba(224,242,228,0.05); --moment-on-accent: #071109; }
-[data-moment-theme="rose-pine"] { --moment-bg: #191724; --moment-fg: #E0DEF4; --moment-muted: #A5A0BF; --moment-accent: #C4A7E7; --moment-border: rgba(224,222,244,0.13); --moment-meta: #26233A; --moment-on-accent: #191724; }
+[data-moment-theme="rose-pine"] { --moment-bg: #191724; --moment-fg: #E0DEF4; --moment-muted: #A5A0BF; --moment-accent: #EBBCBA; --moment-border: rgba(224,222,244,0.13); --moment-meta: #26233A; --moment-on-accent: #191724; }
 [data-moment-theme="flexoki"] { --moment-bg: #FFFCF0; --moment-fg: #100F0F; --moment-muted: #6F6E69; --moment-accent: #AF3029; --moment-border: rgba(16,15,15,0.13); --moment-meta: #F2F0E5; --moment-on-accent: #FFFCF0; }
 [data-moment-theme="tokyo-night-day"] { --moment-bg: #E1E2E7; --moment-fg: #2F52A3; --moment-muted: #3760BF; --moment-accent: #00698C; --moment-border: rgba(47,82,163,0.13); --moment-meta: #D0D5E3; --moment-on-accent: #E1E2E7; }
 .moment-card.private { border-left-color: var(--muted); }
