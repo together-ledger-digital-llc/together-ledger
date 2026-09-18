@@ -28,6 +28,11 @@ const EMERGING_CONTRAST = [
   { name: 'focus ring on raised surface', foreground: '--focus', background: '--surface', minimum: 3 },
   // A destructive button borrows the accent's text colour, so that pairing has to hold too.
   { name: 'text on a destructive action', foreground: '--on-accent', background: '--destructive', minimum: 4.5 },
+  // The privacy states are printed as words on a card, not only drawn as borders, so each one
+  // has to be readable where it is read — otherwise the cue that matters most is the faintest.
+  { name: 'private label', foreground: '--private', background: '--surface', minimum: 4.5 },
+  { name: 'shared now label', foreground: '--shared-now', background: '--surface', minimum: 4.5 },
+  { name: 'share later label', foreground: '--share-later', background: '--surface', minimum: 4.5 },
 ];
 
 // A destructive action must not read as the ordinary accent, and the three privacy states must
@@ -43,6 +48,11 @@ const MOMENT_TOKEN_MAP = new Map([
   ['--bg', '--moment-bg'], ['--fg', '--moment-fg'], ['--muted', '--moment-muted'],
   ['--accent', '--moment-accent'], ['--border', '--moment-border'],
   ['--meta-bg', '--moment-meta'], ['--on-accent', '--moment-on-accent'],
+  // A privacy cue keeps its own theme's colour inside a scoped card. Without these the label
+  // would take the card's background from the moment theme and its colour from the page,
+  // which is how a Shared now label ended up at 1.71:1 against the card behind it.
+  ['--private', '--moment-private'], ['--shared-now', '--moment-shared-now'],
+  ['--share-later', '--moment-share-later'],
 ]);
 
 export function tokens(block = '') {

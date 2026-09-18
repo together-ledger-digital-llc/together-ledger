@@ -53,7 +53,7 @@
   --positive: #7FC8A0;
   --caution: #E0B458;
   --destructive: #E38C80;
-  --private: #8A837A;
+  --private: #9C958B;
   --shared-now: #7FC8A0;
   --share-later: #E0B458;
 }
@@ -91,9 +91,9 @@
   --positive: #3F6B1F;
   --caution: #8A6708;
   --destructive: #A02F6F;
-  --private: #6F6E69;
-  --shared-now: #24837B;
-  --share-later: #AD8301;
+  --private: #5E5D58;
+  --shared-now: #1A6259;
+  --share-later: #7A5C00;
 }
 
 :root[data-theme-base="light"] { color-scheme: light; }
@@ -488,17 +488,20 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .log-types button { cursor: pointer; }
 .log-types button:hover, .log-types button:focus-visible { border-color: var(--teal); outline: 2px solid color-mix(in srgb, var(--teal) 30%, transparent); outline-offset: 2px; }
 .moment-card { background: color-mix(in srgb, var(--soft) 72%, var(--card)); border: 1px solid var(--line); border-left: 5px solid var(--teal); border-radius: var(--radius-l); color: var(--ink); padding: 18px; }
-.moment-card[data-moment-theme] { --bg: var(--moment-bg); --fg: var(--moment-fg); --muted: var(--moment-muted); --accent: var(--moment-accent); --border: var(--moment-border); --meta-bg: var(--moment-meta); --on-accent: var(--moment-on-accent); --card: var(--moment-bg); --ink: var(--fg); --spruce: var(--accent); --teal: var(--accent); --red: var(--accent); --line: var(--border); --soft: color-mix(in srgb, var(--moment-bg) 96%, var(--moment-fg)); background: var(--card); }
-[data-moment-theme="light"] { --moment-bg: #F3EFE6; --moment-fg: #1E1B17; --moment-muted: #6B645A; --moment-accent: #1F5257; --moment-border: rgba(30,27,23,0.10); --moment-meta: rgba(30,27,23,0.025); --moment-on-accent: #FFFFFF; }
-[data-moment-theme="dark"] { --moment-bg: #1A1815; --moment-fg: #EDEAE3; --moment-muted: #9A9188; --moment-accent: #7FBDC2; --moment-border: rgba(237,234,227,0.12); --moment-meta: rgba(255,255,255,0.03); --moment-on-accent: #1A1815; }
-[data-moment-theme="green"] { --moment-bg: #071109; --moment-fg: #E0F2E4; --moment-muted: #92B39A; --moment-accent: #58D987; --moment-border: rgba(224,242,228,0.13); --moment-meta: rgba(224,242,228,0.05); --moment-on-accent: #071109; }
-[data-moment-theme="flexoki"] { --moment-bg: #FFFCF0; --moment-fg: #100F0F; --moment-muted: #6F6E69; --moment-accent: #AF3029; --moment-border: rgba(16,15,15,0.13); --moment-meta: #F2F0E5; --moment-on-accent: #FFFCF0; }
-.moment-card.private { border-left-color: var(--muted); }
-.moment-card.share-later { border-left-color: var(--red); }
+.moment-card[data-moment-theme] { --bg: var(--moment-bg); --fg: var(--moment-fg); --muted: var(--moment-muted); --accent: var(--moment-accent); --border: var(--moment-border); --meta-bg: var(--moment-meta); --on-accent: var(--moment-on-accent); --private: var(--moment-private); --shared-now: var(--moment-shared-now); --share-later: var(--moment-share-later); --card: var(--moment-bg); --ink: var(--fg); --spruce: var(--accent); --teal: var(--accent); --red: var(--accent); --line: var(--border); --soft: color-mix(in srgb, var(--moment-bg) 96%, var(--moment-fg)); background: var(--card); }
+[data-moment-theme="light"] { --moment-bg: #F3EFE6; --moment-fg: #1E1B17; --moment-muted: #6B645A; --moment-accent: #1F5257; --moment-border: rgba(30,27,23,0.10); --moment-meta: rgba(30,27,23,0.025); --moment-on-accent: #FFFFFF; --moment-private: #5E5952; --moment-shared-now: #2F6B45; --moment-share-later: #7D5510; }
+[data-moment-theme="dark"] { --moment-bg: #1A1815; --moment-fg: #EDEAE3; --moment-muted: #9A9188; --moment-accent: #7FBDC2; --moment-border: rgba(237,234,227,0.12); --moment-meta: rgba(255,255,255,0.03); --moment-on-accent: #1A1815; --moment-private: #9C958B; --moment-shared-now: #7FC8A0; --moment-share-later: #E0B458; }
+[data-moment-theme="green"] { --moment-bg: #071109; --moment-fg: #E0F2E4; --moment-muted: #92B39A; --moment-accent: #58D987; --moment-border: rgba(224,242,228,0.13); --moment-meta: rgba(224,242,228,0.05); --moment-on-accent: #071109; --moment-private: #7E8A81; --moment-shared-now: #6EE7A0; --moment-share-later: #E8C35C; }
+[data-moment-theme="flexoki"] { --moment-bg: #FFFCF0; --moment-fg: #100F0F; --moment-muted: #6F6E69; --moment-accent: #AF3029; --moment-border: rgba(16,15,15,0.13); --moment-meta: #F2F0E5; --moment-on-accent: #FFFCF0; --moment-private: #5E5D58; --moment-shared-now: #1A6259; --moment-share-later: #7A5C00; }
+.moment-card.private { border-left-color: var(--private); }
+.moment-card.shared-now { border-left-color: var(--shared-now); }
+.moment-card.share-later { border-left-color: var(--share-later); }
 .moment-meta { align-items: center; color: var(--muted); display: flex; flex-wrap: wrap; font-size: 12px; font-weight: 800; gap: 7px; margin-bottom: 9px; text-transform: uppercase; }
 .moment-kind, .visibility-chip, .moment-theme-chip { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-pill); color: var(--ink); font-size: 14px; letter-spacing: .06em; padding: 4px 8px; }
-.visibility-chip.private { color: var(--muted); }
-.visibility-chip.share-later { color: var(--red); }
+.visibility-chip.private { color: var(--private); }
+.visibility-chip.shared-now { color: var(--shared-now); }
+.visibility-chip.share-later { color: var(--share-later); }
+.visibility-glyph { font-size: 12px; margin-right: 5px; }
 .moment-card > strong { display: block; font-family: Georgia, serif; font-size: 25px; font-weight: 500; }
 .moment-card > p { color: var(--muted); line-height: 1.55; margin: 8px 0 0; white-space: pre-wrap; }
 .moment-actions { display: flex; gap: 7px; justify-content: end; margin-top: 13px; }
@@ -640,6 +643,6 @@ footer p { color: var(--on-accent); margin-bottom: 0; opacity: .8; }
 @media (forced-colors: active) {
   .moment-card, .moment-theme-options label, .moment-theme-swatch { border: 1px solid CanvasText; }
   .moment-card { border-left: 5px solid CanvasText; }
-  .moment-card.private, .moment-card.share-later { border-left: 5px solid CanvasText; }
+  .moment-card.private, .moment-card.shared-now, .moment-card.share-later { border-left: 5px solid CanvasText; }
   .moment-theme-options label:has(input:checked) { outline: 2px solid Highlight; }
 }

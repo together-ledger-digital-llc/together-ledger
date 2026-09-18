@@ -100,6 +100,25 @@ test('a legible destructive action is accepted', () => {
   assert.ok(!complains(problems, 'text on a destructive action'));
 });
 
+test('a privacy label too faint to read on a card is rejected', () => {
+  // These are printed as words, not only drawn as borders, so a value tuned for a 5px rule
+  // can still be unreadable as text — which is how the cue that matters most goes faint.
+  const { problems } = audit({
+    extra: { '--surface': '#FFFFFF', '--private': '#B9B9B9', '--shared-now': '#1F7A3D', '--share-later': '#8A5A12' },
+  });
+  assert.ok(complains(problems, 'private label'));
+  assert.ok(!complains(problems, 'shared now label'));
+});
+
+test('legible privacy labels are accepted', () => {
+  const { problems } = audit({
+    extra: { '--surface': '#FFFFFF', '--private': '#5E5D58', '--shared-now': '#1F7A3D', '--share-later': '#8A5A12' },
+  });
+  assert.ok(!complains(problems, 'private label'));
+  assert.ok(!complains(problems, 'shared now label'));
+  assert.ok(!complains(problems, 'share later label'));
+});
+
 test('existing contrast and registry rules still hold', () => {
   const broken = fixture();
   broken.css = broken.css.replace('--muted: #595959;', '--muted: #BBBBBB;');

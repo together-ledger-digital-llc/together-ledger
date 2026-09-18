@@ -50,7 +50,7 @@ test('the public welcome earns the first browser-only moment without making a pr
 
   await expect(page.locator('#moment-timeline')).toContainText('We made room to listen');
   await expect(page.locator('.trip-bar')).toBeVisible();
-  await expect(page.locator('#moment-timeline')).toContainText('share later');
+  await expect(page.locator('#moment-timeline')).toContainText('Share later');
   await expect(page.locator('#moment-timeline .moment-card[data-moment-theme="flexoki"]')).toContainText("Flexoki theme");
   await expect(page.locator('#moment-timeline')).toContainText('19.95 is held here as context, not a score.');
   await expect(page.locator('#moment-timeline')).toContainText('Practical money context');
@@ -65,7 +65,7 @@ test('the public welcome earns the first browser-only moment without making a pr
   await expect(page.getByLabel('Flexoki', { exact: true })).toBeChecked();
   await page.locator('#moment-form [name="detail"]').fill('We both returned to this moment with care.');
   await page.getByRole('button', { name: 'Save moment' }).click();
-  await expect(page.locator('.moment-collaboration-badge')).toHaveText('Shaped by both journeyers');
+  await expect(page.locator('.moment-collaboration-badge')).toHaveText('Shaped by more than one journeyer');
 
   const accessibilityScan = await new AxeBuilder({ page }).include('main').analyze();
   expect(accessibilityScan.violations).toEqual([]);
