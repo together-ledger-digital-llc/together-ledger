@@ -322,7 +322,7 @@ function renderAccountState() {
       const timing = createdJourney ? 'Created' : 'Joined';
       const role = member.role === 'owner' ? 'Owner' : createdJourney ? 'Creator' : 'Journeyer';
       return `<div class="journey-record-row"><div><strong>${description}</strong><small>${timing} <time datetime="${escapeHtml(timestamp)}">${escapeHtml(dateTimeLabel(timestamp))}</time></small>${memberActions(member)}</div><span class="journey-role">${role}${member.id === accountUser.id ? ' · You' : ''}</span></div>`;
-    }).join('');
+    }).join('') || emptyState('No one is listed yet', 'The people in this journey appear here once the account service answers.', { compact: true });
     const invitations = trip.invitationRecords || [];
     $('#invitation-history').hidden = !invitations.length;
     $('#invitation-list').innerHTML = invitations.map((invitation) => `<div class="journey-record-row"><div><strong>Invitation sent to ${escapeHtml(invitation.email)}</strong><small>Sent by ${escapeHtml(invitation.invitedByDisplayName)} · <time datetime="${escapeHtml(invitation.sentAt)}">${escapeHtml(dateTimeLabel(invitation.sentAt))}</time></small></div><span class="invitation-status ${escapeHtml(invitation.status)}">${escapeHtml(invitationStatusLabel(invitation.status))}</span></div>`).join('');
