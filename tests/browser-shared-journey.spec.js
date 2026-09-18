@@ -185,8 +185,12 @@ test('a hosted journey can hold a private moment and deliberately share one late
   expect(mutationBodies[0].visibility).toBe('private');
   await expect(page.locator('.moment-card.private')).toContainText('Mine until I decide');
 
-  page.once('dialog', (dialog) => dialog.accept());
   await page.locator('.moment-card.share-later').getByRole('button', { name: 'Share now' }).click();
+  // The consequence is stated, and the confirming button names the act rather than saying OK.
+  await expect(page.locator('#consequence-dialog')).toBeVisible();
+  await expect(page.locator('#consequence-dialog-consequence')).toContainText('including anyone who joins later');
+  await expect(page.locator('#consequence-dialog-cancel')).toBeFocused();
+  await page.locator('#consequence-dialog').getByRole('button', { name: 'Share this moment' }).click();
   await expect.poll(() => mutationBodies.at(-1)?.visibility).toBe('shared-now');
   await expect(page.locator('.moment-card.shared-now')).toContainText('Ready when I choose');
   await expect(page.getByRole('button', { name: 'Share now' })).toHaveCount(0);
@@ -269,7 +273,7 @@ test('Journey settings welcomes a group without exposing an internal ceiling', a
   await expect(page.locator('#sharing-settings')).not.toContainText(/99|seat|license/i);
   const accessibilityScan = await new AxeBuilder({ page }).include('#sharing-settings').analyze();
   expect(accessibilityScan.violations).toEqual([]);
-  page.once('dialog', (dialog) => dialog.accept());
   await page.locator('.journey-record-row').filter({ hasText: 'second-person' }).getByRole('button', { name: 'Make owner' }).click();
+  await page.locator('#consequence-dialog').getByRole('button', { name: 'Transfer ownership' }).click();
   await expect.poll(() => ownershipRequest).toEqual({ userId: 'group-two' });
 });

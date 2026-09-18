@@ -35,6 +35,26 @@ function visibilityCue(visibility) {
   return VISIBILITY_CUES[visibility] || { glyph: '○', label: String(visibility || '').replaceAll('-', ' ') };
 }
 
+// A consequence is read before it is agreed to. The confirming button names the act rather
+// than saying OK, and focus opens on the way out, so the irreversible choice is never the one
+// a stray Return key reaches first.
+function confirmConsequence({ title, consequence, confirmLabel, keepLabel = 'Keep things as they are', destructive = false }) {
+  const dialog = document.querySelector('#consequence-dialog');
+  if (!dialog?.showModal) return Promise.resolve(false);
+  dialog.querySelector('#consequence-dialog-title').textContent = title;
+  dialog.querySelector('#consequence-dialog-consequence').textContent = consequence;
+  const cancel = dialog.querySelector('#consequence-dialog-cancel');
+  const accept = dialog.querySelector('#consequence-dialog-accept');
+  cancel.textContent = keepLabel;
+  accept.textContent = confirmLabel;
+  accept.className = destructive ? 'button danger' : 'button primary';
+  return new Promise((resolve) => {
+    dialog.addEventListener('close', () => resolve(dialog.returnValue === 'confirm'), { once: true });
+    dialog.showModal();
+    cancel.focus();
+  });
+}
+
 let state = loadState();
 const api = new TogetherApi();
 let accountUser = null;
@@ -600,7 +620,7 @@ async function shareMoment(id) {
   const moment = state.moments.find((item) => item.id === id);
   const trip = activeTrip(state);
   if (!moment || !isCloudJourney(trip) || moment.visibility !== 'share-later') return;
-  if (!window.confirm('Share this moment now? Both journeyers will be able to see it, and that access cannot be undone.')) return;
+  if (!await confirmConsequence({ title: 'Share this moment now?', consequence: 'Everyone in this journey will be able to see it, including anyone who joins later. That access cannot be undone.', confirmLabel: 'Share this moment' })) return;
   try {
     const payload = { kind: moment.kind, kindLabel: moment.kindLabel || '', title: moment.title, detail: moment.detail, occurredOn: moment.occurredOn, visibility: 'shared-now', theme: normalizeMomentTheme(moment.theme), moneyCents: moment.moneyCents, moneyCurrency: moment.moneyCurrency || '', locations: moment.locations || [], version: moment.version };
     await api.mutate(`/journeys/${trip.id}/moments/${moment.id}`, 'PATCH', payload);
@@ -855,7 +875,8 @@ function openConcern(id = '') {
 
 async function removeConcern(id) {
   const concern = state.concerns.find((item) => item.id === id);
-  if (!concern || !window.confirm(`Delete the concern “${concern.title}”? The event history will retain a deletion tombstone.`)) return;
+  if (!concern) return;
+  if (!await confirmConsequence({ title: 'Delete this conversation to return to?', consequence: `“${concern.title}” will be removed. The event history keeps a deletion tombstone, so the change stays attributable.`, confirmLabel: 'Delete conversation', destructive: true })) return;
   if (isCloudJourney()) {
     try {
       await api.mutate(`/journeys/${activeTrip(state).id}/concerns/${id}`, 'DELETE', { version: concern.version });
@@ -1055,7 +1076,7 @@ $('#remove-moment-image-button').addEventListener('click', async (event) => {
   const momentId = button.dataset.momentId;
   const imageId = button.dataset.imageId;
   if (!trip || !momentId || !imageId || !isCloudJourney(trip)) return;
-  if (!window.confirm('Remove this photo from the moment? This cannot be undone. Removing it does not cancel a paid image add-on.')) return;
+  if (!await confirmConsequence({ title: 'Remove this photo?', consequence: 'This cannot be undone. Removing the photo does not cancel a paid image add-on.', confirmLabel: 'Remove photo', destructive: true })) return;
   button.disabled = true;
   const originalLabel = button.textContent;
   button.textContent = 'Removing photo…';
@@ -1299,7 +1320,7 @@ $('#resend-verification-button').addEventListener('click', async () => {
 $('#delete-account-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const input = Object.fromEntries(new FormData(event.currentTarget));
-  if (!window.confirm('Permanently delete this account according to the journey ownership rules shown here?')) return;
+  if (!await confirmConsequence({ title: 'Permanently delete this account?', consequence: 'This follows the journey ownership rules shown here and cannot be undone.', confirmLabel: 'Permanently delete account', destructive: true })) return;
   try {
     await api.mutate('/account', 'DELETE', input);
     accountUser = null;
@@ -1338,11 +1359,11 @@ $('#member-list').addEventListener('click', async (event) => {
   const memberName = button.dataset.memberName || 'this person';
   try {
     if (transferButton) {
-      if (!window.confirm(`Make ${memberName} the journey owner? You will remain here as a journeyer.`)) return;
+      if (!await confirmConsequence({ title: `Make ${memberName} the journey owner?`, consequence: 'You will remain here as a journeyer. Ownership moves to them.', confirmLabel: 'Transfer ownership' })) return;
       await api.mutate(`/journeys/${activeTrip(state).id}/ownership`, 'POST', { userId: button.dataset.transferOwner });
       showToast(`${memberName} is now the journey owner.`);
     } else {
-      if (!window.confirm(`Remove ${memberName} from this journey? Their private moments will be removed, while already shared history remains.`)) return;
+      if (!await confirmConsequence({ title: `Remove ${memberName} from this journey?`, consequence: 'Their private moments will be removed. Already shared history remains.', confirmLabel: 'Remove journeyer', destructive: true })) return;
       await api.mutate(`/journeys/${activeTrip(state).id}/members/${button.dataset.removeMember}`, 'DELETE', {});
       showToast(`${memberName} was removed from this journey.`);
     }
@@ -1478,8 +1499,8 @@ $('#import-file').addEventListener('change', async (event) => {
   }
 });
 
-$('#reset-button').addEventListener('click', () => {
-  if (!window.confirm('Clear this browser’s ledger and begin with an empty shared space? Export first if you need a backup.')) return;
+$('#reset-button').addEventListener('click', async () => {
+  if (!await confirmConsequence({ title: 'Clear this browser’s ledger?', consequence: 'This browser begins again with an empty shared space. Export first if you need a backup.', confirmLabel: 'Clear ledger', destructive: true })) return;
   state = resetState();
   selectedDay = null;
   selectedCategory = null;

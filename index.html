@@ -346,6 +346,22 @@
       </form>
     </dialog>
 
+    <dialog id="consequence-dialog" aria-labelledby="consequence-dialog-title" aria-describedby="consequence-dialog-consequence">
+      <form method="dialog">
+        <div class="dialog-head">
+          <div>
+            <p class="eyebrow">Before this happens</p>
+            <h2 id="consequence-dialog-title"></h2>
+            <p id="consequence-dialog-consequence"></p>
+          </div>
+        </div>
+        <div class="dialog-actions">
+          <button class="button quiet" id="consequence-dialog-cancel" value="cancel">Keep things as they are</button>
+          <button class="button" id="consequence-dialog-accept" value="confirm"></button>
+        </div>
+      </form>
+    </dialog>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </body>
 </html>
