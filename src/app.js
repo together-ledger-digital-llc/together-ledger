@@ -22,6 +22,19 @@ import { exportState, importState, loadState, resetState, saveState } from './st
 import { ApiError, TogetherApi } from './api.js';
 import { MOMENT_THEMES, momentThemeLabel, normalizeMomentTheme } from './moment-themes.js';
 
+// Visibility is carried by shape as well as colour and word: an empty ring holds nothing
+// out, a half ring is meant for later, a full ring is out. The order reads even in
+// monochrome, in forced colours, and for anyone who cannot separate the three hues.
+const VISIBILITY_CUES = Object.freeze({
+  private: { glyph: '○', label: 'Private' },
+  'share-later': { glyph: '◐', label: 'Share later' },
+  'shared-now': { glyph: '●', label: 'Shared now' },
+});
+
+function visibilityCue(visibility) {
+  return VISIBILITY_CUES[visibility] || { glyph: '○', label: String(visibility || '').replaceAll('-', ' ') };
+}
+
 let state = loadState();
 const api = new TogetherApi();
 let accountUser = null;
@@ -420,14 +433,14 @@ function renderSharedJourney(trip, moments, isEmptyStart) {
   $('#toggle-moments-button').textContent = momentsExpanded ? 'Show recent' : `See all ${recent.length} moments`;
   const visible = (momentsExpanded ? recent.filter((moment) => momentFilter === 'all' || moment.kind === momentFilter) : recent.slice(0, 3));
   $('#moment-timeline').innerHTML = visible.length ? visible.map((moment) => {
-    const attribution = `<span>Held by ${escapeHtml(moment.createdBy || 'Journey member')}</span>${moment.shapedByBoth ? '<span class="moment-collaboration-badge">Shaped by both journeyers</span>' : ''}`;
+    const attribution = `<span>Held by ${escapeHtml(moment.createdBy || 'Journey member')}</span>${moment.shapedByBoth ? '<span class="moment-collaboration-badge">Shaped by more than one journeyer</span>' : ''}`;
     const shareAction = isCloudJourney(trip) && moment.visibility === 'share-later' ? `<button data-share-moment="${escapeHtml(moment.id)}">Share now</button>` : '';
     const attachments = moment.images?.length ? `<div class="moment-attachments">${moment.images.map((image) => `<button type="button" class="moment-image-attachment" data-open-moment-image="${escapeHtml(image.id)}" aria-label="Open photo ${escapeHtml(image.filename || 'Image')}"><img data-moment-image-preview="${escapeHtml(image.id)}" alt="Photo held with ${escapeHtml(moment.title)}" /><span class="moment-image-attachment-copy"><span>Photo</span><strong>${escapeHtml(image.filename || 'Image')}</strong><small>Open larger</small></span></button>`).join('')}</div>` : '';
     const removed = moment.removedImages?.length ? `<details class="moment-removed-photos"><summary>Removed photo</summary>${moment.removedImages.map((image) => `<button type="button" class="moment-image-attachment" data-open-moment-image="${escapeHtml(image.id)}" aria-label="Open removed photo ${escapeHtml(image.filename || 'Image')}"><span class="moment-image-attachment-copy"><span>Removed photo</span><strong>${escapeHtml(image.filename || 'Image')}</strong><small>Open larger</small></span></button>`).join('')}</details>` : '';
     const locations = Array.isArray(moment.locations) ? moment.locations : [];
     const locationContext = locations.length ? `<div class="location-context">${escapeHtml(locations.map((location) => location.label).join(' · '))}</div>` : '';
     const themeName = normalizeMomentTheme(moment.theme) ? `<span class="moment-theme-chip">${escapeHtml(momentThemeLabel(moment.theme))} theme</span>` : '';
-    return `<article class="moment-card ${moment.visibility}"${momentThemeAttribute(moment.theme)}><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn)}</span><span class="visibility-chip ${moment.visibility}">${escapeHtml(moment.visibility.replaceAll('-', ' '))}</span>${themeName}</div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${locationContext}${attachments}${removed}${moment.moneyCents != null ? `<details class="money-context"><summary>Practical money context</summary><p>${money(moment.moneyCents, moment.moneyCurrency)} is held here as context, not a score.</p></details>` : ''}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">Edit</button></div></article>`;
+    return `<article class="moment-card ${moment.visibility}"${momentThemeAttribute(moment.theme)}><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn)}</span><span class="visibility-chip ${moment.visibility}"><span class="visibility-glyph" aria-hidden="true">${visibilityCue(moment.visibility).glyph}</span>${escapeHtml(visibilityCue(moment.visibility).label)}</span>${themeName}</div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${locationContext}${attachments}${removed}${moment.moneyCents != null ? `<details class="money-context"><summary>Practical money context</summary><p>${money(moment.moneyCents, moment.moneyCurrency)} is held here as context, not a score.</p></details>` : ''}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">Edit</button></div></article>`;
   }).join('') : isEmptyStart ? `<div class="log-types"><p>There are no examples here—only possibilities:</p><div>${MOMENT_TYPES.filter(([value]) => value !== 'other').map(([, label]) => `<span>${escapeHtml(label)}</span>`).join('')}<button type="button" data-open-custom-moment>＋ Add your own moment</button></div></div>` : '<p class="empty">No moments in this view yet. A small truth is enough to begin.</p>';
   $$('[data-edit-moment]').forEach((button) => button.addEventListener('click', () => openMoment(button.dataset.editMoment)));
   $$('[data-open-moment-image]').forEach((button) => button.addEventListener('click', () => openMomentImage(button.dataset.openMomentImage)));
@@ -544,8 +557,8 @@ function openMoment(id = '', initialKind = '') {
   $('#moment-dialog-copy').textContent = hosted ? 'Choose whether this stays with you, is shared now, or waits until you are ready.' : 'Choose visibility with care. In browser-only mode, it is a local cue, not separate-account privacy.';
   $('#moment-visibility-help').textContent = hosted
     ? moment?.visibility === 'shared-now'
-      ? 'Already shared: both journeyers can see this moment. Prior access cannot be undone.'
-      : 'Private stays with you. Shared now opens it to both journeyers. Share later stays with you until you deliberately share it.'
+      ? 'Already shared: everyone in this journey can see this moment, including anyone who joins later. Prior access cannot be undone.'
+      : 'Private stays with you. Shared now opens it to everyone in this journey, including anyone who joins later. Share later stays with you until you deliberately share it.'
     : 'Browser only: Private and Share later are local cues, not separate-account privacy controls.';
   $('#moment-visibility-field').hidden = false;
   $('#moment-image-field').hidden = !hosted;
