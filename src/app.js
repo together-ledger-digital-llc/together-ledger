@@ -55,6 +55,39 @@ function confirmConsequence({ title, consequence, confirmLabel, keepLabel = 'Kee
   });
 }
 
+// A confirmation may pass; a problem must not. Anything a person needs to read twice, act on,
+// or copy down stays on the page until they dismiss it, rather than fading after 2.6 seconds.
+// Tone is carried by a shape as well as a colour, so the two kinds are told apart without it.
+const STATUS_TONES = Object.freeze({
+  caution: { glyph: '▲', className: 'caution' },
+  problem: { glyph: '■', className: 'problem' },
+});
+let statusBannerSource = '';
+
+function showStatus(message, { tone = 'problem', source = 'action' } = {}) {
+  const banner = document.querySelector('#status-banner');
+  if (!banner) return;
+  const shape = STATUS_TONES[tone] || STATUS_TONES.problem;
+  banner.querySelector('.status-banner-glyph').textContent = shape.glyph;
+  banner.querySelector('#status-banner-message').textContent = message;
+  banner.className = `status-banner ${shape.className}`;
+  banner.hidden = false;
+  statusBannerSource = source;
+}
+
+function clearStatus(source) {
+  const banner = document.querySelector('#status-banner');
+  // Reconnecting clears the offline notice, but never a problem the person has not read.
+  if (!banner || (source && statusBannerSource !== source)) return;
+  banner.hidden = true;
+  statusBannerSource = '';
+}
+
+// An empty surface still says what it is and why it is empty, rather than trailing off.
+function emptyState(title, body, { compact = false } = {}) {
+  return `<div class="empty${compact ? ' compact' : ''}"><strong>${title}</strong><p>${body}</p></div>`;
+}
+
 let state = loadState();
 const api = new TogetherApi();
 let accountUser = null;
@@ -461,7 +494,7 @@ function renderSharedJourney(trip, moments, isEmptyStart) {
     const locationContext = locations.length ? `<div class="location-context">${escapeHtml(locations.map((location) => location.label).join(' · '))}</div>` : '';
     const themeName = normalizeMomentTheme(moment.theme) ? `<span class="moment-theme-chip">${escapeHtml(momentThemeLabel(moment.theme))} theme</span>` : '';
     return `<article class="moment-card ${moment.visibility}"${momentThemeAttribute(moment.theme)}><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn)}</span><span class="visibility-chip ${moment.visibility}"><span class="visibility-glyph" aria-hidden="true">${visibilityCue(moment.visibility).glyph}</span>${escapeHtml(visibilityCue(moment.visibility).label)}</span>${themeName}</div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${locationContext}${attachments}${removed}${moment.moneyCents != null ? `<details class="money-context"><summary>Practical money context</summary><p>${money(moment.moneyCents, moment.moneyCurrency)} is held here as context, not a score.</p></details>` : ''}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">Edit</button></div></article>`;
-  }).join('') : isEmptyStart ? `<div class="log-types"><p>There are no examples here—only possibilities:</p><div>${MOMENT_TYPES.filter(([value]) => value !== 'other').map(([, label]) => `<span>${escapeHtml(label)}</span>`).join('')}<button type="button" data-open-custom-moment>＋ Add your own moment</button></div></div>` : '<p class="empty">No moments in this view yet. A small truth is enough to begin.</p>';
+  }).join('') : isEmptyStart ? `<div class="log-types"><p>There are no examples here—only possibilities:</p><div>${MOMENT_TYPES.filter(([value]) => value !== 'other').map(([, label]) => `<span>${escapeHtml(label)}</span>`).join('')}<button type="button" data-open-custom-moment>＋ Add your own moment</button></div></div>` : emptyState('No moments in this view', 'A small truth is enough to begin, or choose another filter to see more.');
   $$('[data-edit-moment]').forEach((button) => button.addEventListener('click', () => openMoment(button.dataset.editMoment)));
   $$('[data-open-moment-image]').forEach((button) => button.addEventListener('click', () => openMomentImage(button.dataset.openMomentImage)));
   $$('[data-share-moment]').forEach((button) => button.addEventListener('click', () => shareMoment(button.dataset.shareMoment)));
@@ -469,7 +502,7 @@ function renderSharedJourney(trip, moments, isEmptyStart) {
     if (accountUser && !isCloudJourney(trip)) { openJourney(); return; }
     openMoment('', 'other');
   }));
-  $('#open-threads').innerHTML = threads.length ? threads.map((thread) => `<article class="thread-row"><div><span class="status-chip open">open</span><strong>${escapeHtml(thread.title)}</strong>${thread.detail ? `<p>${escapeHtml(thread.detail)}</p>` : ''}</div><button data-edit-thread="${escapeHtml(thread.id)}">Open</button></article>`).join('') : '<p class="empty compact">No open threads. That can be a good place to rest.</p>';
+  $('#open-threads').innerHTML = threads.length ? threads.map((thread) => `<article class="thread-row"><div><span class="status-chip open">open</span><strong>${escapeHtml(thread.title)}</strong>${thread.detail ? `<p>${escapeHtml(thread.detail)}</p>` : ''}</div><button data-edit-thread="${escapeHtml(thread.id)}">Open</button></article>`).join('') : emptyState('No open threads', 'That can be a good place to rest.', { compact: true });
   $$('[data-edit-thread]').forEach((button) => button.addEventListener('click', () => openConcern(button.dataset.editThread)));
   hydrateMomentImagePreviews(trip);
 }
@@ -627,7 +660,7 @@ async function shareMoment(id) {
     await refreshCloudState();
     showToast('Moment shared with your journeyer.');
   } catch (error) {
-    showToast(accountMessage(error));
+    showStatus(accountMessage(error));
   }
 }
 
@@ -848,11 +881,11 @@ function renderEventManager() {
   const events = state.events.filter((event) => event.tripId === trip.id).sort((a, b) => b.sequence - a.sequence);
   $('#event-dialog-title').textContent = `${trip.name} history`;
   $('#event-manager-copy').textContent = isCloudJourney(trip) ? 'Server-authoritative, account-attributed history. HMAC chaining makes database changes detectable; deleted records retain privacy-bounded tombstones.' : 'Browser-local preview. Production attribution requires separate signed-in accounts.';
-  $('#concern-list').innerHTML = concerns.length ? concerns.map((concern) => `<article class="concern-row"><div><span class="status-chip ${concern.status}">${concern.status}</span><strong>${escapeHtml(concern.title)}</strong>${concern.detail ? `<p>${escapeHtml(concern.detail)}</p>` : ''}<small>Updated by ${escapeHtml(concern.updatedBy)} · ${new Date(concern.updatedAt).toLocaleString()}</small></div><div><button type="button" data-edit-concern="${escapeHtml(concern.id)}">Edit</button><button type="button" data-remove-concern="${escapeHtml(concern.id)}">Delete</button></div></article>`).join('') : '<p class="empty compact">No return-to conversations have been recorded for this journey.</p>';
+  $('#concern-list').innerHTML = concerns.length ? concerns.map((concern) => `<article class="concern-row"><div><span class="status-chip ${concern.status}">${concern.status}</span><strong>${escapeHtml(concern.title)}</strong>${concern.detail ? `<p>${escapeHtml(concern.detail)}</p>` : ''}<small>Updated by ${escapeHtml(concern.updatedBy)} · ${new Date(concern.updatedAt).toLocaleString()}</small></div><div><button type="button" data-edit-concern="${escapeHtml(concern.id)}">Edit</button><button type="button" data-remove-concern="${escapeHtml(concern.id)}">Delete</button></div></article>`).join('') : emptyState('Nothing to return to yet', 'Conversations you want to come back to together will appear here.', { compact: true });
   $('#event-list').innerHTML = events.length ? events.map((event) => {
     const changes = meaningfulChanges(event.before, event.after);
     return `<details class="event-row"><summary><span><strong>#${event.sequence} · ${escapeHtml(event.summary)}</strong><small>${escapeHtml(event.actorName)} · ${new Date(event.occurredAt).toLocaleString()}</small></span><span aria-hidden="true">＋</span></summary>${changes.length ? `<dl>${changes.map(({ key, before, after }) => `<div><dt>${escapeHtml(key)}</dt><dd>${escapeHtml(valueLabel(key, before))} → ${escapeHtml(valueLabel(key, after))}</dd></div>`).join('')}</dl>` : '<p>No field-level value change was stored for this event.</p>'}<small>Event ID ${escapeHtml(event.id)} · Previous ${escapeHtml(event.previousEventId || 'none')} · ${escapeHtml(event.source)}${event.eventHash ? ` · Hash ${escapeHtml(event.eventHash.slice(0, 12))}…` : ''}</small></details>`;
-  }).join('') : '<p class="empty compact">No events have been recorded since Event Manager began. Earlier browser activity cannot be reconstructed.</p>';
+  }).join('') : emptyState('No recorded changes yet', 'Changes appear here as they happen. Activity from before the Event Manager began cannot be reconstructed.', { compact: true });
   $$('[data-edit-concern]').forEach((button) => button.addEventListener('click', () => openConcern(button.dataset.editConcern)));
   $$('[data-remove-concern]').forEach((button) => button.addEventListener('click', () => removeConcern(button.dataset.removeConcern)));
 }
@@ -884,7 +917,7 @@ async function removeConcern(id) {
       renderEventManager();
       showToast('Concern deleted; the event tombstone remains.');
     } catch (error) {
-      showToast(accountMessage(error));
+      showStatus(accountMessage(error));
     }
     return;
   }
@@ -978,7 +1011,7 @@ $('#journey-select').addEventListener('change', (event) => {
   selectedCategory = null;
   guidanceIndex = 0;
   persistAndRender('Journey switched.');
-  refreshBillingState().catch((error) => showToast(accountMessage(error)));
+  refreshBillingState().catch((error) => showStatus(accountMessage(error)));
 });
 
 $('#new-journey-button').addEventListener('click', () => openJourney());
@@ -1138,7 +1171,7 @@ $('#buy-image-slot-button').addEventListener('click', async (event) => {
     const session = await api.createImageCheckout(trip.id, momentId);
     window.location.assign(session.url);
   } catch (error) {
-    showToast(accountMessage(error));
+    showStatus(accountMessage(error));
   }
 });
 $('#buy-location-slot-button').addEventListener('click', async (event) => {
@@ -1151,7 +1184,7 @@ $('#buy-location-slot-button').addEventListener('click', async (event) => {
     if (checkout.protocol !== 'https:' || checkout.hostname !== 'checkout.stripe.com') throw new Error('Unexpected checkout destination.');
     window.location.assign(checkout.href);
   } catch (error) {
-    showToast(accountMessage(error));
+    showStatus(accountMessage(error));
   }
 });
 $('#settings-button').addEventListener('click', () => $('#settings-dialog').showModal());
@@ -1163,7 +1196,7 @@ $('#sharing-create-journey-button').addEventListener('click', () => {
 function openAccountDialog() {
   renderAccountState();
   $('#account-dialog').showModal();
-  if (accountUser) refreshBillingState().catch((error) => showToast(accountMessage(error)));
+  if (accountUser) refreshBillingState().catch((error) => showStatus(accountMessage(error)));
 }
 
 $('#account-button').addEventListener('click', openAccountDialog);
@@ -1179,12 +1212,12 @@ $('#login-form').addEventListener('submit', async (event) => {
   try {
     accountUser = await api.login(Object.fromEntries(new FormData(event.currentTarget)));
     await refreshCloudState({ announce: true });
-    refreshBillingState().catch((error) => showToast(accountMessage(error)));
+    refreshBillingState().catch((error) => showStatus(accountMessage(error)));
     showLedgerSurface({ persist: true });
     renderAccountState();
     $('#account-dialog').close();
   } catch (error) {
-    showToast(accountMessage(error));
+    showStatus(accountMessage(error));
   } finally {
     setButtonPending(button, false);
   }
@@ -1197,12 +1230,12 @@ $('#register-form').addEventListener('submit', async (event) => {
   try {
     accountUser = await api.register(Object.fromEntries(new FormData(event.currentTarget)));
     await refreshCloudState();
-    refreshBillingState().catch((error) => showToast(accountMessage(error)));
+    refreshBillingState().catch((error) => showStatus(accountMessage(error)));
     showLedgerSurface({ persist: true });
     renderAccountState();
     showToast(api.lastVerificationSent ? 'Account created. Check your email to verify it.' : 'Account created, but email is delayed. Use resend verification shortly.');
   } catch (error) {
-    showToast(accountMessage(error));
+    showStatus(accountMessage(error));
   } finally {
     setButtonPending(button, false);
   }
@@ -1222,7 +1255,7 @@ $('#recovery-request-form').addEventListener('submit', async (event) => {
     $('#recovery-request-dialog').close();
     showToast('If that account exists, a recovery link is on its way.');
   } catch (error) {
-    showToast(accountMessage(error));
+    showStatus(accountMessage(error));
   }
 });
 $$('[data-close-recovery-confirm]').forEach((button) => button.addEventListener('click', () => $('#recovery-confirm-dialog').close()));
@@ -1243,12 +1276,12 @@ $('#recovery-confirm-form').addEventListener('submit', async (event) => {
     render();
     showToast('Password changed. Sign in again on every device.');
   } catch (error) {
-    showToast(accountMessage(error));
+    showStatus(accountMessage(error));
   }
 });
 
 $('#logout-button').addEventListener('click', async () => {
-  try { await api.logout(); } catch (error) { showToast(accountMessage(error)); return; }
+  try { await api.logout(); } catch (error) { showStatus(accountMessage(error)); return; }
   accountUser = null;
   billingState = null;
   cloudJourneyIds = new Set();
@@ -1263,8 +1296,8 @@ $('#logout-button').addEventListener('click', async () => {
 $('#refresh-sync-button').addEventListener('click', async () => {
   try {
     await refreshCloudState({ announce: true });
-    refreshBillingState().catch((error) => showToast(accountMessage(error)));
-  } catch (error) { showToast(accountMessage(error)); }
+    refreshBillingState().catch((error) => showStatus(accountMessage(error)));
+  } catch (error) { showStatus(accountMessage(error)); }
 });
 
 $('#billing-capacity-range').addEventListener('input', syncCapacityFromRange);
@@ -1287,7 +1320,7 @@ $('#billing-offers').addEventListener('click', async (event) => {
     if (checkout.protocol !== 'https:' || checkout.hostname !== 'checkout.stripe.com') throw new Error('Unexpected checkout destination.');
     window.location.assign(checkout.href);
   } catch (error) {
-    showToast(accountMessage(error));
+    showStatus(accountMessage(error));
     setButtonPending(button, false);
   }
 });
@@ -1303,7 +1336,7 @@ $('#billing-portal-button').addEventListener('click', async (event) => {
     if (portal.protocol !== 'https:' || portal.hostname !== 'billing.stripe.com') throw new Error('Unexpected billing destination.');
     window.location.assign(portal.href);
   } catch (error) {
-    showToast(accountMessage(error));
+    showStatus(accountMessage(error));
     setButtonPending(button, false);
   }
 });
@@ -1313,7 +1346,7 @@ $('#resend-verification-button').addEventListener('click', async () => {
     const result = await api.mutate('/auth/resend-verification', 'POST', {});
     showToast(result.delivered ? 'A new verification link is on its way.' : 'Email delivery is still unavailable. Please try again later.');
   } catch (error) {
-    showToast(accountMessage(error));
+    showStatus(accountMessage(error));
   }
 });
 
@@ -1331,7 +1364,7 @@ $('#delete-account-form').addEventListener('submit', async (event) => {
     render();
     showToast('Account deleted and sessions revoked.');
   } catch (error) {
-    showToast(accountMessage(error));
+    showStatus(accountMessage(error));
   }
 });
 
@@ -1345,7 +1378,7 @@ $('#invite-form').addEventListener('submit', async (event) => {
     form.reset();
     showToast('Invitation sent. The journeyer must use their own verified account.');
   } catch (error) {
-    showToast(accountMessage(error));
+    showStatus(accountMessage(error));
   } finally {
     setButtonPending(button, false);
   }
@@ -1369,7 +1402,7 @@ $('#member-list').addEventListener('click', async (event) => {
     }
     await refreshCloudState();
   } catch (error) {
-    showToast(accountMessage(error));
+    showStatus(accountMessage(error));
   }
 });
 
@@ -1422,7 +1455,7 @@ $('#confirm-dialog').addEventListener('close', async () => {
         await refreshCloudState();
         showToast('Expense deleted; the event tombstone remains.');
       } catch (error) {
-        showToast(accountMessage(error));
+        showStatus(accountMessage(error));
       }
       removeId = null;
       removeSnapshot = null;
@@ -1535,7 +1568,7 @@ async function initializeAccount() {
     }
     if (accountUser) {
       await refreshCloudState();
-      refreshBillingState().catch((error) => showToast(accountMessage(error)));
+      refreshBillingState().catch((error) => showStatus(accountMessage(error)));
       showLedgerSurface({ persist: true });
       if (params.has('invite')) {
         await api.mutate(`/invitations/${encodeURIComponent(params.get('invite'))}/accept`, 'POST', {});
@@ -1553,7 +1586,7 @@ async function initializeAccount() {
       showToast('Billing settings closed. Stripe updates may take a moment to appear.');
     }
   } catch (error) {
-    showToast(accountMessage(error));
+    showStatus(accountMessage(error));
   } finally {
     if ([...params.keys()].some((key) => ['verify', 'recovery', 'invite', 'billing', 'session_id'].includes(key))) {
       window.history.replaceState({}, '', `${window.location.pathname}${window.location.hash}`);
@@ -1563,3 +1596,15 @@ async function initializeAccount() {
 }
 
 initializeAccount();
+
+document.querySelector('#status-banner-dismiss')?.addEventListener('click', () => clearStatus());
+
+// Being offline is a condition, not a failure. It is stated plainly, and it clears itself
+// when the connection returns rather than leaving a stale warning on the page.
+function reportConnection() {
+  if (navigator.onLine) clearStatus('connection');
+  else showStatus('You are offline. This journey is still here, and anything needing the account service will wait until you reconnect.', { tone: 'caution', source: 'connection' });
+}
+window.addEventListener('online', reportConnection);
+window.addEventListener('offline', reportConnection);
+if (!navigator.onLine) reportConnection();
