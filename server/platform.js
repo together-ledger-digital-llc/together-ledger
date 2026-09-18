@@ -943,21 +943,31 @@ export class PlatformService {
     try {
       if (this.config.NODE_ENV !== 'test') await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
       const journey = await this.requireMember(client, userId, journeyId, { reading: true });
-      const [members, invitations, expenses, moments, images, concerns, milestones, events, capacity] = await Promise.all([
+
+      // Capacity has to be known before the rest is read, because a fully paused journeyer is
+      // shown their own moments and nothing of the shared journey. Their own writing is never
+      // hidden from them: resting withholds the shared record, not a person's own words.
+      const capacity = await this.capacityFor(client, journeyId);
+      const paused = capacity.unpaidCapacityMode === 'paused' && capacity.restingMemberIds.includes(userId);
+      const visibleMoments = paused
+        ? 'm.created_by_user_id=$2'
+        : "(m.visibility='shared-now' OR m.created_by_user_id=$2)";
+      const none = { rows: [] };
+
+      const [members, invitations, expenses, moments, images, concerns, milestones, events] = await Promise.all([
         client.query(`SELECT u.id,u.display_name,jm.role,jm.joined_at FROM journey_members jm JOIN users u ON u.id=jm.user_id WHERE jm.journey_id=$1 ORDER BY jm.joined_at,jm.user_id`, [journeyId]),
-        client.query(`SELECT i.*,u.display_name AS invited_by_display_name FROM invitations i JOIN users u ON u.id=i.invited_by_user_id WHERE i.journey_id=$1 ORDER BY i.created_at,i.id`, [journeyId]),
-        client.query('SELECT * FROM expenses WHERE journey_id=$1 ORDER BY occurred_on,id', [journeyId]),
+        paused ? none : client.query(`SELECT i.*,u.display_name AS invited_by_display_name FROM invitations i JOIN users u ON u.id=i.invited_by_user_id WHERE i.journey_id=$1 ORDER BY i.created_at,i.id`, [journeyId]),
+        paused ? none : client.query('SELECT * FROM expenses WHERE journey_id=$1 ORDER BY occurred_on,id', [journeyId]),
         client.query(`SELECT m.*,creator.display_name AS created_by_name,editor.display_name AS updated_by_name
           FROM journey_moments m
           LEFT JOIN users creator ON creator.id=m.created_by_user_id
           LEFT JOIN users editor ON editor.id=m.updated_by_user_id
-          WHERE m.journey_id=$1 AND (m.visibility='shared-now' OR m.created_by_user_id=$2)
+          WHERE m.journey_id=$1 AND ${visibleMoments}
           ORDER BY m.occurred_on,m.created_at,m.id`, [journeyId, userId]),
-        client.query(`SELECT mi.id,mi.moment_id,mi.original_filename,mi.content_type,mi.created_at,mi.deleted_at FROM moment_images mi JOIN journey_moments m ON m.id=mi.moment_id WHERE mi.journey_id=$1 AND (m.visibility='shared-now' OR m.created_by_user_id=$2) ORDER BY mi.created_at,mi.id`, [journeyId, userId]),
-        client.query('SELECT * FROM concerns WHERE journey_id=$1 ORDER BY updated_at DESC', [journeyId]),
-        client.query('SELECT key,completed,updated_at FROM journey_milestones WHERE journey_id=$1', [journeyId]),
-        client.query('SELECT * FROM journey_events WHERE journey_id=$1 AND sequence>$2 ORDER BY sequence', [journeyId, Number(afterSequence) || 0]),
-        this.capacityFor(client, journeyId),
+        client.query(`SELECT mi.id,mi.moment_id,mi.original_filename,mi.content_type,mi.created_at,mi.deleted_at FROM moment_images mi JOIN journey_moments m ON m.id=mi.moment_id WHERE mi.journey_id=$1 AND ${visibleMoments} ORDER BY mi.created_at,mi.id`, [journeyId, userId]),
+        paused ? none : client.query('SELECT * FROM concerns WHERE journey_id=$1 ORDER BY updated_at DESC', [journeyId]),
+        paused ? none : client.query('SELECT key,completed,updated_at FROM journey_milestones WHERE journey_id=$1', [journeyId]),
+        paused ? none : client.query('SELECT * FROM journey_events WHERE journey_id=$1 AND sequence>$2 ORDER BY sequence', [journeyId, Number(afterSequence) || 0]),
       ]);
       const publicEvents = events.rows.map(publicEvent);
       let previousHash = '0'.repeat(64);

@@ -750,3 +750,73 @@ test('the owner chooses who rests, overriding the order people joined in', async
   const capacity = (await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: { cookie: owner.cookie } })).json().data.capacity;
   assert.deepEqual(capacity.restingMemberIds, [second.user.id]);
 });
+
+test('a fully paused journeyer keeps their own moments and is shown nothing of the shared journey', async (t) => {
+  const { app, mailer, pool } = await testPlatform({ configOverrides: { JOURNEY_CAPACITY_MODE: 'billing', BILLING_ENABLED: 'true', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: 'whsec_fake', STRIPE_ADDITIONAL_PERSON_PRICE_ID: 'price_fake' } });
+  t.after(async () => { await app.close(); await pool.end(); });
+  const owner = await register(app, mailer, { email: 'paused-owner@example.test', username: 'paused-owner' });
+  const resting = await register(app, mailer, { email: 'paused-resting@example.test', username: 'paused-resting' });
+  const created = await app.inject({
+    method: 'POST', url: '/api/v1/journeys', headers: authHeaders(owner),
+    payload: { name: 'A journey at rest', location: '', startDateStatus: 'unknown', endDateStatus: 'forever', budgetCents: 0 },
+  });
+  const journeyId = created.json().data.journey.id;
+
+  const shared = await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journeyId}/moments`, headers: authHeaders(owner),
+    payload: { kind: 'memory', kindLabel: '', title: 'Something we both hold', detail: '', occurredOn: '2026-09-10', visibility: 'shared-now', theme: '', moneyCents: null, moneyCurrency: '', locations: [] },
+  });
+  assert.equal(shared.statusCode, 201, shared.body);
+
+  // They join and write something of their own while capacity is still covered.
+  await pool.query('INSERT INTO journey_members (journey_id,user_id,role,joined_at) VALUES ($1,$2,$3,$4)', [journeyId, resting.user.id, 'member', '2026-09-09T10:00:00.000Z']);
+  const own = await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journeyId}/moments`, headers: authHeaders(resting),
+    payload: { kind: 'memory', kindLabel: '', title: 'Something only I wrote', detail: '', occurredOn: '2026-09-11', visibility: 'private', theme: '', moneyCents: null, moneyCurrency: '', locations: [] },
+  });
+  assert.equal(own.statusCode, 201, own.body);
+
+  // Capacity lapses and the owner has chosen the fully paused mode.
+  await pool.query('INSERT INTO journey_members (journey_id,user_id,role,joined_at) VALUES ($1,$2,$3,$4)', [journeyId, (await register(app, mailer, { email: 'paused-third@example.test', username: 'paused-third' })).user.id, 'member', '2026-09-08T10:00:00.000Z']);
+  await pool.query("UPDATE journeys SET unpaid_capacity_mode='paused' WHERE id=$1", [journeyId]);
+  await pool.query('UPDATE journey_members SET rest_order=1 WHERE journey_id=$1 AND user_id=$2', [journeyId, resting.user.id]);
+
+  const snapshot = (await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: { cookie: resting.cookie } })).json().data;
+  assert.deepEqual(snapshot.capacity.restingMemberIds, [resting.user.id]);
+  assert.equal(snapshot.capacity.unpaidCapacityMode, 'paused');
+
+  // Their own words stay. Nothing of theirs is taken while a payment is outstanding.
+  assert.deepEqual(snapshot.moments.map((moment) => moment.title), ['Something only I wrote']);
+  // The shared journey rests, rather than being deleted.
+  assert.deepEqual(snapshot.concerns, []);
+  assert.deepEqual(snapshot.events, []);
+  assert.deepEqual(snapshot.invitations, []);
+
+  // The owner, who never rests, still sees the whole journey.
+  const ownerSees = (await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: { cookie: owner.cookie } })).json().data;
+  assert.equal(ownerSees.moments.some((moment) => moment.title === 'Something we both hold'), true);
+});
+
+test('read-only resting still shows the shared journey', async (t) => {
+  const { app, mailer, pool } = await testPlatform({ configOverrides: { JOURNEY_CAPACITY_MODE: 'billing', BILLING_ENABLED: 'true', STRIPE_SECRET_KEY: 'sk_test_fake', STRIPE_WEBHOOK_SECRET: 'whsec_fake', STRIPE_ADDITIONAL_PERSON_PRICE_ID: 'price_fake' } });
+  t.after(async () => { await app.close(); await pool.end(); });
+  const owner = await register(app, mailer, { email: 'ro-owner@example.test', username: 'ro-owner' });
+  const resting = await register(app, mailer, { email: 'ro-resting@example.test', username: 'ro-resting' });
+  const extra = await register(app, mailer, { email: 'ro-extra@example.test', username: 'ro-extra' });
+  const created = await app.inject({
+    method: 'POST', url: '/api/v1/journeys', headers: authHeaders(owner),
+    payload: { name: 'A journey that only pauses writing', location: '', startDateStatus: 'unknown', endDateStatus: 'forever', budgetCents: 0 },
+  });
+  const journeyId = created.json().data.journey.id;
+  await app.inject({
+    method: 'POST', url: `/api/v1/journeys/${journeyId}/moments`, headers: authHeaders(owner),
+    payload: { kind: 'memory', kindLabel: '', title: 'Still visible while resting', detail: '', occurredOn: '2026-09-10', visibility: 'shared-now', theme: '', moneyCents: null, moneyCurrency: '', locations: [] },
+  });
+  await pool.query('INSERT INTO journey_members (journey_id,user_id,role,joined_at) VALUES ($1,$2,$3,$4)', [journeyId, resting.user.id, 'member', '2026-09-09T10:00:00.000Z']);
+  await pool.query('INSERT INTO journey_members (journey_id,user_id,role,joined_at) VALUES ($1,$2,$3,$4)', [journeyId, extra.user.id, 'member', '2026-09-08T10:00:00.000Z']);
+  await pool.query('UPDATE journey_members SET rest_order=1 WHERE journey_id=$1 AND user_id=$2', [journeyId, resting.user.id]);
+
+  const snapshot = (await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: { cookie: resting.cookie } })).json().data;
+  assert.equal(snapshot.capacity.unpaidCapacityMode, 'read-only');
+  assert.equal(snapshot.moments.some((moment) => moment.title === 'Still visible while resting'), true);
+});
