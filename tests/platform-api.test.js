@@ -40,6 +40,7 @@ async function testPlatform({ mailer = new MemoryMailer(), configOverrides = {},
   await pool.query(await readFile(new URL('../server/migrations/020_let-entitlements-hold-ninety-nine-places.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../server/migrations/021_let-unpaid-capacity-rest-without-losing-history.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../server/migrations/022_agree-together-before-adding-someone.sql', import.meta.url), 'utf8'));
+  await pool.query(await readFile(new URL('../server/migrations/023_let-a-phone-carry-its-own-key.sql', import.meta.url), 'utf8'));
   const config = loadConfig({
     NODE_ENV: 'test',
     PUBLIC_ORIGIN: origin,
@@ -1091,4 +1092,286 @@ test('the owner sets how unpaid capacity rests, and cannot put themselves in the
   // The change is attributable, like every other journey change.
   const events = (await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: { cookie: owner.cookie } })).json().data.events;
   assert.ok(events.some((event) => event.action === 'unpaid_capacity_rest_updated'));
+});
+
+// A phone has no browser: no cookie jar it can rely on across restarts, and no hostile page that
+// could navigate to it. So it says once that it is an app, and carries a token from then on. The
+// tests below prove that path works and that the browser's path is completely undisturbed by it.
+
+function phoneHeaders(token) {
+  return { authorization: `Bearer ${token}` };
+}
+
+async function registerOnPhone(app, mailer, { email, username = email.split('@')[0] }) {
+  const response = await app.inject({
+    method: 'POST',
+    url: '/api/v1/auth/register',
+    headers: { 'x-together-client': 'app' },
+    payload: { email, username, password: 'correct horse battery staple' },
+  });
+  assert.equal(response.statusCode, 201, response.body);
+  const verification = mailer.messages.findLast((message) => message.type === 'verification' && message.to === email);
+  const verified = await app.inject({ method: 'POST', url: '/api/v1/auth/verify-email', headers: { origin }, payload: { token: verification.token } });
+  assert.equal(verified.statusCode, 200, verified.body);
+  return { response, ...response.json().data };
+}
+
+test('a phone registers with a bearer token and never receives a session cookie', async (t) => {
+  const { app, mailer, pool } = await testPlatform();
+  t.after(async () => { await app.close(); await pool.end(); });
+
+  const phone = await registerOnPhone(app, mailer, { email: 'phone@example.test', username: 'phone-one' });
+  assert.ok(phone.token);
+  assert.ok(phone.refreshToken);
+  assert.notEqual(phone.token, phone.refreshToken);
+  assert.equal(phone.response.headers['set-cookie'], undefined);
+  // Nothing a browser would need is handed to a client that cannot be cross-site forged.
+  assert.equal(phone.csrfToken, undefined);
+
+  // Reading works with the token alone: no origin, no cookie, no CSRF header.
+  const session = await app.inject({ method: 'GET', url: '/api/v1/session', headers: phoneHeaders(phone.token) });
+  assert.equal(session.statusCode, 200, session.body);
+  assert.equal(session.json().data.user.username, 'phone-one');
+  assert.equal(session.json().data.csrfToken, undefined);
+
+  // And so does writing. A bearer token is attached deliberately, so there is no cross-site
+  // request to forge and nothing for a CSRF header to prove.
+  const created = await app.inject({
+    method: 'POST', url: '/api/v1/journeys', headers: phoneHeaders(phone.token),
+    payload: { name: 'A phone journey', location: '', startDateStatus: 'unknown', endDateStatus: 'forever', startDate: null, endDate: null, budgetCents: 0 },
+  });
+  assert.equal(created.statusCode, 201, created.body);
+  const journeyId = created.json().data.journey.id;
+
+  const snapshot = await app.inject({ method: 'GET', url: `/api/v1/journeys/${journeyId}/snapshot`, headers: phoneHeaders(phone.token) });
+  assert.equal(snapshot.statusCode, 200, snapshot.body);
+  assert.equal(snapshot.json().data.journey.name, 'A phone journey');
+});
+
+test('a phone signs in with a token while the browser keeps its cookie and CSRF header', async (t) => {
+  const { app, mailer, pool } = await testPlatform();
+  t.after(async () => { await app.close(); await pool.end(); });
+
+  const browser = await register(app, mailer, { email: 'both@example.test', username: 'both-ways' });
+
+  // The same account, signed in from a phone. No origin header at all, because an app has none.
+  const phoneLogin = await app.inject({
+    method: 'POST', url: '/api/v1/auth/login', headers: { 'x-together-client': 'app' },
+    payload: { identifier: 'both-ways', password: 'correct horse battery staple' },
+  });
+  assert.equal(phoneLogin.statusCode, 200, phoneLogin.body);
+  const phone = phoneLogin.json().data;
+  assert.ok(phone.token);
+  assert.equal(phoneLogin.headers['set-cookie'], undefined);
+
+  // The browser's own sign-in is unchanged: a cookie plus a CSRF token, and no bearer token.
+  const browserLogin = await app.inject({
+    method: 'POST', url: '/api/v1/auth/login', headers: { origin },
+    payload: { identifier: 'both-ways', password: 'correct horse battery staple' },
+  });
+  assert.equal(browserLogin.statusCode, 200, browserLogin.body);
+  assert.ok(browserLogin.headers['set-cookie']);
+  assert.ok(browserLogin.json().data.csrfToken);
+  assert.equal(browserLogin.json().data.token, undefined);
+  assert.equal(browserLogin.json().data.refreshToken, undefined);
+
+  // A browser still cannot mutate without its CSRF header...
+  const withoutCsrf = await app.inject({
+    method: 'POST', url: '/api/v1/journeys', headers: { origin, cookie: browser.cookie },
+    payload: { name: 'Forged', location: '', startDateStatus: 'unknown', endDateStatus: 'forever', startDate: null, endDate: null, budgetCents: 0 },
+  });
+  assert.equal(withoutCsrf.statusCode, 403, withoutCsrf.body);
+  assert.equal(withoutCsrf.json().error.code, 'invalid_csrf');
+
+  // ...nor from an origin that is not ours, even holding both.
+  const foreignOrigin = await app.inject({
+    method: 'POST', url: '/api/v1/journeys', headers: { origin: 'https://not-ours.example', cookie: browser.cookie, 'x-together-csrf': browser.csrf },
+    payload: { name: 'Forged', location: '', startDateStatus: 'unknown', endDateStatus: 'forever', startDate: null, endDate: null, budgetCents: 0 },
+  });
+  assert.equal(foreignOrigin.statusCode, 403, foreignOrigin.body);
+  assert.equal(foreignOrigin.json().error.code, 'invalid_origin');
+
+  // An invalid Authorization header is not a way around the CSRF requirement either: presenting
+  // a token means being judged as a token, and a token that is not ours is simply refused.
+  const pretendBearer = await app.inject({
+    method: 'POST', url: '/api/v1/journeys', headers: { origin, cookie: browser.cookie, ...phoneHeaders('not-a-real-token') },
+    payload: { name: 'Forged', location: '', startDateStatus: 'unknown', endDateStatus: 'forever', startDate: null, endDate: null, budgetCents: 0 },
+  });
+  assert.equal(pretendBearer.statusCode, 401, pretendBearer.body);
+  assert.equal(pretendBearer.json().error.code, 'authentication_required');
+
+  // The browser path, used properly, still works.
+  const properly = await app.inject({
+    method: 'POST', url: '/api/v1/journeys', headers: authHeaders(browser),
+    payload: { name: 'A browser journey', location: '', startDateStatus: 'unknown', endDateStatus: 'forever', startDate: null, endDate: null, budgetCents: 0 },
+  });
+  assert.equal(properly.statusCode, 201, properly.body);
+});
+
+test('a phone token expires, refreshing rotates it, and a spent refresh token retires its family', async (t) => {
+  let clock = new Date('2026-08-02T12:00:00.000Z');
+  const { app, mailer, pool } = await testPlatform({ now: () => clock, configOverrides: { ACCESS_TOKEN_MINUTES: 5, REFRESH_TOKEN_DAYS: 2 } });
+  t.after(async () => { await app.close(); await pool.end(); });
+
+  const phone = await registerOnPhone(app, mailer, { email: 'rotating@example.test', username: 'rotating' });
+  const fresh = await app.inject({ method: 'GET', url: '/api/v1/session', headers: phoneHeaders(phone.token) });
+  assert.equal(fresh.statusCode, 200, fresh.body);
+
+  clock = new Date('2026-08-02T12:06:00.000Z');
+  const stale = await app.inject({ method: 'GET', url: '/api/v1/session', headers: phoneHeaders(phone.token) });
+  assert.equal(stale.statusCode, 401, stale.body);
+  assert.equal(stale.json().error.code, 'authentication_required');
+
+  const refreshed = await app.inject({ method: 'POST', url: '/api/v1/auth/refresh', payload: { refreshToken: phone.refreshToken } });
+  assert.equal(refreshed.statusCode, 200, refreshed.body);
+  const rotated = refreshed.json().data;
+  assert.notEqual(rotated.token, phone.token);
+  assert.notEqual(rotated.refreshToken, phone.refreshToken);
+  assert.equal(rotated.user.username, 'rotating');
+
+  const renewed = await app.inject({ method: 'GET', url: '/api/v1/session', headers: phoneHeaders(rotated.token) });
+  assert.equal(renewed.statusCode, 200, renewed.body);
+
+  // The old refresh token is spent. Presenting it again means a copy is in circulation, so
+  // everything issued along that line stops working rather than the presented token alone.
+  const replayed = await app.inject({ method: 'POST', url: '/api/v1/auth/refresh', payload: { refreshToken: phone.refreshToken } });
+  assert.equal(replayed.statusCode, 401, replayed.body);
+  assert.equal(replayed.json().error.code, 'invalid_token');
+
+  const afterReplay = await app.inject({ method: 'GET', url: '/api/v1/session', headers: phoneHeaders(rotated.token) });
+  assert.equal(afterReplay.statusCode, 401, afterReplay.body);
+
+  // Retiring the family is the point of noticing a replay, so it has to survive the refusal that
+  // follows it. Nothing issued along that line is left live in the database.
+  assert.equal((await pool.query('SELECT * FROM api_tokens WHERE revoked_at IS NULL')).rowCount, 0);
+
+  const expiredRefresh = await app.inject({ method: 'POST', url: '/api/v1/auth/refresh', payload: { refreshToken: rotated.refreshToken } });
+  assert.equal(expiredRefresh.statusCode, 401, expiredRefresh.body);
+});
+
+test('a refresh token that has simply run out of time is refused', async (t) => {
+  let clock = new Date('2026-08-02T12:00:00.000Z');
+  const { app, mailer, pool } = await testPlatform({ now: () => clock, configOverrides: { ACCESS_TOKEN_MINUTES: 5, REFRESH_TOKEN_DAYS: 1 } });
+  t.after(async () => { await app.close(); await pool.end(); });
+
+  const phone = await registerOnPhone(app, mailer, { email: 'lapsed@example.test', username: 'lapsed-phone' });
+  clock = new Date('2026-08-04T12:00:00.000Z');
+  const refreshed = await app.inject({ method: 'POST', url: '/api/v1/auth/refresh', payload: { refreshToken: phone.refreshToken } });
+  assert.equal(refreshed.statusCode, 401, refreshed.body);
+  assert.equal(refreshed.json().error.code, 'invalid_token');
+});
+
+test('signing out on a phone revokes the token on the server, not just on the device', async (t) => {
+  const { app, mailer, pool } = await testPlatform();
+  t.after(async () => { await app.close(); await pool.end(); });
+
+  const phone = await registerOnPhone(app, mailer, { email: 'signs-out@example.test', username: 'signs-out' });
+  const signedOut = await app.inject({ method: 'POST', url: '/api/v1/auth/logout', headers: phoneHeaders(phone.token) });
+  assert.equal(signedOut.statusCode, 204, signedOut.body);
+
+  const afterwards = await app.inject({ method: 'GET', url: '/api/v1/session', headers: phoneHeaders(phone.token) });
+  assert.equal(afterwards.statusCode, 401, afterwards.body);
+
+  // The refresh token goes with it, or signing out would only postpone being signed in.
+  const refreshed = await app.inject({ method: 'POST', url: '/api/v1/auth/refresh', payload: { refreshToken: phone.refreshToken } });
+  assert.equal(refreshed.statusCode, 401, refreshed.body);
+});
+
+test('deleting the account invalidates every token that account holds', async (t) => {
+  const { app, mailer, pool } = await testPlatform();
+  t.after(async () => { await app.close(); await pool.end(); });
+
+  const phone = await registerOnPhone(app, mailer, { email: 'leaving@example.test', username: 'leaving' });
+  const secondDevice = await app.inject({
+    method: 'POST', url: '/api/v1/auth/login', headers: { 'x-together-client': 'app' },
+    payload: { identifier: 'leaving', password: 'correct horse battery staple' },
+  });
+  assert.equal(secondDevice.statusCode, 200, secondDevice.body);
+  const other = secondDevice.json().data;
+
+  const deleted = await app.inject({
+    method: 'DELETE', url: '/api/v1/account', headers: phoneHeaders(phone.token),
+    payload: { confirmation: 'DELETE', password: 'correct horse battery staple' },
+  });
+  assert.equal(deleted.statusCode, 204, deleted.body);
+
+  for (const token of [phone.token, other.token]) {
+    const refused = await app.inject({ method: 'GET', url: '/api/v1/session', headers: phoneHeaders(token) });
+    assert.equal(refused.statusCode, 401, refused.body);
+  }
+  for (const refreshToken of [phone.refreshToken, other.refreshToken]) {
+    const refused = await app.inject({ method: 'POST', url: '/api/v1/auth/refresh', payload: { refreshToken } });
+    assert.equal(refused.statusCode, 401, refused.body);
+  }
+  assert.equal((await pool.query('SELECT * FROM api_tokens')).rowCount, 0);
+});
+
+test('a phone token is stored only as a hash and is never echoed back in a reply', async (t) => {
+  const { app, mailer, pool } = await testPlatform();
+  t.after(async () => { await app.close(); await pool.end(); });
+
+  const phone = await registerOnPhone(app, mailer, { email: 'quiet@example.test', username: 'quiet-phone' });
+
+  // Only hashes are at rest. A copied database row cannot be presented to the API.
+  const stored = await pool.query('SELECT * FROM api_tokens');
+  assert.equal(stored.rowCount, 2);
+  for (const row of stored.rows) {
+    assert.equal(row.token_hash.length, 64);
+    assert.notEqual(row.token_hash, phone.token);
+    assert.notEqual(row.token_hash, phone.refreshToken);
+  }
+
+  // Nothing after the reply that issued it says the token back, and a refusal says only that it
+  // was refused. An error body that repeated the token would put it into every client-side log.
+  const session = await app.inject({ method: 'GET', url: '/api/v1/session', headers: phoneHeaders(phone.token) });
+  assert.ok(!session.body.includes(phone.token));
+  const refused = await app.inject({ method: 'GET', url: '/api/v1/session', headers: phoneHeaders('a-token-that-was-never-issued') });
+  assert.equal(refused.statusCode, 401);
+  assert.ok(!refused.body.includes('a-token-that-was-never-issued'));
+
+  // And a token is read from the Authorization header only, so putting one in the URL where a
+  // proxy log or a browser history could keep it achieves nothing.
+  const inTheUrl = await app.inject({ method: 'GET', url: `/api/v1/session?token=${phone.token}` });
+  assert.equal(inTheUrl.statusCode, 401, inTheUrl.body);
+});
+
+test('the bridge tells an app which headers it may send', async (t) => {
+  const { app, pool } = await testPlatform();
+  t.after(async () => { await app.close(); await pool.end(); });
+  const preflight = await app.inject({ method: 'OPTIONS', url: '/api/v1/session', headers: { origin } });
+  assert.equal(preflight.statusCode, 204);
+  assert.match(preflight.headers['access-control-allow-headers'], /Authorization/);
+  assert.match(preflight.headers['access-control-allow-headers'], /X-Together-Client/);
+  assert.match(preflight.headers['access-control-allow-headers'], /X-Together-CSRF/);
+  // A page we do not know still cannot preflight, so it can never send either header.
+  const stranger = await app.inject({ method: 'OPTIONS', url: '/api/v1/session', headers: { origin: 'https://not-ours.example' } });
+  assert.equal(stranger.statusCode, 403);
+});
+
+test('claiming to be an app does not relax a check the app never needed', async (t) => {
+  const { app, pool } = await testPlatform();
+  t.after(async () => { await app.close(); await pool.end(); });
+
+  // Recovery is unauthenticated and nothing in the phone story asks it to change. The header
+  // that asks for a token is not a general-purpose way past the origin check: only a token this
+  // service actually issued stands in for one, and an unauthenticated caller has none.
+  const claimed = await app.inject({
+    method: 'POST', url: '/api/v1/recovery/request', headers: { 'x-together-client': 'app' },
+    payload: { email: 'someone@example.test' },
+  });
+  assert.equal(claimed.statusCode, 403, claimed.body);
+  assert.equal(claimed.json().error.code, 'invalid_origin');
+
+  const fromTheApp = await app.inject({
+    method: 'POST', url: '/api/v1/recovery/request', headers: { origin },
+    payload: { email: 'someone@example.test' },
+  });
+  assert.equal(fromTheApp.statusCode, 202, fromTheApp.body);
+});
+
+test('the deployed logger is told to drop the headers and bodies that carry a token', async () => {
+  const start = await readFile(new URL('../server/start.js', import.meta.url), 'utf8');
+  for (const field of ['req.headers.cookie', 'req.headers.authorization', 'req.body.token', 'req.body.refreshToken']) {
+    assert.ok(start.includes(`'${field}'`), `${field} is not redacted from production logs`);
+  }
 });
