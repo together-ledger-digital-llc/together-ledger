@@ -4,6 +4,9 @@
   "private": false,
   "description": "A private shared journey workspace for two people to hold moments, return to what matters, and make room for repair.",
   "type": "module",
+  "workspaces": [
+    "apps/mobile"
+  ],
   "scripts": {
     "build:public": "node scripts/build-public-site.mjs",
     "dev": "node scripts/dev.mjs",
@@ -62,6 +65,8 @@
     "wrangler": "4.130.0"
   },
   "overrides": {
-    "sharp": "0.35.4"
+    "sharp": "0.35.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
   }
 }
