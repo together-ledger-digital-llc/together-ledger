@@ -1347,3 +1347,31 @@ test('the bridge tells an app which headers it may send', async (t) => {
   const stranger = await app.inject({ method: 'OPTIONS', url: '/api/v1/session', headers: { origin: 'https://not-ours.example' } });
   assert.equal(stranger.statusCode, 403);
 });
+
+test('claiming to be an app does not relax a check the app never needed', async (t) => {
+  const { app, pool } = await testPlatform();
+  t.after(async () => { await app.close(); await pool.end(); });
+
+  // Recovery is unauthenticated and nothing in the phone story asks it to change. The header
+  // that asks for a token is not a general-purpose way past the origin check: only a token this
+  // service actually issued stands in for one, and an unauthenticated caller has none.
+  const claimed = await app.inject({
+    method: 'POST', url: '/api/v1/recovery/request', headers: { 'x-together-client': 'app' },
+    payload: { email: 'someone@example.test' },
+  });
+  assert.equal(claimed.statusCode, 403, claimed.body);
+  assert.equal(claimed.json().error.code, 'invalid_origin');
+
+  const fromTheApp = await app.inject({
+    method: 'POST', url: '/api/v1/recovery/request', headers: { origin },
+    payload: { email: 'someone@example.test' },
+  });
+  assert.equal(fromTheApp.statusCode, 202, fromTheApp.body);
+});
+
+test('the deployed logger is told to drop the headers and bodies that carry a token', async () => {
+  const start = await readFile(new URL('../server/start.js', import.meta.url), 'utf8');
+  for (const field of ['req.headers.cookie', 'req.headers.authorization', 'req.body.token', 'req.body.refreshToken']) {
+    assert.ok(start.includes(`'${field}'`), `${field} is not redacted from production logs`);
+  }
+});

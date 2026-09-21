@@ -75,16 +75,22 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
   }
 
   // The origin check and the CSRF header both exist to stop a hostile page from spending a
-  // cookie the browser attaches on its own. A phone has neither a cookie nor a page, so it says
-  // so once with this header and carries a token from then on. A browser cannot borrow the claim:
+  // cookie the browser attaches on its own. A phone has neither a cookie nor a page, so it asks
+  // for a token with this header and carries one from then on. A browser cannot borrow the claim:
   // a custom header or an Authorization header makes a cross-origin request preflight, and the
   // OPTIONS handler above refuses an origin that is not ours.
-  function tokenClient(request) {
-    return String(request.headers[APP_CLIENT_HEADER] || '').trim().toLowerCase() === 'app' || Boolean(presentedToken(request));
+  //
+  // This says only which credential the caller wants issued. It is never what decides whether a
+  // check applies: asking for a token is a claim, and a claim is not a credential.
+  function asksForToken(request) {
+    return String(request.headers[APP_CLIENT_HEADER] || '').trim().toLowerCase() === 'app';
   }
 
-  function accountOriginFor(request) {
-    if (tokenClient(request)) return config.ACCOUNT_ORIGIN || config.PUBLIC_ORIGIN;
+  // A client with no browser has no origin to send, so a token it already holds stands in for
+  // one. Registering and signing in are the two places that have no token yet, and they say so
+  // explicitly rather than letting every caller opt out of the check by claiming to be an app.
+  function accountOriginFor(request, { issuingToken = false } = {}) {
+    if (issuingToken || presentedToken(request)) return config.ACCOUNT_ORIGIN || config.PUBLIC_ORIGIN;
     requireOrigin(request);
     return request.headers.origin;
   }
@@ -125,8 +131,8 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
   app.get('/', async (_request, reply) => reply.type('text/html; charset=utf-8').send(hostedIndexMarkup));
 
   app.post('/api/v1/auth/register', { config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } }, async (request, reply) => {
-    const wantsToken = tokenClient(request);
-    const result = await platform.register(request.body || {}, accountOriginFor(request), { issueSession: !wantsToken });
+    const wantsToken = asksForToken(request);
+    const result = await platform.register(request.body || {}, accountOriginFor(request, { issuingToken: wantsToken }), { issueSession: !wantsToken });
     if (wantsToken) return reply.code(201).send({ data: { user: result.user, verificationSent: result.verificationSent, ...await platform.issueTokens(result.user.id) } });
     setSession(reply, result.session);
     return reply.code(201).send({ data: { user: result.user, csrfToken: result.session.csrfToken, verificationSent: result.verificationSent } });
@@ -143,7 +149,11 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
   });
 
   app.post('/api/v1/auth/login', { config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } }, async (request, reply) => {
-    const wantsToken = tokenClient(request);
+    // Signing in is one of the two places a token can be born, so the claim has to be honoured
+    // here or a phone could never get one. It costs nothing: a client asking for a token is not
+    // issued a cookie, so there is no ambient session for a hostile page to plant, and the
+    // password check and rate limit that actually guard this route are untouched.
+    const wantsToken = asksForToken(request);
     if (!wantsToken) requireOrigin(request);
     const result = await platform.login(request.body || {}, { issueSession: !wantsToken });
     if (wantsToken) return { data: { user: result.user, ...await platform.issueTokens(result.user.id) } };
