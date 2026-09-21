@@ -54,6 +54,34 @@ No account, cloud database, environment variable, or API key is required for bro
 
 The web-billing candidate is documented in [docs/STRIPE.md](docs/STRIPE.md). Never paste Stripe secrets into source, commits, issue text, logs, screenshots, or chat; rotate any key that has been exposed before configuring a local test environment.
 
+## Mobile app (early scaffold)
+
+`apps/mobile` is a new Expo client against the same server — scaffolding and store-compliance
+foundations only, no product screens yet. The web client at `src/` is unaffected; nothing here
+touches its auth, storage, or styling.
+
+```bash
+cd apps/mobile
+npm install
+cp .env.example .env.local   # points the app at a locally running server
+npm start
+```
+
+Press `i` for the iOS Simulator or `a` for an Android emulator from the Expo CLI, or scan the QR
+code with Expo Go on a physical device. `npm run typecheck` and `npm run lint` run the same checks
+CI runs on every pull request; they do not touch `npm run check` at the repo root.
+
+The API origin is never hardcoded — it is read from the `EXPO_PUBLIC_API_ORIGIN` environment
+variable at build time, the mobile equivalent of the web client's `together-api-origin` meta tag.
+Staging and production values are supplied by the EAS build profile or CI for that build, not
+committed. See `apps/mobile/src/config/api.ts`.
+
+The app currently requests zero permissions (no camera, photos, location, contacts, or
+notifications), allows no cleartext network traffic, and has no client-side third-party SDKs — no
+analytics, no crash reporting. Each of those is added only by the story that needs it. Auth tokens,
+once #179 introduces them, go through `apps/mobile/src/auth/token-storage.ts`, which is already
+wired to the platform keychain via `expo-secure-store` rather than any plain on-device storage.
+
 ## Brand themes
 
 Every current surface—navigation, hero, cards, timeline, dialogs, forms, footer, and mobile action bar—reads from one set of semantic colour roles, so a theme is a set of values rather than a set of exceptions.
