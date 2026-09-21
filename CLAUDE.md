@@ -97,13 +97,14 @@ Two rules that have each been broken already:
   pausing are not failures and never take it.
 
 Fonts are a serif (headings, moment titles, brand) plus the system sans stack. This is permanent.
-Georgia alone is not: it does not exist on Android, so the serif is Gelasio (SIL OFL 1.1), bundled as a
-font file on every platform, with Georgia kept in the CSS fallback chain. Gelasio was chosen over Georgia's
-other open substitutes because it is documented as metric-compatible with Georgia (no reflow) and is the
-only one that reproduces Georgia's old-style numerals by default — see
-`docs/2026-09-21-tl-m-02-font-decision.md` for the full comparison and reasoning. "Do not add a webfont"
-still stands for what it always meant: no `@font-face` pulling from a CDN at runtime. A bundled, self-hosted
-font file is not a webfont in that sense and this line does not forbid it.
+Georgia alone is not: it does not exist on Android. **Not yet decided** — see issue #177. The
+recommendation under review is Gelasio (SIL OFL 1.1), bundled as a font file on every platform, with
+Georgia kept in the CSS fallback chain, because it is documented as metric-compatible with Georgia (no
+reflow) and is the only researched candidate that reproduces Georgia's old-style numerals by default — see
+`docs/2026-09-21-tl-m-02-font-recommendation.md` for the full comparison and reasoning. Do not treat this
+as settled until #177 is closed with the owner's decision recorded. "Do not add a webfont" still stands for
+what it always meant: no `@font-face` pulling from a CDN at runtime. A bundled, self-hosted font file is
+not a webfont in that sense and this line does not forbid one, whichever face is ultimately chosen.
 
 ## Language
 

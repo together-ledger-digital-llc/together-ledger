@@ -1,6 +1,10 @@
-# Font decision — #177 (TL-M-02)
+# Font recommendation — #177 (TL-M-02)
 
-## Decision
+**Status: pending the owner's decision.** This is a ranked recommendation, not a settled choice — see
+issue #177. `CLAUDE.md`'s font line will only be finalized once the owner has looked at the rendered
+comparison below and confirmed it there.
+
+## Recommendation
 
 **Bundle Gelasio** (SIL OFL 1.1) as the heading/moment-title/brand serif across web, iOS, and Android,
 replacing Georgia everywhere rather than per-platform. This is option 1 from the issue: a bundled font
@@ -82,6 +86,13 @@ natively; this sandbox does not, so the checked-in preview PNG
 ([`2026-09-21-tl-m-02-font-comparison-preview.png`](./2026-09-21-tl-m-02-font-comparison-preview.png))
 shows a generic Linux serif substitute in the Georgia column, not real Georgia — open the HTML file on
 macOS or iOS for the real comparison.
+
+## Before this is final
+
+This is a recommendation, not a decision. It still needs: the owner to open the rendered comparison
+below on a machine with real Georgia (macOS, Windows, or iOS) and confirm by looking, not just by this
+write-up's argument; and the decision, once made, recorded on issue #177 and folded back into
+`CLAUDE.md`'s font line in place of the "not yet decided" note currently there.
 
 ## What TL-M-03 needs to do with this
 
