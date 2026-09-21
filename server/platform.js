@@ -359,7 +359,79 @@ export class PlatformService {
     return { rawToken, csrfToken, expiresAt };
   }
 
-  async register({ email, username, password }, accountOrigin) {
+  // A phone gets a pair rather than a cookie: a short-lived access token it attaches to every
+  // request, and a longer-lived refresh token it uses once to ask for the next pair. Both are
+  // stamped with a shared family so that signing out, or a refresh token turning up twice,
+  // retires everything issued along that line at once.
+  async issueTokenPair(client, userId, familyId = randomUUID()) {
+    const accessToken = opaqueToken();
+    const refreshToken = opaqueToken();
+    const issuedAt = this.now();
+    const expiresAt = new Date(issuedAt.getTime() + this.config.ACCESS_TOKEN_MINUTES * 60 * 1000);
+    const refreshExpiresAt = new Date(issuedAt.getTime() + this.config.REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000);
+    await client.query(
+      `INSERT INTO api_tokens (id,user_id,family_id,purpose,token_hash,expires_at,created_at) VALUES ($1,$2,$3,'access',$4,$5,$6)`,
+      [randomUUID(), userId, familyId, sha256(accessToken), expiresAt, issuedAt],
+    );
+    await client.query(
+      `INSERT INTO api_tokens (id,user_id,family_id,purpose,token_hash,expires_at,created_at) VALUES ($1,$2,$3,'refresh',$4,$5,$6)`,
+      [randomUUID(), userId, familyId, sha256(refreshToken), refreshExpiresAt, issuedAt],
+    );
+    return {
+      token: accessToken,
+      tokenExpiresAt: expiresAt.toISOString(),
+      refreshToken,
+      refreshTokenExpiresAt: refreshExpiresAt.toISOString(),
+    };
+  }
+
+  async issueTokens(userId) {
+    return withTransaction(this.pool, (client) => this.issueTokenPair(client, userId));
+  }
+
+  // The bearer equivalent of session(). There is no CSRF token to hand back: a token is attached
+  // deliberately by the client, never automatically by a browser, so there is nothing for a
+  // hostile page to ride on.
+  async tokenHolder(rawToken) {
+    if (!rawToken) return null;
+    const found = await this.pool.query(
+      `SELECT t.id,t.user_id,t.family_id,u.email_normalized,u.username,u.display_name,u.email_verified_at,u.created_at,u.deleted_at
+       FROM api_tokens t JOIN users u ON u.id=t.user_id
+       WHERE t.token_hash=$1 AND t.purpose='access' AND t.revoked_at IS NULL AND t.expires_at>$2 AND u.deleted_at IS NULL`,
+      [sha256(rawToken), this.now()],
+    );
+    if (!found.rowCount) return null;
+    const row = found.rows[0];
+    return { id: row.id, userId: row.user_id, tokenFamilyId: row.family_id, bearer: true, user: publicUser({ ...row, id: row.user_id }) };
+  }
+
+  // Refusal is decided after the transaction commits, never by throwing inside it: retiring the
+  // family is the whole point of noticing a spent token, and a rollback would undo exactly that.
+  async refreshTokens(rawRefreshToken) {
+    const rotated = rawRefreshToken ? await withTransaction(this.pool, async (client) => {
+      const found = await client.query(`SELECT * FROM api_tokens WHERE token_hash=$1 AND purpose='refresh' FOR UPDATE`, [sha256(rawRefreshToken)]);
+      if (!found.rowCount) return null;
+      const row = found.rows[0];
+      // A refresh token is spent the first time it is used. A second presentation means a copy is
+      // in circulation, so the whole family stops working rather than the presented row alone.
+      await client.query('UPDATE api_tokens SET revoked_at=$1 WHERE family_id=$2 AND revoked_at IS NULL', [this.now(), row.family_id]);
+      if (row.revoked_at || new Date(row.expires_at) <= this.now()) return null;
+      const user = await client.query('SELECT * FROM users WHERE id=$1 AND deleted_at IS NULL', [row.user_id]);
+      if (!user.rowCount) return null;
+      return { user: publicUser(user.rows[0]), ...await this.issueTokenPair(client, row.user_id, row.family_id) };
+    }) : null;
+    if (!rotated) throw new PlatformError(401, 'invalid_token', 'Sign in again to continue.');
+    return rotated;
+  }
+
+  async revokeToken(rawToken) {
+    if (!rawToken) return;
+    const found = await this.pool.query('SELECT family_id FROM api_tokens WHERE token_hash=$1', [sha256(rawToken)]);
+    if (!found.rowCount) return;
+    await this.pool.query('UPDATE api_tokens SET revoked_at=$1 WHERE family_id=$2 AND revoked_at IS NULL', [this.now(), found.rows[0].family_id]);
+  }
+
+  async register({ email, username, password }, accountOrigin, { issueSession = true } = {}) {
     const normalizedEmail = cleanEmail(email);
     const privateUsername = cleanUsername(username);
     const name = privateUsername;
@@ -377,7 +449,7 @@ export class PlatformService {
           'INSERT INTO account_tokens (id,user_id,purpose,token_hash,expires_at) VALUES ($1,$2,$3,$4,$5)',
           [randomUUID(), userId, 'email_verification', sha256(verificationToken), new Date(this.now().getTime() + this.config.TOKEN_MINUTES * 60 * 1000)],
         );
-        return { user: publicUser(created.rows[0]), session: await this.createSession(client, userId) };
+        return { user: publicUser(created.rows[0]), session: issueSession ? await this.createSession(client, userId) : null };
       });
     } catch (error) {
       if (error.code === '23505') throw new PlatformError(409, 'account_exists', 'That email or username is already in use.');
@@ -414,14 +486,14 @@ export class PlatformService {
     return this.deliver('verification', () => this.mailer.sendVerification({ to: user.rows[0].email_normalized, token, accountOrigin }));
   }
 
-  async login({ identifier, password }) {
+  async login({ identifier, password }, { issueSession = true } = {}) {
     const normalizedIdentifier = cleanLoginIdentifier(identifier);
     const found = await this.pool.query('SELECT * FROM users WHERE (email_normalized=$1 OR username=$1) AND deleted_at IS NULL', [normalizedIdentifier]);
     const candidateHash = found.rows[0]?.password_hash || await this.dummyPasswordHash;
     const passwordMatches = await verifyPassword(candidateHash, password);
     const valid = Boolean(found.rowCount && passwordMatches);
     if (!valid) throw new PlatformError(401, 'invalid_credentials', 'Username, email, or password is incorrect.');
-    const session = await withTransaction(this.pool, (client) => this.createSession(client, found.rows[0].id));
+    const session = issueSession ? await withTransaction(this.pool, (client) => this.createSession(client, found.rows[0].id)) : null;
     return { user: publicUser(found.rows[0]), session };
   }
 
@@ -471,6 +543,7 @@ export class PlatformService {
       await client.query('UPDATE users SET password_hash=$1 WHERE id=$2', [passwordHash, found.rows[0].user_id]);
       await client.query('UPDATE account_tokens SET consumed_at=$1 WHERE id=$2', [this.now(), found.rows[0].id]);
       await client.query('DELETE FROM sessions WHERE user_id=$1', [found.rows[0].user_id]);
+      await client.query('DELETE FROM api_tokens WHERE user_id=$1', [found.rows[0].user_id]);
     });
   }
 
@@ -1271,6 +1344,7 @@ export class PlatformService {
         }
       }
       await client.query('DELETE FROM sessions WHERE user_id=$1', [userId]);
+      await client.query('DELETE FROM api_tokens WHERE user_id=$1', [userId]);
       await client.query('DELETE FROM account_tokens WHERE user_id=$1', [userId]);
       await client.query('DELETE FROM invitations WHERE invited_by_user_id=$1', [userId]);
       await client.query('UPDATE invitations SET revoked_at=$1 WHERE email_normalized=$2 AND accepted_at IS NULL AND revoked_at IS NULL', [this.now(), user.rows[0].email_normalized]);
