@@ -17,11 +17,16 @@ typographic choice the product actually makes. Of the candidates compared (Gelas
 Source Serif 4, Literata, Noto Serif, Tinos, PT Serif, Bitter, Crimson Pro — see the full research below),
 Gelasio is the only one that:
 
-- **Is documented as metric-compatible with Georgia** for Regular/Bold/Italic/Bold Italic, by both Google's
-  own font description and the designer's (SorkinType) README. That means paragraphs set in Gelasio at the
-  same size occupy the same width and line-box height as Georgia — no reflow, no truncation/overflow
-  breakage. (Metric compatibility does not make glyph outlines identical — see "What this does not fix"
-  below.)
+- **Is claimed to be metric-compatible with Georgia** for Regular/Bold/Italic/Bold Italic, by both Google's
+  own font description and the designer's (SorkinType) README — which also explains the mechanism ("to
+  remain a functional match to Georgia, Gelasio will not include kerning"), and scopes the claim to those
+  four styles only. **This claim was not independently verified and could not be**: confirming it means
+  diffing per-glyph advance widths against Georgia's own binary, and Georgia is proprietary Microsoft
+  software with no legal source available in this environment. What was checked directly is that Gelasio's
+  `unitsPerEm` is 2048, matching the value Georgia is documented as using. Treat metric compatibility as a
+  well-sourced claim with an explained mechanism, not as a measured fact — and see "If the metric claim is
+  wrong" below for what it would cost if it doesn't hold. (Metric compatibility would not make glyph
+  outlines identical in any case — see "What this does not fix" below.)
 - **Reproduces Georgia's old-style (text) figures by default.** This was verified directly by extracting
   digit glyph bounding boxes from the font: 0/1/2 sit at x-height, 6/8 rise to ascender height, and
   3/4/5/7/9 dip below the baseline — the same pattern documented for Georgia. Every other candidate tested
@@ -87,6 +92,34 @@ natively; this sandbox does not, so the checked-in preview PNG
 shows a generic Linux serif substitute in the Georgia column, not real Georgia — open the HTML file on
 macOS or iOS for the real comparison.
 
+## What was verified, and what was not
+
+Georgia itself could not be obtained — it is proprietary Microsoft software, absent from this Linux
+environment, with no legal download. **Every statement below about Georgia's own metrics comes from
+secondary typography sources, not from a file anyone here inspected.** That shapes what can honestly be
+claimed:
+
+| Claim | Status |
+|---|---|
+| Gelasio's default numerals are old-style (0/1/2 at x-height, 6/8 ascending, 3/4/5/7/9 descending) | **Measured** — digit glyph bounding boxes extracted from the binary with `fontTools` |
+| Every other candidate ships lining figures by default | **Measured** — same method, each binary downloaded and checked |
+| Licences (all candidates OFL 1.1; Gelasio © 2022 The Gelasio Project Authors) | **Verified** — `OFL.txt` and `METADATA.pb` read from `google/fonts` |
+| File sizes, variable-font axes, x-height/cap-height ratios | **Measured** — from the downloaded binaries |
+| Gelasio is metric-compatible with Georgia | **Not verified** — two aligned primary claims (Google's description, SorkinType's README) plus a matching `unitsPerEm` of 2048. No advance-width diff was possible without Georgia's binary |
+| Georgia's own numeral pattern, x-height and `unitsPerEm` | **Secondary sources only** — FontLab documentation, typography references. Not inspected directly |
+| Noto Serif ships as stock Android's `serif` | **Secondary sources only** — AOSP's `fonts.xml` was unreachable from this environment. Also an AOSP-default statement, not a guarantee across OEM skins |
+| Charis SIL's metrics and numerals | **Secondary sources only** — its binary was unreachable (SIL's host blocked); licence was verified from its repo |
+
+## If the metric claim is wrong
+
+Worth stating plainly, because the recommendation leans on it. If Gelasio turns out not to be
+advance-width-identical to Georgia, nothing breaks silently — the failure is visible and bounded: text
+reflows, line counts shift, and any truncation or overflow tuned to Georgia's widths needs a look. That is
+the same cost as picking any other candidate in the table, all of which make no compatibility claim at all.
+So the claim being wrong would cost the *advantage* Gelasio is being recommended for, not add a new risk on
+top. The cheapest way to settle it before committing: set a paragraph in both faces at the same size on a
+machine that has Georgia and compare where the lines break.
+
 ## Before this is final
 
 This is a recommendation, not a decision. It still needs: the owner to open the rendered comparison
@@ -112,7 +145,7 @@ resolving discussion. Summary table:
 
 | Candidate | Metric-compat. w/ Georgia | Default numerals | License | Variable font | Static weight ≈size | Stock on Android/iOS |
 |---|---|---|---|---|---|---|
-| **Gelasio** | **Yes** (primary) | **Old-style** | OFL 1.1 | Yes, 400–700 | ~107 KB | No / No |
+| **Gelasio** | **Claimed** (not verified — see above) | **Old-style** (measured) | OFL 1.1 | Yes, 400–700 | ~107 KB | No / No |
 | Charis SIL | No | Lining | OFL 1.1 | No | 800 KB–1.7 MB | No / No |
 | Source Serif 4 | No | Lining | OFL 1.1 | Yes, wght+opsz | ~330 KB | No / No |
 | Literata | No | Lining | OFL 1.1 | Yes, wght+opsz | ~271 KB | No / No |
