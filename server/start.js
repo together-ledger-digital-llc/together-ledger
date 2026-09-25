@@ -29,7 +29,7 @@ const app = await buildApp({
   platform,
   billing,
   config,
-  logger: { redact: ['req.headers.cookie', 'req.headers.authorization', 'req.headers.stripe-signature', 'req.body.password', 'req.body.token'] },
+  logger: { redact: ['req.headers.cookie', 'req.headers.authorization', 'req.headers.stripe-signature', 'req.body.password', 'req.body.token', 'req.body.refreshToken'] },
 });
 
 async function shutdown(signal) {
