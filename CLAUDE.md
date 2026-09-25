@@ -96,8 +96,24 @@ Two rules that have each been broken already:
 - **The destructive colour is only for what cannot be undone.** Waiting, needing payment, and
   pausing are not failures and never take it.
 
-Fonts are Georgia (headings, moment titles, brand) plus the system sans stack. This is permanent.
-Do not add a webfont.
+Fonts are a serif (headings, moment titles, brand) plus the system sans stack. This is permanent.
+Georgia alone was not: it does not exist on Android, where it fell back to Roboto and took the brand with
+it. The serif is **Gelasio** (SIL OFL 1.1), bundled as a font file on web, iOS and Android alike, with
+Georgia kept in the CSS fallback chain. Decided on #177 — reasoning, licence, file sizes and the rendered
+comparison are in `docs/2026-09-21-tl-m-02-font-decision.md`.
+
+Two things travel with that decision and are not optional:
+
+- **The serif renders at weight 400, not 500.** `font-weight: 500` appears fourteen times in
+  `src/styles.css`, ten of them on serif rules, and Georgia — having only Regular and Bold — has always
+  rounded those down. 400 is what the design was drawn against and what every committed screenshot shows.
+  Gelasio is variable and has a real 500, so carrying the 500 across would quietly restyle every heading
+  heavier than it has ever been. Set those rules to 400.
+- **`letter-spacing: -0.035em` on `h1, h2` was tuned to Georgia's proportions.** Re-check it against
+  Gelasio rather than carrying it over on faith.
+
+"Do not add a webfont" still stands for what it always meant: no `@font-face` pulling from a CDN at
+runtime. A bundled, self-hosted font file is not a webfont in that sense, and this line never forbade one.
 
 ## Language
 
