@@ -1,16 +1,34 @@
-# Font recommendation — #177 (TL-M-02)
+# Font decision — #177 (TL-M-02)
 
-**Status: pending the owner's decision.** This is a ranked recommendation, not a settled choice — see
-issue #177. `CLAUDE.md`'s font line will only be finalized once the owner has looked at the rendered
-comparison below and confirmed it there.
+**Status: decided.** The owner delegated the choice rather than making it at the comparison, so it was
+made on the reasoning below. **It was not made by looking** — nobody has yet seen Georgia and Gelasio side
+by side on a device that has Georgia. That was the acceptance criteria's preferred route and this decision
+did not take it, which is recorded here rather than glossed.
 
-## Recommendation
+That makes the decision deliberately cheap to revisit. Until TL-M-03 ships the swap, reversing it is a
+one-token change; the comparison page is checked in beside this file for exactly that purpose. If it looks
+wrong on a real screen, say so and it changes.
+
+## Decision
 
 **Bundle Gelasio** (SIL OFL 1.1) as the heading/moment-title/brand serif across web, iOS, and Android,
 replacing Georgia everywhere rather than per-platform. This is option 1 from the issue: a bundled font
 file, not a webfont in the sense the old "no webfont" rule meant.
 
 ## Why
+
+### The argument that settled it
+
+This is a product for two people sharing one journey. They read the same moments, on whatever phones they
+each happen to own, and then talk to each other about them. A brand that renders one way on an iPhone and
+another way on an Android is not an inconsistency in this product — it is a seam running down the middle
+of the thing two people are meant to be sharing. That is a stronger objection here than it would be in a
+single-user app, and it is what rules out accepting the platform serif per OS, whatever that option saves.
+
+Once cross-platform consistency is the requirement, one face has to be bundled everywhere, and the
+question becomes only *which*.
+
+### Why Gelasio, among the faces that could be bundled
 
 Georgia does not exist on Android and silently falls back to Roboto there today, losing the one
 typographic choice the product actually makes. Of the candidates compared (Gelasio, Charter/Charis SIL,
@@ -102,7 +120,7 @@ says nothing about a shipped bundle size. Measure the real file before recording
 ## Two things the comparison turned up that change the question
 
 Both were found by a parallel session on this issue and then measured here directly. Neither was known
-when the recommendation above was written, and both affect how the candidates read.
+when the choice above was made, and both affect how the candidates read.
 
 **The stylesheet asks for a weight Georgia does not have.** `src/styles.css` sets `font-weight: 500` in
 14 places, 10 of them on Georgia rules. Georgia ships Regular and Bold only, so the browser rounds down
@@ -142,7 +160,7 @@ claimed:
 
 ## If the metric claim is wrong
 
-Worth stating plainly, because the recommendation leans on it. If Gelasio turns out not to be
+Worth stating plainly, because the decision leans on it. If Gelasio turns out not to be
 advance-width-identical to Georgia, nothing breaks silently — the failure is visible and bounded: text
 reflows, line counts shift, and any truncation or overflow tuned to Georgia's widths needs a look. That is
 the same cost as picking any other candidate in the table, all of which make no compatibility claim at all.
@@ -150,14 +168,39 @@ So the claim being wrong would cost the *advantage* Gelasio is being recommended
 top. The cheapest way to settle it before committing: set a paragraph in both faces at the same size on a
 machine that has Georgia and compare where the lines break.
 
-## Before this is final
+## Why the runners-up lost
 
-This is a recommendation, not a decision. It still needs: the owner to open the rendered comparison
-below on a machine with real Georgia (macOS, Windows, or iOS) and confirm by looking, not just by this
-write-up's argument; and the decision, once made, recorded on issue #177 and folded back into
-`CLAUDE.md`'s font line in place of the "not yet decided" note currently there.
+- **Noto Serif** is the only candidate already present on stock Android, which looks like its whole
+  argument — until consistency requires bundling a single face everywhere anyway, at which point its
+  513 KB static weight is the largest of the set and the advantage has evaporated entirely.
+- **Charis SIL** has the best pedigree argument in the list: Matthew Carter drew both it and Georgia. But
+  it is 800 KB–1.7 MB for a single weight, carrying linguistics-grade diacritic coverage this product will
+  never use. That is disqualifying in a mobile bundle. It is also the only candidate besides Georgia with
+  no real 500, which is either a neat inheritance of Georgia's behaviour or an irrelevance, and either way
+  does not outweigh the size.
+- **Lora, Source Serif 4, Literata** are good screen serifs and would be defensible in a product that had
+  never used Georgia. Here they pay the full cost of a typeface change — new metrics, full snapshot
+  regeneration, a visibly different personality — while landing no closer to Georgia than the face
+  purpose-built to match it, and losing the old-style figures on the way.
+- **Tinos, PT Serif, Bitter, Crimson Pro** were measured and ruled out on the evidence in the table below:
+  Tinos clones Times rather than Georgia, Bitter is a near-monoweight slab with a visibly heavier colour,
+  Crimson Pro's x-height is the smallest of the set, and PT Serif carries Cyrillic bulk for no benefit.
 
 ## What TL-M-03 needs to do with this
+
+**Set the serif rules to `font-weight: 400`, not 500.** This is the one that will be got wrong by doing
+the obvious thing. `font-weight: 500` appears fourteen times in `src/styles.css`, ten of them on serif
+rules, and Georgia has always rounded those down to 400 — so 400 is what the design was drawn against and
+what every committed snapshot records. Gelasio is variable with a real 500, so a faithful-looking
+port that preserves the `500` would silently make every heading in the product heavier than it has ever
+been, and the diff would look like it changed nothing. Change them to 400.
+
+**Re-check `letter-spacing: -0.035em` on `h1, h2`** against Gelasio instead of carrying it over. It was
+tuned to Georgia's wide proportions.
+
+**Expect the visual snapshots to need regenerating regardless.** There are 11 under
+`tests/browser-welcome.spec.js-snapshots` and `tests/browser-moment-visual-matrix.spec.js-snapshots`.
+Metric compatibility protects layout, not pixels — see "What this does not fix" above.
 
 Out of scope here, but for the record: Georgia is currently hardcoded as `font-family: Georgia, "Times New
 Roman", serif` (or `Georgia, serif`) in ~15 places in `src/styles.css` plus the SVG social card — there is
