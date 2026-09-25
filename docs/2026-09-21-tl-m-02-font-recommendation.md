@@ -83,14 +83,44 @@ the "Gelasio" name. No runtime attribution required.
 ## Rendered comparison
 
 [`2026-09-21-tl-m-02-font-comparison.html`](./2026-09-21-tl-m-02-font-comparison.html) — Georgia against
-Gelasio, set at the product's real colours, type scale, letter-spacing and line-height, covering the brand
-mark, a heading, a section heading, a moment title, and a numeral sample. Gelasio is embedded directly in
-the file and renders identically everywhere. Georgia is set via `font-family: Georgia, ...` and will only
-render as true Georgia on a machine that actually has it installed — macOS, Windows, and iOS all ship it
-natively; this sandbox does not, so the checked-in preview PNG
-([`2026-09-21-tl-m-02-font-comparison-preview.png`](./2026-09-21-tl-m-02-font-comparison-preview.png))
-shows a generic Linux serif substitute in the Georgia column, not real Georgia — open the HTML file on
-macOS or iOS for the real comparison.
+all five candidates (Gelasio, Lora, Source Serif 4, Noto Serif, Charis SIL), set in the product's own
+strings at the real sizes, weights and letter-spacing from `src/styles.css`: brand mark, heading, section
+heading, moment title, and numerals. One self-contained file, no network, no build step. Weight and
+tracking toggles, per the findings above.
+
+Georgia is proprietary and cannot be embedded, so it is the one face on the page that depends on your
+device. **The page measures whether Georgia is actually present and says so before you start comparing** —
+open it on a Mac or an iPhone and it will confirm you are seeing real Georgia; open it on Android and the
+banner will tell you you are looking at the fallback, which is the bug this issue is about, demonstrated
+rather than described. The checked-in preview PNG
+([`2026-09-21-tl-m-02-font-comparison-preview.png`](./2026-09-21-tl-m-02-font-comparison-preview.png)) was
+rendered on Linux and shows that warning state — it is **not** evidence of Georgia's look.
+
+The other candidates are embedded as subsets covering only the specimen characters — 13–33 KB each, which
+says nothing about a shipped bundle size. Measure the real file before recording a number.
+
+## Two things the comparison turned up that change the question
+
+Both were found by a parallel session on this issue and then measured here directly. Neither was known
+when the recommendation above was written, and both affect how the candidates read.
+
+**The stylesheet asks for a weight Georgia does not have.** `src/styles.css` sets `font-weight: 500` in
+14 places, 10 of them on Georgia rules. Georgia ships Regular and Bold only, so the browser rounds down
+and **every heading has been rendering at 400 all along**. Measured in Chromium against the embedded
+subsets: Georgia and Charis SIL do not move between `font-weight: 400` and `500` (identical advance
+widths); Gelasio, Lora, Source Serif 4 and Noto Serif all do, because all four are variable fonts with a
+real 500. So adopting any variable candidate makes every heading *slightly heavier than today* unless
+`font-weight` moves to 400 in the same change. Some of what looks like "this face is heavier" is that,
+not the typeface — the comparison page now defaults to 400 and lets you toggle, so the two effects can be
+told apart.
+
+This also means **the first version of this comparison was unfair to Gelasio**: it embedded a true
+500-weight Gelasio instance against Georgia rounding to 400, so Gelasio looked heavier for a reason that
+had nothing to do with its design. That page has been replaced.
+
+**The tracking is tuned to Georgia.** `h1, h2` carries `letter-spacing: -0.035em`, which suits Georgia's
+wide proportions and reads tight on a narrower face. It needs re-testing per candidate, not carrying
+over. The comparison page has a toggle for this too.
 
 ## What was verified, and what was not
 
