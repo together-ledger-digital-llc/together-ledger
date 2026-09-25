@@ -2,6 +2,8 @@
 
 This checklist records what must be true before Together Ledger's private-sync API receives public traffic. It is designed for the single-owner AWS-primary, GCP-standby posture. Do not check an item merely because a console page exists.
 
+Nothing under **Deployment** is checked because the API has never been deployed. The procedure for each of those items now exists — see [API server deployment](SERVER_DEPLOY.md) — but a written procedure is not a performed one, and this gate records what someone did, not what someone could do. Tick each box on the deploy that satisfies it, and note the UTC date beside it.
+
 ## Foundation
 
 - [ ] The reviewed `main` commit is reproducibly built and its container digest is recorded.
@@ -13,12 +15,19 @@ This checklist records what must be true before Together Ledger's private-sync A
 
 ## Deployment
 
+- [ ] A private container registry exists, its repository rejects mutable tags, and the host has a pull-only credential scoped to that one repository.
+- [ ] The image is built from a clean checkout of a reviewed `main` commit, pushed, and its immutable digest recorded; the registry's own answer agrees with the build's.
+- [ ] The image scan completed and its severity counts were read and recorded before the release decision.
 - [ ] The root-owned production environment file exists outside the repository with mode `0600`.
 - [ ] Secrets are generated uniquely, stored in AWS Secrets Manager, and their values never enter Git, screenshots, shell history, or chat.
 - [ ] The PostgreSQL role is application-only and the database has no public port.
 - [ ] Caddy receives only ports `80` and `443`; it proxies privately to the application.
 - [ ] A Caddy domain and Cloudflare DNS record are configured only after private health checks pass.
 - [ ] `PUBLIC_ORIGIN` is exactly `https://app.together-ledger.com`, `APP_ORIGINS` contains the legacy app origin during dual-host rollout, cookies are secure, and proxy trust is enabled.
+- [ ] `TOGETHER_IMAGE` names an immutable digest, never a tag, and the digest running on the host is the digest that was reviewed.
+- [ ] Migrations were applied against a pre-production copy from that same image before production, and every migration in the release is additive enough for the previous image to run against.
+- [ ] The root-owned release log records the UTC time, commit, digest, and applied migrations of each release, so a rollback knows what to return to.
+- [ ] The release was confirmed against production from outside the host: `/healthz`, `/readyz`, and one synthetic-account exercise of the change the release actually carried.
 
 ## Recoverability
 
