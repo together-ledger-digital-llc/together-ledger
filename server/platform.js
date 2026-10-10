@@ -427,7 +427,9 @@ function publicEvent(row) {
 }
 
 export class PlatformService {
-  constructor({ pool, config, mailer, now = () => new Date(), onDeliveryFailure = () => {}, identity = identityVerifierFor(config), apple = appleSignInFor(config) }) {
+  // `checkPassword` is the one argon2 verification every password check goes through. Tests pass
+  // a wrapper around the real one to see that each path does the same work, without a stopwatch.
+  constructor({ pool, config, mailer, now = () => new Date(), onDeliveryFailure = () => {}, identity = identityVerifierFor(config), apple = appleSignInFor(config), checkPassword = verifyPassword }) {
     this.pool = pool;
     this.config = config;
     this.mailer = mailer;
@@ -435,6 +437,7 @@ export class PlatformService {
     this.identity = identity;
     this.apple = apple;
     this.onDeliveryFailure = onDeliveryFailure;
+    this.checkPassword = checkPassword;
     this.dummyPasswordHash = hashPassword('invalid-login-padding'.padEnd(20, 'x'));
   }
 
@@ -629,7 +632,7 @@ export class PlatformService {
     const normalizedIdentifier = cleanLoginIdentifier(identifier);
     const found = await this.pool.query('SELECT * FROM users WHERE (email_normalized=$1 OR username=$1) AND deleted_at IS NULL', [normalizedIdentifier]);
     const candidateHash = found.rows[0]?.password_hash || await this.dummyPasswordHash;
-    const passwordMatches = await verifyPassword(candidateHash, password);
+    const passwordMatches = await this.checkPassword(candidateHash, password);
     const valid = Boolean(found.rowCount && passwordMatches);
     if (!valid) throw new PlatformError(401, 'invalid_credentials', 'Username, email, or password is incorrect.');
     const session = issueSession ? await withTransaction(this.pool, (client) => this.createSession(client, found.rows[0].id)) : null;
@@ -807,7 +810,7 @@ export class PlatformService {
       ? await this.pool.query('SELECT * FROM users WHERE email_normalized=$1 AND deleted_at IS NULL', [email])
       : { rowCount: 0, rows: [] };
     const candidateHash = found.rows[0]?.password_hash || await this.dummyPasswordHash;
-    const passwordMatches = await verifyPassword(candidateHash, password);
+    const passwordMatches = await this.checkPassword(candidateHash, password);
     if (!found.rowCount || !found.rows[0].password_hash || !passwordMatches) {
       throw new PlatformError(401, 'invalid_credentials', 'Username, email, or password is incorrect.');
     }
@@ -972,7 +975,7 @@ export class PlatformService {
     try { assertPassword(newPassword); } catch { throw new PlatformError(400, 'invalid_input', 'Use a password between 12 and 128 characters.'); }
     const found = await this.pool.query('SELECT * FROM users WHERE id=$1 AND deleted_at IS NULL', [userId]);
     const currentHash = found.rows[0]?.password_hash || null;
-    const passwordMatches = await verifyPassword(currentHash || await this.dummyPasswordHash, currentPassword);
+    const passwordMatches = await this.checkPassword(currentHash || await this.dummyPasswordHash, currentPassword);
     if (!currentHash || !passwordMatches) throw new PlatformError(401, 'invalid_credentials', 'Username, email, or password is incorrect.');
     const passwordHash = await cleanPasswordHash(newPassword);
     const user = await withTransaction(this.pool, async (client) => {
@@ -2344,7 +2347,7 @@ export class PlatformService {
   async deleteAccount(userId, password) {
     const user = await this.pool.query('SELECT * FROM users WHERE id=$1 AND deleted_at IS NULL', [userId]);
     if (!user.rowCount) throw new PlatformError(401, 'invalid_credentials', 'Password confirmation failed.');
-    if (user.rows[0].password_hash && !await verifyPassword(user.rows[0].password_hash, password)) throw new PlatformError(401, 'invalid_credentials', 'Password confirmation failed.');
+    if (user.rows[0].password_hash && !await this.checkPassword(user.rows[0].password_hash, password)) throw new PlatformError(401, 'invalid_credentials', 'Password confirmation failed.');
     await this.eraseAccount(userId);
   }
 
