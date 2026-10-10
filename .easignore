@@ -1,0 +1,40 @@
+# What `eas build` leaves out of the project it uploads. When this file exists EAS reads it instead
+# of every .gitignore, so it repeats what the root and apps/mobile .gitignore files leave out, and
+# adds the folders a phone build never needs. Without it the upload was 438 MB, almost all of it
+# old session worktrees under .claude/ that only a local git exclude hides, and one iPhone upload
+# timed out at 328 MB (Oct 10, 2026). With it the upload is about 9 MB.
+
+# Root .gitignore
+node_modules/
+test-results/
+playwright-report/
+_site/
+.env
+.env.production
+.DS_Store
+backups/
+*.p8
+*.p12
+*.mobileprovision
+
+# apps/mobile/.gitignore
+apps/mobile/.expo/
+apps/mobile/dist/
+apps/mobile/web-build/
+apps/mobile/expo-env.d.ts
+apps/mobile/ios/
+apps/mobile/android/
+.kotlin/
+*.orig.*
+*.jks
+*.key
+*.pem
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.env*.local
+*.tsbuildinfo
+
+# Never needed by a phone build
+.claude/
