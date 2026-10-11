@@ -35,17 +35,12 @@ for (const relativePath of publicFiles) {
   cpSync(join(root, relativePath), join(output, relativePath));
 }
 cpSync(join(root, 'public'), output, { recursive: true });
-// The phone apps' link files (#266). Apple's must be right to ship at all. Android's waits on the
-// owner's certificate fingerprints: until they replace the placeholders it is left out, because an
-// empty or placeholder list would only tell Android the app may not open the link, and the release
-// gate refuses a bundle that carries one.
+// The phone apps' link files (#266). Both must be right to ship at all: a wrong one fails
+// silently on the phone (the link just opens the browser), so the build stops instead.
 const associationProblems = appSiteAssociationProblems(readFileSync(join(output, APP_SITE_ASSOCIATION), 'utf8'));
 if (associationProblems.length) throw new Error(associationProblems.join('; '));
 const linkProblems = assetLinksProblems(readFileSync(join(output, ASSET_LINKS), 'utf8'));
-if (linkProblems.length) {
-  rmSync(join(output, ASSET_LINKS));
-  console.log(`Left out ${ASSET_LINKS}: ${linkProblems.join('; ')}. Android opens invitation links in the browser until the owner adds the fingerprints (#266).`);
-}
+if (linkProblems.length) throw new Error(linkProblems.join('; '));
 // Served at /privacy (html_handling resolves privacy.html) — the URL both stores ask for.
 writeFileSync(join(output, 'privacy.html'), renderPrivacyPage(readFileSync(join(root, 'PRIVACY.md'), 'utf8')));
 // Served at /terms the same way, from TERMS.md.

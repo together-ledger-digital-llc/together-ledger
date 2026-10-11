@@ -5,6 +5,9 @@
 //
 // Only an invitation's own path is claimed. Verification and recovery links stay on the web.
 
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 export const APPLE_APP_ID = '769MBW6826.com.togetherledger.ledger';
 export const ANDROID_PACKAGE = 'com.togetherledger.ledger';
 export const INVITATION_PATH = '/invite';
@@ -53,4 +56,17 @@ export function assetLinksProblems(text) {
   if (!Array.isArray(fingerprints) || !fingerprints.length) problems.push('assetlinks.json has no certificate fingerprint');
   else if (fingerprints.some((value) => !FINGERPRINT.test(value))) problems.push('assetlinks.json still holds a placeholder, or a fingerprint that is not a SHA-256 in AA:BB:… form');
   return problems;
+}
+
+// `node scripts/app-links.mjs` checks the two committed files and exits non-zero on any problem.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const read = (path) => readFileSync(new URL(`../public/${path}`, import.meta.url), 'utf8');
+  const problems = [...appSiteAssociationProblems(read(APP_SITE_ASSOCIATION)), ...assetLinksProblems(read(ASSET_LINKS))];
+  if (problems.length) {
+    console.error(`App link files are wrong:\n${problems.map((problem) => `  - ${problem}`).join('\n')}`);
+    process.exit(1);
+  }
+  const fingerprints = JSON.parse(read(ASSET_LINKS))[0].target.sha256_cert_fingerprints;
+  console.log(`✓ ${APP_SITE_ASSOCIATION} claims ${INVITATION_PATH} for ${APPLE_APP_ID}.`);
+  console.log(`✓ ${ASSET_LINKS} names ${ANDROID_PACKAGE} with ${fingerprints.length} certificate fingerprints, each a SHA-256 in AA:BB:… form.`);
 }

@@ -73,22 +73,21 @@ export async function verifyReleaseBundle({ directory, revision, requiredText, r
   }
   const associationProblems = appSiteAssociationProblems(association);
   if (associationProblems.length) throw new Error(`The bundle's ${APP_SITE_ASSOCIATION} is wrong: ${associationProblems.join('; ')}.`);
-  let assetLinks = null;
+  let assetLinks;
   try {
     assetLinks = await readFileImpl(join(directory, ASSET_LINKS), 'utf8');
   } catch {
-    // Absent until the owner adds the fingerprints: Android opens invitations in the browser.
+    throw new Error(`The bundle has no ${ASSET_LINKS}.`);
   }
-  const linkProblems = assetLinks === null ? [] : assetLinksProblems(assetLinks);
+  const linkProblems = assetLinksProblems(assetLinks);
   if (linkProblems.length) throw new Error(`The bundle's ${ASSET_LINKS} must not ship: ${linkProblems.join('; ')}.`);
 
-  return { revision, requiredText, androidAppLinks: assetLinks !== null };
+  return { revision, requiredText };
 }
 
 async function main() {
   const result = await verifyReleaseBundle(parseArguments(process.argv.slice(2)));
   console.log(`✓ the assembled bundle carries revision ${result.revision} and the required user-visible control.`);
-  if (!result.androidAppLinks) console.log('  Note: no assetlinks.json yet, so Android opens invitation links in the browser until the owner adds the fingerprints (#266).');
 }
 
 if (import.meta.url === new URL(process.argv[1], 'file:').href) {
