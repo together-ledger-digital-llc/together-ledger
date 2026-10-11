@@ -47,25 +47,45 @@ test('apple-app-site-association names this app and claims the invitation path a
   assert.notDeepEqual(appSiteAssociationProblems('{'), []);
 });
 
-test('assetlinks.json holds a marked placeholder for the owner\'s fingerprints, and is refused until they replace it', () => {
+// From Play Console > Protected with Play > Play Store protection > Manage Play app signing
+// (owner, Oct 11, 2026). Public values: they identify the keys, they do not unlock them.
+const PLAY_FINGERPRINTS = [
+  // The app signing key Play shows as in use: what Play-installed copies are signed with.
+  '76:7F:38:14:1D:35:22:B5:8E:33:1B:5A:F0:02:4A:51:B4:58:BB:89:33:5E:27:DF:78:DB:5B:4F:7F:CD:69:33',
+  // The previous app signing key (Sep 30, classical): copies installed before the change may still carry it.
+  'F2:96:8A:30:A2:60:0F:12:EF:BD:A9:A6:7B:3E:90:34:68:9F:26:37:03:A1:D1:5B:76:2F:05:0C:60:D3:A2:AF',
+  // The upload key: what EAS signs a store build with before Play re-signs it. Never the phone
+  // test APK's public debug key (.github/workflows/phone-test-apk.yml).
+  '89:F0:56:3B:00:E0:8C:F5:38:F1:9F:89:09:C1:E8:3D:E1:B3:B6:94:93:0D:EB:31:EE:57:E7:C2:AA:FB:BC:7B',
+];
+
+test('assetlinks.json names this app with the three Play certificate fingerprints, and refuses a placeholder or a malformed one', () => {
   const text = publicFile(ASSET_LINKS);
   const [statement] = JSON.parse(text);
   assert.equal(statement.target.package_name, app.android.package);
   assert.deepEqual(statement.relation, ['delegate_permission/common.handle_all_urls']);
-  assert.equal(statement.target.sha256_cert_fingerprints.length, 2, 'the app signing key and the upload key');
-  assert.ok(statement.target.sha256_cert_fingerprints.every((value) => value.startsWith('OWNER-TO-SUPPLY: Play Console > Test and release > App integrity')));
-  assert.match(assetLinksProblems(text).join(), /placeholder/);
+  assert.deepEqual(statement.target.sha256_cert_fingerprints, PLAY_FINGERPRINTS);
+  assert.deepEqual(assetLinksProblems(text), []);
 
   const withFingerprints = (fingerprints) => JSON.stringify([{ ...statement, target: { ...statement.target, sha256_cert_fingerprints: fingerprints } }]);
-  const real = Array.from({ length: 32 }, (_, index) => index.toString(16).padStart(2, '0').toUpperCase()).join(':');
-  assert.deepEqual(assetLinksProblems(withFingerprints([real])), []);
-  assert.deepEqual(assetLinksProblems(withFingerprints([real, real.replace(/^00/, 'FF')])), []);
+  const [inUse] = PLAY_FINGERPRINTS;
   assert.match(assetLinksProblems(withFingerprints([])).join(), /no certificate fingerprint/, 'never shipped empty');
-  assert.match(assetLinksProblems(withFingerprints([real.toLowerCase()])).join(), /placeholder|not a SHA-256/);
-  assert.match(assetLinksProblems(withFingerprints([real, 'OWNER-TO-SUPPLY'])).join(), /placeholder/, 'one filled in and one left is still refused');
-  assert.match(assetLinksProblems(withFingerprints([real.slice(3)])).join(), /not a SHA-256/);
-  const otherPackage = JSON.stringify([{ ...statement, target: { ...statement.target, package_name: 'com.example.other', sha256_cert_fingerprints: [real] } }]);
+  assert.match(assetLinksProblems(withFingerprints(['OWNER-TO-SUPPLY: Play Console > App signing key certificate > SHA-256'])).join(), /placeholder/);
+  assert.match(assetLinksProblems(withFingerprints([inUse, 'OWNER-TO-SUPPLY'])).join(), /placeholder/, 'one filled in and one left is still refused');
+  assert.match(assetLinksProblems(withFingerprints([inUse.toLowerCase()])).join(), /not a SHA-256/, 'upper-case, as Play shows it');
+  assert.match(assetLinksProblems(withFingerprints([inUse.slice(3)])).join(), /not a SHA-256/, '31 pairs');
+  assert.match(assetLinksProblems(withFingerprints([`${inUse}:00`])).join(), /not a SHA-256/, '33 pairs');
+  assert.match(assetLinksProblems(withFingerprints([inUse.replaceAll(':', '')])).join(), /not a SHA-256/, 'no colons');
+  assert.match(assetLinksProblems(withFingerprints([inUse.replace('76', '7G')])).join(), /not a SHA-256/, 'not hex');
+  assert.match(assetLinksProblems(withFingerprints([` ${inUse}`])).join(), /not a SHA-256/, 'stray space');
+  const otherPackage = JSON.stringify([{ ...statement, target: { ...statement.target, package_name: 'com.example.other' } }]);
   assert.match(assetLinksProblems(otherPackage).join(), /must name com\.togetherledger\.ledger/);
+  assert.notDeepEqual(assetLinksProblems('{'), []);
+});
+
+test('the app-links script passes on the committed files', () => {
+  const said = execFileSync(process.execPath, [join(root, 'scripts/app-links.mjs')], { encoding: 'utf8' });
+  assert.match(said, /assetlinks\.json names com\.togetherledger\.ledger with 3 certificate fingerprints/);
 });
 
 test('each file is served as application/json: Apple\'s by a rule, Android\'s by its extension', () => {
@@ -85,13 +105,12 @@ test('each file is served as application/json: Apple\'s by a rule, Android\'s by
   assert.match(readFileSync(join(root, 'scripts/dev.mjs'), 'utf8'), /'\.json': 'application\/json'/);
 });
 
-test('the assembled site carries Apple\'s file as written, and leaves Android\'s out while it holds a placeholder', () => {
+test('the assembled site carries both link files as written', () => {
   const out = mkdtempSync(join(tmpdir(), 'tl-site-'));
   try {
-    const said = execFileSync(process.execPath, [join(root, 'scripts/build-public-site.mjs'), '--out', join(out, '_site')], { encoding: 'utf8' });
+    execFileSync(process.execPath, [join(root, 'scripts/build-public-site.mjs'), '--out', join(out, '_site')], { encoding: 'utf8' });
     assert.equal(readFileSync(join(out, '_site', APP_SITE_ASSOCIATION), 'utf8'), publicFile(APP_SITE_ASSOCIATION));
-    assert.equal(existsSync(join(out, '_site', ASSET_LINKS)), false, 'a placeholder never ships');
-    assert.match(said, /Left out \.well-known\/assetlinks\.json/);
+    assert.equal(readFileSync(join(out, '_site', ASSET_LINKS), 'utf8'), publicFile(ASSET_LINKS));
     assert.ok(existsSync(join(out, '_site', 'index.html')));
   } finally {
     rmSync(out, { recursive: true, force: true });

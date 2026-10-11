@@ -32,22 +32,26 @@ Capability sync is off in this repository (`EXPO_NO_CAPABILITY_SYNC=1`, `docs/IO
 
 No domain is entered in the portal. The domain comes from the app's entitlements and the website's file.
 
-### Google: the two certificate fingerprints
+### Google: the certificate fingerprints (done Oct 11, 2026)
 
-`public/.well-known/assetlinks.json` holds two marked placeholders (`OWNER-TO-SUPPLY: …`). While it does, the build leaves the file out, the release gate refuses a bundle that carries it, and Android opens invitation links in the browser (#180 covers the same key).
+`public/.well-known/assetlinks.json` names `com.togetherledger.ledger` with three SHA-256 certificate fingerprints, copied from Play Console by the owner. They are public values: they identify the keys and unlock nothing.
 
-1. Play Console → Together Ledger → **Test and release** → **App integrity**, where the app signing key and the upload key are shown.
-2. Copy the **SHA-256 certificate fingerprint** under **App signing key certificate**. This is what Play-installed copies are signed with.
-3. Copy the one under **Upload key certificate**. This is what EAS and the phone test APK sign with before Play re-signs.
-4. Replace the two placeholders with them, as shown: upper-case hex pairs separated by colons (`AB:CD:…`, 32 pairs). Open a PR; the tests check the form.
-5. After it deploys, Android re-verifies on the next install or update of the app.
+| Fingerprint | Key | Why it is listed |
+|---|---|---|
+| `76:7F:38:…:CD:69:33` | App signing key, **shown by Play as in use** | What Play-installed copies are signed with now |
+| `F2:96:8A:…:D3:A2:AF` | Previous app signing key (Sep 30, classical) | Copies installed before the current key took over, and older Android versions after a key upgrade, may still be signed with it. **Not confirmed** which phones, so it stays listed |
+| `89:F0:56:…:FB:BC:7B` | Upload key | What EAS signs a store build with before Play re-signs it, so an EAS build installed directly verifies too |
+
+Where Play Console shows them has moved. It used to be **Test and release → App integrity**; it is now **Protected with Play → Play Store protection → Manage Play app signing**. If it moves again, look for the page that shows the app signing key and the upload key.
+
+If a key changes (Play rotates the signing key, or a new upload key is registered), add its SHA-256 as shown there: upper-case hex pairs separated by colons (`AB:CD:…`, 32 pairs). Keep a key that copies in people's hands may still be signed with. `node scripts/app-links.mjs` checks the form, and the build and the release gate stop on a placeholder or a malformed value rather than ship without the file. `tests/app-links.test.js` holds the exact list, so a change there is deliberate.
 
 ## Checking it
 
 **The files, once deployed** (from a browser or `curl`; Bot Fight Mode may refuse an automated client, which is why none of this is a gate):
 
 - `https://app.together-ledger.com/.well-known/apple-app-site-association`: 200, `Content-Type: application/json`, no redirect.
-- `https://app.together-ledger.com/.well-known/assetlinks.json`: 200, `application/json`, once the fingerprints are in. Until then the address answers with the app page.
+- `https://app.together-ledger.com/.well-known/assetlinks.json`: 200, `application/json`, no redirect, the same three fingerprints as the committed file.
 - What Apple's CDN holds: `https://app-site-association.cdn-apple.com/a/v1/app.together-ledger.com`. It can lag a deploy by hours.
 - What Google sees: `https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://app.together-ledger.com&relation=delegate_permission/common.handle_all_urls`.
 
@@ -64,4 +68,17 @@ No domain is entered in the portal. The domain comes from the app's entitlements
 
 Also check: tapping the same link again once joined says you're already in, and nothing changes; a verification or recovery link still opens the browser, not the app.
 
-Android only: `adb shell pm get-app-links com.togetherledger.ledger` should say `app.together-ledger.com: verified`. `adb shell pm verify-app-links --re-verify com.togetherledger.ledger` asks again.
+### Android: is the link verified?
+
+Android checks `assetlinks.json` when the app is installed or updated, not when the website changes. A phone that installed the app before the file was live has to be told to check again, or the app updated or reinstalled.
+
+**With a computer** (USB debugging on, the phone plugged in):
+
+1. Install the app from Play (internal testing is fine), or update it. Not the phone test APK from Actions: it is signed with Expo's public debug key, which is deliberately not listed, so on it links always open the browser.
+2. Ask Android to check again: `adb shell pm verify-app-links --re-verify com.togetherledger.ledger`
+3. Wait about a minute, then: `adb shell pm get-app-links com.togetherledger.ledger`
+4. Expect `app.together-ledger.com: verified`. `none` means it hasn't checked yet: wait and run step 3 again. `1024` or another number means it checked and failed: open the file in a browser and compare it with the committed one, then look at Cloudflare's Security → Events for `/.well-known/`.
+
+**Without a computer:** Play Console → Together Ledger → **Deep links** (search Play Console for "Deep links" if the menu has moved). It lists `app.together-ledger.com` and says whether the web link is verified for the app.
+
+**Either way, then tap a real invitation link** in Mail or Messages. It should open the app, not the browser. That is the only check that proves it.
