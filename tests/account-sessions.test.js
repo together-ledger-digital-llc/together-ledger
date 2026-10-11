@@ -11,6 +11,7 @@ import { buildApp } from '../server/app.js';
 import { loadConfig } from '../server/config.js';
 import { MemoryMailer } from '../server/mailer.js';
 import { PlatformService } from '../server/platform.js';
+import { verifyPassword } from '../server/security.js';
 
 const origin = 'http://127.0.0.1:4174';
 const PASSWORD = 'correct horse battery staple';
@@ -44,7 +45,7 @@ const identity = {
   },
 };
 
-async function setup() {
+async function setup({ checkPassword } = {}) {
   const memory = newDb({ autoCreateForeignKeyIndices: true });
   memory.public.registerFunction({ name: 'char_length', args: ['text'], returns: 'integer', implementation: (value) => value.length });
   memory.public.registerFunction({ name: 'jsonb_array_length', args: ['jsonb'], returns: 'integer', implementation: (value) => (Array.isArray(value) ? value.length : 0) });
@@ -52,7 +53,7 @@ async function setup() {
   for (const name of MIGRATIONS) await pool.query(await readFile(new URL(`../server/migrations/${name}`, import.meta.url), 'utf8'));
   const config = loadConfig({ NODE_ENV: 'test', PUBLIC_ORIGIN: origin, SESSION_SECRET: 's'.repeat(32), AUDIT_HMAC_KEY: 'a'.repeat(32) });
   const mailer = new MemoryMailer();
-  const platform = new PlatformService({ pool, config, mailer, identity, apple: { configured: () => false } });
+  const platform = new PlatformService({ pool, config, mailer, identity, apple: { configured: () => false }, ...(checkPassword && { checkPassword }) });
   const app = await buildApp({ platform, config });
   return { app, pool, mailer, platform };
 }
@@ -276,36 +277,45 @@ test('a wrong current password is refused in login\'s words, changes nothing, an
 });
 
 // The time a wrong password takes is login's: one argon2 verification, of the account's own hash
-// or of the same padding hash login uses for an account that has none. Each is timed several
-// times and the middle values compared, so a slow first run or one busy moment does not decide it.
-test('a wrong current password takes about as long as a wrong password at login', async (t) => {
-  const { app, pool } = await setup();
+// or of the same padding hash login uses for an account that has none. That is proved by the work
+// itself rather than a stopwatch, which a busy shared runner cannot be trusted to read (a release
+// was once refused on 42.8 ms against 20.7 ms): every password check goes through the real argon2
+// verification, wrapped here to note which hash it was given. Each path must verify exactly once,
+// and every hash it verifies must carry the same argon2 cost, so each costs what a wrong login does.
+test('a wrong current password does the same argon2 work as a wrong password at login', async (t) => {
+  const checks = [];
+  const { app, pool, platform } = await setup({
+    checkPassword: async (hash, password) => { checks.push(hash); return verifyPassword(hash, password); },
+  });
   t.after(async () => { await app.close(); await pool.end(); });
   await register(app, 'asha@example.test');
   const here = await browserSignIn(app, 'asha@example.test');
   const google = await app.inject({ method: 'POST', url: '/api/v1/auth/google', headers: { origin }, payload: { idToken: 'google:g-1:gita@example.test' } });
   const noPassword = { cookie: google.headers['set-cookie'].split(';')[0], csrf: google.json().data.csrfToken };
+  const ownHash = (await pool.query('SELECT password_hash FROM users WHERE email_normalized=$1', ['asha@example.test'])).rows[0].password_hash;
+  const padding = await platform.dummyPasswordHash;
   // Each request comes from its own address, so the rate limit never answers in place of the route.
   let address = 0;
   const from = () => { address += 1; return `198.51.100.${address}`; };
-  const median = async (send) => {
-    const times = [];
-    for (let i = 0; i < 7; i += 1) {
-      const started = process.hrtime.bigint();
-      const response = await send(from());
-      times.push(Number(process.hrtime.bigint() - started) / 1e6);
-      assert.equal(response.statusCode, 401, response.body);
-    }
-    return times.sort((a, b) => a - b)[3];
+  const verified = async (send) => {
+    checks.length = 0;
+    const response = await send(from());
+    assert.equal(response.statusCode, 401, response.body);
+    return [...checks];
   };
   const wrongLogin = (identifier) => (remoteAddress) => app.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress, headers: { origin }, payload: { identifier, password: 'not the password at all' } });
-  await median(wrongLogin('asha'));
-  const login = await median(wrongLogin('asha@example.test'));
-  const change = await median((address) => call(app, 'POST', '/api/v1/account/password', { browser: here, from: address, payload: { currentPassword: 'not the password at all', newPassword: NEW_PASSWORD } }));
-  const none = await median((address) => call(app, 'POST', '/api/v1/account/password', { browser: noPassword, from: address, payload: { currentPassword: 'not the password at all', newPassword: NEW_PASSWORD } }));
-  for (const [name, took] of [['a wrong current password', change], ['an account with no password', none]]) {
-    assert.ok(took > login * 0.5 && took < login * 2, `${name} took ${took.toFixed(1)} ms; a wrong login takes ${login.toFixed(1)} ms`);
-  }
+  const wrongChange = (browser) => (remoteAddress) => call(app, 'POST', '/api/v1/account/password', { browser, from: remoteAddress, payload: { currentPassword: 'not the password at all', newPassword: NEW_PASSWORD } });
+
+  assert.deepEqual(await verified(wrongLogin('asha@example.test')), [ownHash], 'a wrong login verifies the account\'s own hash, once');
+  assert.deepEqual(await verified(wrongLogin('nobody@example.test')), [padding], 'a login for no account verifies the padding hash, once');
+  assert.deepEqual(await verified(wrongChange(here)), [ownHash], 'a wrong current password verifies the account\'s own hash, once');
+  assert.deepEqual(await verified(wrongChange(noPassword)), [padding], 'an account with no password verifies login\'s padding hash, once');
+
+  // The padding is a real argon2id hash made with the same cost as an account's own, so verifying
+  // either is the same work. Only the salt and the digest may differ.
+  const cost = (hash) => hash.split('$').slice(0, 4).join('$');
+  assert.match(ownHash, /^\$argon2id\$v=\d+\$(?=[^$]*m=\d+)(?=[^$]*t=\d+)(?=[^$]*p=\d+)[^$]+\$/, 'an account\'s own hash names its argon2id cost');
+  assert.equal(cost(padding), cost(ownHash));
 });
 
 test('the new password follows the rule every password does: 12 to 128 characters', async (t) => {
