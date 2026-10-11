@@ -50,15 +50,17 @@ change in App Store Connect, the Apple Developer account or EAS. The owner runs 
    its own pull request. EAS accepts only digits there: "It should consist only of digits"
    (`@expo/eas-json` 24.9.0, `build/submit/schema.js`). Android submissions are not affected.
 6. **The iOS Google client ID, in `apps/mobile/eas.json`, for Continue with Google and Sign in with
-   Apple (#217).** Without it the build still works and offers email sign-in only. In Google Cloud
-   Console → APIs & Services → Credentials, in the project that holds the web's client
-   (`GOOGLE_WEB_CLIENT_ID`), create an OAuth client of type **iOS** with bundle ID
-   `com.togetherledger.ledger`. Put its client ID (`<number>-<letters>.apps.googleusercontent.com`)
-   in `build.production.env` as `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`, and in `build.preview.env`
-   for a preview build, in its own pull request; it is public, not a secret. Add the same ID to the
-   server's `GOOGLE_CLIENT_IDS`, or the server refuses its tokens and the iPhone shows neither
-   button. Apple needs nothing new: the server already accepts the bundle ID
-   (`APPLE_CLIENT_IDS`), and the key that exchanges Apple's code is the web's.
+   Apple (#217).** Done Oct 11: `build.production.env` and `build.preview.env` carry the iOS client
+   ("Together Ledger iOS-app", bundle ID `com.togetherledger.ledger`) as
+   `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`, and the web client Android asks its token for as
+   `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`. Both were made on Oct 10-11 in Google Cloud project
+   `togetherledger-app`, and both are public, not secrets. The build offers email sign-in only until
+   the server's `GOOGLE_CLIENT_IDS` holds the same iOS client; before that the server refuses its
+   tokens and the iPhone shows neither button. Apple needs nothing new: the server already accepts
+   the bundle ID (`APPLE_CLIENT_IDS`), and the key that exchanges Apple's code is the web's. The
+   project's Google consent screen being in Testing does not limit who can sign in: the phone asks
+   only for name, email address and profile, which Google exempts from the test-user list
+   ([Google: Manage App Audience](https://support.google.com/cloud/answer/15549945)).
 
 ---
 

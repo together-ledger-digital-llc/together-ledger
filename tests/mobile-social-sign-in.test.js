@@ -234,6 +234,99 @@ test('the Google client comes from the build\'s public config, never the source'
   assert.equal(googleUrlScheme({ EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: 'com.googleusercontent.apps.123' }), null);
 });
 
+// Together Ledger's own Google OAuth clients (owner, Oct 10-11, 2026), in Google Cloud project
+// togetherledger-app. All three are public identifiers. The iOS and web clients go into the phone
+// builds; the Android client is registered with Google by package name and the SHA-1 of Play's app
+// signing key, and never appears in the app or as a token's audience.
+const GOOGLE_IOS_CLIENT = '830212501049-rfcs1cbpoutujis33ealcilrni2iurmo.apps.googleusercontent.com';
+const GOOGLE_WEB_CLIENT = '830212501049-m2kdup7ckrivuqu1uure7un5fq17hvth.apps.googleusercontent.com';
+const GOOGLE_ANDROID_CLIENT = '830212501049-asm6nbn1g4rsv8oggv8sdqedv0m3l70v.apps.googleusercontent.com';
+
+// src/config/google.ts as a build for this platform runs it, with these EXPO_PUBLIC_* values inlined:
+// react-native's Platform stood in for, and social-sign-in.ts exactly as it is.
+let googleConfigBuilds = 0;
+async function googleConfigFor(os, env) {
+  const asModule = (source) => `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
+  const rules = ts.transpileModule(await read('src/auth/social-sign-in.ts'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
+  const original = await read('src/config/google.ts');
+  const source = original
+    .replace("import { Platform } from 'react-native';", `const Platform = { OS: ${JSON.stringify(os)} };`)
+    .replace("from '../auth/social-sign-in';", `from '${asModule(rules)}';`);
+  assert.equal(source.match(/^const Platform = |data:text\/javascript/gm)?.length, 2, 'google.ts imports what this test stands in for');
+  const { outputText } = ts.transpileModule(`${source}\n// build ${googleConfigBuilds += 1}`, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
+  const names = ['EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID', 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID'];
+  const saved = Object.fromEntries(names.map((name) => [name, process.env[name]]));
+  try {
+    for (const name of names) {
+      if (env[name] === undefined) delete process.env[name];
+      else process.env[name] = env[name];
+    }
+    return await import(asModule(outputText));
+  } finally {
+    for (const name of names) {
+      if (saved[name] === undefined) delete process.env[name];
+      else process.env[name] = saved[name];
+    }
+  }
+}
+
+test('the phone builds carry Together Ledger\'s own Google clients, and the Android client stays out of the app', async () => {
+  const eas = JSON.parse(await read('eas.json'));
+  for (const profile of ['production', 'preview']) {
+    const { env } = eas.build[profile];
+    assert.equal(env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID, GOOGLE_IOS_CLIENT, `${profile}: the iOS client`);
+    assert.equal(env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, GOOGLE_WEB_CLIENT, `${profile}: the web client, which Android asks its token for`);
+    const { googleUrlScheme } = require('../apps/mobile/app.config.js');
+    assert.equal(googleUrlScheme(env), 'com.googleusercontent.apps.830212501049-rfcs1cbpoutujis33ealcilrni2iurmo', `${profile}: the scheme Google returns to on an iPhone`);
+  }
+  // All three were made in the same Google Cloud project, togetherledger-app.
+  const project = (id) => id.split('-')[0];
+  assert.equal(project(GOOGLE_ANDROID_CLIENT), project(GOOGLE_WEB_CLIENT));
+  assert.equal(project(GOOGLE_IOS_CLIENT), project(GOOGLE_WEB_CLIENT));
+  const files = ['eas.json', 'app.json', 'app.config.js', '.env.example'];
+  const walk = async (dir) => (await readdir(new URL(dir, mobile), { withFileTypes: true }))
+    .flatMap((entry) => (entry.isDirectory() ? [] : [`${dir}${entry.name}`]));
+  for (const dir of ['src/config/', 'src/auth/', 'src/components/', 'plugins/']) files.push(...await walk(dir));
+  for (const file of files) assert.doesNotMatch(await read(file), new RegExp(GOOGLE_ANDROID_CLIENT.split('.')[0]), `${file} names the Android client`);
+});
+
+test('with those clients set, the phone offers Google on both platforms and Apple on an iPhone', async () => {
+  const eas = JSON.parse(await read('eas.json'));
+  // The owner's server step: the web client as GOOGLE_WEB_CLIENT_ID and the iOS client in
+  // GOOGLE_CLIENT_IDS. Apple's two secrets are already set on the server; stood in for here.
+  const { loadConfig } = await import('../server/config.js');
+  const { PlatformService } = await import('../server/platform.js');
+  const config = loadConfig({ NODE_ENV: 'test', GOOGLE_WEB_CLIENT_ID: GOOGLE_WEB_CLIENT, GOOGLE_CLIENT_IDS: GOOGLE_IOS_CLIENT });
+  const server = new PlatformService({ pool: null, config, mailer: null, apple: { configured: () => true } });
+
+  for (const profile of ['production', 'preview']) {
+    const ios = await googleConfigFor('ios', eas.build[profile].env);
+    assert.equal(ios.phonePlatform, 'ios');
+    assert.equal(ios.googleClientId, GOOGLE_IOS_CLIENT, `${profile}: an iPhone's token is issued to the iOS client`);
+    const iosAnswer = server.phoneSignInProviders(ios.phonePlatform, ios.googleClientId);
+    assert.deepEqual(social.offeredSignIns(ios.phonePlatform, iosAnswer, { appleSheet: true }), { google: true, apple: true }, `${profile}: Google and Apple on an iPhone`);
+
+    const android = await googleConfigFor('android', eas.build[profile].env);
+    assert.equal(android.phonePlatform, 'android');
+    assert.equal(android.googleClientId, GOOGLE_WEB_CLIENT, `${profile}: Android's token is issued to the web client`);
+    const androidAnswer = server.phoneSignInProviders(android.phonePlatform, android.googleClientId);
+    assert.deepEqual(social.offeredSignIns(android.phonePlatform, androidAnswer), { google: true, apple: false }, `${profile}: Google alone on Android`);
+  }
+
+  // Without them, as before this change: email and password only, on both.
+  for (const os of ['ios', 'android']) {
+    const unset = await googleConfigFor(os, {});
+    assert.equal(unset.googleClientId, null);
+    assert.deepEqual(social.offeredSignIns(os, server.phoneSignInProviders(os, unset.googleClientId), { appleSheet: true }), social.NOTHING_OFFERED);
+  }
+  // And a server that hasn't been given them yet offers neither phone anything.
+  const bare = new PlatformService({ pool: null, config: loadConfig({ NODE_ENV: 'test' }), mailer: null, apple: { configured: () => true } });
+  for (const os of ['ios', 'android']) {
+    const built = await googleConfigFor(os, eas.build.production.env);
+    assert.deepEqual(social.offeredSignIns(os, bare.phoneSignInProviders(os, built.googleClientId), { appleSheet: true }), social.NOTHING_OFFERED);
+  }
+});
+
 test('the buttons sit on the same screens as email sign-in, equal in size and over the 44-point minimum', async () => {
   const account = await read('app/account.tsx');
   const register = await read('app/register.tsx');

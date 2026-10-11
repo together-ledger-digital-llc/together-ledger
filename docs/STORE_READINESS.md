@@ -152,7 +152,9 @@ is, so they are honest today and say which answer changes if a fix lands.
   The store answers in Part 3 are about the phone and don't change.
 - **What it means.** Nothing goes to Apple or Google for sign-in from the web until the owner
   sets `GOOGLE_WEB_CLIENT_ID`, or from the phone until its build has a Google client ID
-  (`apps/mobile/eas.json`) that the server accepts. Then the person signs in with Apple or Google
+  (`apps/mobile/eas.json`) that the server accepts. Since Oct 11 (#217) the builds carry Together
+  Ledger's own clients; the server accepts them once the owner sets `GOOGLE_WEB_CLIENT_ID`
+  and `GOOGLE_CLIENT_IDS`. Then the person signs in with Apple or Google
   directly, in their browser or in the provider's own sheet on the phone, and `PRIVACY.md`
   already names both (its "Signing in with Apple or Google"). **App Store guideline 4.8 requires
   Sign in with Apple on the phone whenever Google sign-in is offered there**, which is why the
