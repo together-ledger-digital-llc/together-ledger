@@ -8,6 +8,7 @@
 import { characterCount } from '../../../../src/display-text.js';
 import { localDay, MOMENT_NAME_MISSING } from '../../../../src/model.js';
 import { normalizeMomentTheme } from '../../../../src/moment-themes.js';
+import { t } from '../i18n/sentences.js';
 import type { Moment } from './journey-view';
 
 export type Place = { label: string; latitude?: number | null; longitude?: number | null; accuracyMeters?: number | null };
@@ -32,19 +33,22 @@ export type EditableMoment = Moment & { version: number; locations?: Place[] };
  * The web's currency choices, in its order and its words. The empty choice reads as what it is,
  * no currency, so it never looks like a currency that has been chosen (#351).
  */
-export const CURRENCIES: [string, string][] = [
-  ['', 'No currency'],
-  ['USD', 'USD — US dollar'],
-  ['EUR', 'EUR — Euro'],
-  ['GBP', 'GBP — British pound'],
-  ['CAD', 'CAD — Canadian dollar'],
-  ['AUD', 'AUD — Australian dollar'],
-  ['JPY', 'JPY — Japanese yen'],
-  ['INR', 'INR — Indian rupee'],
+const CURRENCY_KEYS: [string, string][] = [
+  ['', 'common.currency.none'],
+  ['USD', 'common.currency.usd'],
+  ['EUR', 'common.currency.eur'],
+  ['GBP', 'common.currency.gbp'],
+  ['CAD', 'common.currency.cad'],
+  ['AUD', 'common.currency.aud'],
+  ['JPY', 'common.currency.jpy'],
+  ['INR', 'common.currency.inr'],
 ];
 
+/** The choices in the active language, read as the form draws. */
+export const currencies = (): [string, string][] => CURRENCY_KEYS.map(([code, key]) => [code, t(key)]);
+
 /** The phone's drop-down (#351) carries "(optional)" in its own label. */
-export const CURRENCY_LABEL = 'Currency (optional)';
+export const currencyLabel = () => t('mobile.moment.currency');
 
 export { MOMENT_NAME_MISSING };
 
@@ -99,17 +103,17 @@ function realDate(value: string) {
 
 /** The first problem with a draft, in the server's own words, or null when it can be sent. */
 export function draftProblem(draft: Draft): string | null {
-  if (draft.kind === 'other' && (!draft.kindLabel.trim() || characterCount(draft.kindLabel.trim()) > 60)) return 'A name for this kind of moment is required and must be 60 characters or fewer.';
-  if (!realDate(draft.occurredOn)) return 'Choose a valid moment date.';
+  if (draft.kind === 'other' && (!draft.kindLabel.trim() || characterCount(draft.kindLabel.trim()) > 60)) return t('mobile.moment.kindNameProblem');
+  if (!realDate(draft.occurredOn)) return t('mobile.moment.dateProblem');
   // Named as the form names the field (#354). The field stops at 120, so only an empty name can
   // reach the second check from the form; the server's words stay for anything longer.
   if (!draft.title.trim()) return MOMENT_NAME_MISSING;
-  if (characterCount(draft.title.trim()) > 120) return 'Moment title is required and must be 120 characters or fewer.';
+  if (characterCount(draft.title.trim()) > 120) return t('mobile.moment.titleTooLong');
   if (draft.money.trim() !== '') {
     const amount = Number(draft.money);
-    if (!Number.isFinite(amount) || amount < 0 || amount > 1000000) return 'Enter a valid optional money context.';
+    if (!Number.isFinite(amount) || amount < 0 || amount > 1000000) return t('common.moment.moneyProblem');
   }
-  if (draft.locations.length > MAX_PLACES) return 'A moment can hold up to 12 places.';
+  if (draft.locations.length > MAX_PLACES) return t('common.moment.tooManyPlaces');
   return null;
 }
 
@@ -134,7 +138,7 @@ export function payloadFrom(draft: Draft, before: EditableMoment | null) {
 export function addPlace(locations: Place[], label: string): { locations: Place[]; problem: string | null } {
   const trimmed = label.trim();
   if (!trimmed) return { locations, problem: null };
-  if (locations.length >= MAX_PLACES) return { locations, problem: 'A moment can hold up to 12 places.' };
+  if (locations.length >= MAX_PLACES) return { locations, problem: t('common.moment.tooManyPlaces') };
   return { locations: [...locations, { label: trimmed }], problem: null };
 }
 
@@ -151,14 +155,12 @@ export function visibilityLocked(before: EditableMoment | null, visibility: stri
 }
 
 export function visibilityHelp(before: EditableMoment | null) {
-  return before?.visibility === 'shared-now'
-    ? 'Already shared: everyone in this journey can see this moment, including anyone who joins later. Prior access cannot be undone.'
-    : 'Private stays with you. Shared now opens it to everyone in this journey, including anyone who joins later. Share later stays with you until you deliberately share it.';
+  return before?.visibility === 'shared-now' ? t('common.moment.visibilityLocked') : t('common.moment.visibilityHelp');
 }
 
 /** The toast after saving, in the web's words. */
 export function savedMessage(before: EditableMoment | null, visibility: string) {
-  return before ? 'Moment updated.' : visibility === 'shared-now' ? 'Moment shared.' : 'Moment held with you.';
+  return before ? t('common.moment.updated') : visibility === 'shared-now' ? t('common.moment.shared') : t('common.moment.heldWithYou');
 }
 
 /** Sharing a share-later moment now: the same moment, shared, from the version it was read at. */
@@ -173,13 +175,13 @@ export function sharePayload(moment: EditableMoment) {
  */
 export function deleteConsequence(moment: EditableMoment) {
   return moment.visibility === 'shared-now'
-    ? `“${moment.title}” will be removed for everyone in this journey. The journey’s history will still show that it was deleted, and who deleted it.`
-    : `“${moment.title}” will be removed. Only you could see it, so it leaves nothing behind that anyone else can see.`;
+    ? t('common.moment.deleteSharedConsequence', { title: moment.title })
+    : t('common.moment.deletePrivateConsequence', { title: moment.title });
 }
 
 /**
  * The line in the edit form's delete zone (#338): what deleting does, said before the button
  * is ever tapped, and that there is one more question before anything happens.
  */
-export const DELETE_ZONE_TITLE = 'Delete this moment';
-export const DELETE_ZONE_NOTE = 'Deleting removes this moment from the ledger, and it can’t be undone. You’ll be asked once more before anything is deleted.';
+export const deleteZoneTitle = () => t('mobile.moment.deleteZoneTitle');
+export const deleteZoneNote = () => t('mobile.moment.deleteZoneNote');

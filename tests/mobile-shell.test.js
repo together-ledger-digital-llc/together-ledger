@@ -9,16 +9,19 @@ const mobile = new URL('../apps/mobile/', import.meta.url);
 async function importMobile(path) {
   const source = await readFile(new URL(path, mobile), 'utf8');
   const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
-  return import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+  return import(`data:text/javascript;base64,${Buffer.from(outputText.replace(/from '(\.[^']+\.js)'/g, (_, specifier) => `from '${new URL(specifier, new URL(path, mobile)).href}'`)).toString('base64')}`);
 }
 const read = (path) => readFile(new URL(path, mobile), 'utf8');
 const web = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
-const { STATUS_TONES, CONNECTION_MESSAGES, showStatus, clearStatus, closeDialog } = await importMobile('src/shell/status.ts');
-const { OFFLINE_NOTICE, CONNECTION_SOURCE, connectionChange } = await importMobile('src/shell/connection.ts');
-const { OFFLINE_MESSAGE, UNREACHABLE_MESSAGE, UNAVAILABLE_MESSAGE } = await importMobile('src/api/client.ts');
+const { STATUS_TONES, connectionMessages, showStatus, clearStatus, closeDialog } = await importMobile('src/shell/status.ts');
+const { offlineNotice, CONNECTION_SOURCE, connectionChange } = await importMobile('src/shell/connection.ts');
+const { offlineMessage, unreachableMessage, unavailableMessage } = await importMobile('src/api/client.ts');
 const { openingSurface } = await importMobile('src/shell/surface.ts');
-const { TOAST_MS, PENDING_LABEL, KEEP_LABEL } = await importMobile('src/shell/defaults.ts');
+const { TOAST_MS, workingLabel, keepThingsLabel } = await importMobile('src/shell/defaults.ts');
+// Each is read in the active language as it is said; imported on its own, the phone reads English.
+const [OFFLINE_NOTICE, OFFLINE_MESSAGE, UNREACHABLE_MESSAGE, UNAVAILABLE_MESSAGE] = [offlineNotice(), offlineMessage(), unreachableMessage(), unavailableMessage()];
+const [PENDING_LABEL, KEEP_LABEL] = [workingLabel(), keepThingsLabel()];
 
 test('the status region carries the web\'s two tones, each with its own shape', () => {
   assert.deepEqual(Object.keys(STATUS_TONES), ['caution', 'problem']);
@@ -40,7 +43,7 @@ test('messages clear per source, so a returning connection never wipes a problem
 // #300, #352: offline, or the service out of reach, loses nothing, so it is never the
 // destructive colour. Every other message keeps its tone until #244 decides otherwise.
 test('being offline or out of reach is a caution, never a problem', () => {
-  assert.deepEqual([...CONNECTION_MESSAGES], [OFFLINE_MESSAGE, UNREACHABLE_MESSAGE, UNAVAILABLE_MESSAGE], 'the account client\'s own words, held the same in both files');
+  assert.deepEqual([...connectionMessages()], [OFFLINE_MESSAGE, UNREACHABLE_MESSAGE, UNAVAILABLE_MESSAGE], 'the account client\'s own words, read from the same sentences');
   assert.equal(OFFLINE_MESSAGE, OFFLINE_NOTICE, 'offline is one message on the phone: the connection notice\'s (#352)');
   assert.equal(showStatus(OFFLINE_MESSAGE, { source: 'moment' }).tone, 'caution');
   assert.equal(showStatus(UNAVAILABLE_MESSAGE).tone, 'caution');
@@ -63,7 +66,7 @@ test('the phone watches its connection, shows a standing caution, and clears it 
   assert.match(OFFLINE_NOTICE, /nothing else can be changed/);
 
   const layout = await read('app/_layout.tsx');
-  assert.match(layout, /onOffline: \(\) => showStatus\(OFFLINE_NOTICE, \{ tone: 'caution', source: CONNECTION_SOURCE \}\)/);
+  assert.match(layout, /onOffline: \(\) => showStatus\(offlineNotice\(\), \{ tone: 'caution', source: CONNECTION_SOURCE \}\)/);
   assert.match(layout, /onOnline: \(\) => \{\s*clearStatus\(CONNECTION_SOURCE\);\s*recheck\(\);/, 'back online clears only its own notice, then checks again');
   assert.match(layout, /onForeground: recheck/);
   assert.match(layout, /const recheck = useCallback\(\(\) => \{\s*refresh\(\)\.then\(sendNow\);\s*reload\(\);/, 'checking again means the session, what waits to be sent, and the journeys, with no restart or password');
@@ -98,15 +101,16 @@ test('toast timing, pending wording and the way out are the web\'s own', async (
   assert.ok(web.includes(`pendingLabel = '${PENDING_LABEL}'`));
   assert.ok(web.includes(`keepLabel = '${KEEP_LABEL}'`));
   const ui = await read('src/components/ui.tsx');
-  assert.match(ui, /pendingLabel = PENDING_LABEL/);
+  assert.match(ui, /pendingLabel = workingLabel\(\)/);
   assert.match(ui, /accessibilityState=\{\{ disabled: disabled \|\| pending, busy: pending \}\}/, 'a pending button is disabled and says it is busy');
 });
 
 test('the consequence dialog names the act, opens on the way out, and is destructive only when asked', async () => {
   const provider = await read('src/shell/shell-provider.tsx');
   const dialog = await read('src/components/dialogs.tsx');
-  assert.match(provider, /confirmConsequence: \(\{ title, consequence, confirmLabel, keepLabel = KEEP_LABEL, destructive = false \}\)/);
-  assert.match(dialog, /Before this happens/);
+  assert.match(provider, /confirmConsequence: \(\{ title, consequence, confirmLabel, keepLabel = keepThingsLabel\(\), destructive = false \}\)/);
+  assert.match(dialog, /\{t\('common\.dialog\.eyebrow'\)\}/);
+  assert.equal(JSON.parse(await readFile(new URL('../locales/en.json', import.meta.url), 'utf8'))['common.dialog.eyebrow'], 'Before this happens');
   const keep = dialog.indexOf('ref={keep}');
   const accept = dialog.indexOf("kind={request.destructive ? 'destructive' : 'primary'}");
   assert.ok(keep > 0 && accept > keep, 'keep comes first, accept second, destructive only on request');
@@ -148,4 +152,18 @@ test('nothing tappable in the shell is under 44 points, and nothing sits under a
   assert.match(dialog, /paddingTop: insets\.top/);
   const toast = await read('src/components/toast.tsx');
   assert.match(toast, /bottom: insets\.bottom \+ 20/);
+});
+
+test('a button whose label wraps has room above and below it, and one line keeps the 44-point minimum (101C)', async () => {
+  const ui = await read('src/components/ui.tsx');
+  const { MIN_TARGET } = await importMobile('src/theme/metrics.ts');
+  const button = /button: \{ flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingVertical: (\d+), borderWidth: 1 \}/.exec(ui);
+  assert.ok(button, 'the shared Button has vertical padding');
+  const padding = Number(button[1]);
+  assert.equal(padding, 10, 'the web\'s .button padding');
+  assert.match(ui, /styles\.button, targetSize/, 'and never less than the 44-point minimum');
+  // One line of 16-point text is about 21 points tall: with 10 above and below and the border it
+  // stays inside the minimum, so a one-line button is exactly as tall as before.
+  assert.ok(21 + 2 * padding + 2 <= MIN_TARGET);
+  assert.match(ui, /buttonText: \{ flexShrink: 1, fontSize: 16, fontWeight: '700', textAlign: 'center' \}/, 'a long label wraps, centred, inside the button');
 });

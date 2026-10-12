@@ -12,7 +12,7 @@ const read = (path) => readFile(new URL(path, mobile), 'utf8');
 
 async function importMobile(path) {
   const { outputText } = ts.transpileModule(await read(path), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
-  return import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+  return import(`data:text/javascript;base64,${Buffer.from(outputText.replace(/from '(\.[^']+\.js)'/g, (_, specifier) => `from '${new URL(specifier, new URL(path, mobile)).href}'`)).toString('base64')}`);
 }
 
 const { buildName } = await importMobile('src/config/build-name.ts');
@@ -95,8 +95,9 @@ test('every request from the phone says which build sent it, the image loader\'s
 test('Settings shows the build at its foot, plainly and copyable', async () => {
   const settings = await read('app/settings.tsx');
   const foot = settings.lastIndexOf('{thisBuild.label}');
-  assert.ok(foot > settings.indexOf('ledger-support@together-ledger.com'), 'below everything else');
-  assert.match(settings, /<Text selectable accessibilityLabel=\{`This build: \$\{thisBuild\.label\}`\}[^>]*>\{thisBuild\.label\}<\/Text>\s*<\/View>\s*<\/Screen>/);
+  assert.ok(foot > settings.indexOf("t('mobile.settings.helpText')"), 'below everything else');
+  assert.equal(JSON.parse(await readFile(new URL('../locales/en.json', import.meta.url), 'utf8'))['mobile.settings.build'], 'This build: {build}');
+  assert.match(settings, /<Text selectable accessibilityLabel=\{t\('mobile\.settings\.build', \{ build: thisBuild\.label \}\)\}[^>]*>\{thisBuild\.label\}<\/Text>\s*<\/View>\s*<\/Screen>/);
 });
 
 test('no crash reporting comes with it', async () => {

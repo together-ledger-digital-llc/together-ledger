@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { accountMessage, ACCOUNT_NOTICES } from '../src/auth/account-messages';
 import { useSession } from '../src/auth/session';
 import { Body, Button, Notice, Screen } from '../src/components/ui';
+import { useLanguage } from '../src/i18n/language-provider';
 
 /**
  * Where the verification link lands, carrying its one-time token as `?token=`. It verifies once,
@@ -10,6 +11,8 @@ import { Body, Button, Notice, Screen } from '../src/components/ui';
  * part 3 of #180; until then the link completes in the browser.
  */
 export default function VerifyEmailScreen() {
+  // Redrawn when the language changes, so its words and its type follow at once.
+  useLanguage();
   const session = useSession();
   const { token } = useLocalSearchParams<{ token?: string }>();
   const [notice, setNotice] = useState<{ message: string; problem: boolean } | null>(null);

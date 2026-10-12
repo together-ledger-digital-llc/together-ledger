@@ -1,5 +1,5 @@
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import { fonts, leading, useTheme } from '../theme';
+import { fonts, leading, scriptStyles, useTheme } from '../theme';
 
 type Span = { text: string; bold?: boolean; code?: boolean };
 type Block = { kind: string; level?: number; spans?: Span[]; items?: Span[][] };
@@ -42,7 +42,7 @@ export function PolicyDocument({ blocks }: { blocks: Block[] }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = scriptStyles(() => StyleSheet.create({
   heading: { fontSize: 22, lineHeight: leading(22, 28), marginTop: 8 },
   subheading: { fontSize: 18, lineHeight: leading(18, 24) },
   text: { fontSize: 16, lineHeight: 23 },
@@ -51,4 +51,4 @@ const styles = StyleSheet.create({
   list: { gap: 8 },
   item: { flexDirection: 'row', gap: 8 },
   itemText: { flex: 1 },
-});
+}));

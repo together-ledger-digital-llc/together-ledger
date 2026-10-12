@@ -1,6 +1,7 @@
 import terms from '../src/policies/terms.json';
 import { PolicyDocument } from '../src/components/policy-document';
 import { Body, Screen } from '../src/components/ui';
+import { useLanguage } from '../src/i18n/language-provider';
 
 /**
  * The terms of use, on the phone itself. Apple 3.1.2 asks each subscription offer to link to
@@ -10,6 +11,8 @@ import { Body, Screen } from '../src/components/ui';
  * (#268).
  */
 export default function TermsScreen() {
+  // Redrawn when the language changes, so its words and its type follow at once.
+  useLanguage();
   return (
     <Screen title={terms.title}>
       <PolicyDocument blocks={terms.blocks} />

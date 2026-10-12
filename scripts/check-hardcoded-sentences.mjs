@@ -6,7 +6,8 @@
 //
 //   - in HTML: any text between tags with a letter in it, and any aria-label, placeholder, title
 //     or alt with a letter in it. A moved element is left empty and names its key in data-i18n.
-//   - in a script: text between JSX tags with a letter in it; a string with a letter given to
+//   - in a script (a whole file, or the statements and functions an area names): text between
+//     JSX tags with a letter in it; a string with a letter given to
 //     something people read (label, title, lead, aria-label, textContent, a toast, a status...);
 //     and any other string that reads as words (a capital and then a space, or a word and then a
 //     full stop, question mark or colon). Keys ('history.screen.title'), paths, style values and
@@ -107,16 +108,24 @@ export function lexScript(source) {
   return { strings, code };
 }
 
-/** From a statement's opening words to its closing semicolon, brackets balanced. */
+/**
+ * From a statement's opening words to its closing semicolon, brackets balanced. A function
+ * declaration (an opening that begins "function" or "async function") has no semicolon of its
+ * own, so it ends where its body's closing brace does.
+ */
 export function statementExtent(source, code, opening) {
   const start = source.indexOf(opening);
   if (start === -1) return null;
+  const declaration = /^(?:async\s+)?function\b/.test(opening);
   let depth = 0;
+  let inBody = false;
   for (let index = start; index < code.length; index += 1) {
     const character = code[index];
+    if (declaration && character === '{' && depth === 0) inBody = true;
     if ('([{'.includes(character)) depth += 1;
     if (')]}'.includes(character)) depth -= 1;
-    if (character === ';' && depth === 0) return [start, index + 1];
+    if (declaration && inBody && depth === 0) return [start, index + 1];
+    if (!declaration && character === ';' && depth === 0) return [start, index + 1];
   }
   return [start, code.length];
 }
@@ -171,8 +180,13 @@ export function hardcodedSentences(areas, read = (path) => readFileSync(join(roo
   return areas.flatMap((area) => {
     const source = read(area.file);
     const found = area.kind === 'html' ? htmlFindings(source, area) : scriptFindings(source, area);
-    const allowed = new Set(area.allow || []);
-    return found.filter((finding) => !allowed.has(finding.text)).sort((a, b) => a.line - b.line).map((finding) => ({ area: area.name, file: area.file, ...finding }));
+    // allow: words never translated. pending: a sentence not moved yet, each naming the prompt
+    // that moves it ({ text, until }); one no longer in the file fails, so the list stays true.
+    const pending = (area.pending || []).map((entry) => entry.text);
+    const allowed = new Set([...(area.allow || []), ...pending]);
+    const stale = pending.filter((text) => !found.some((finding) => finding.text === text))
+      .map((text) => ({ line: 1, text: `${JSON.stringify(text)} is listed as pending but is no longer written in ${area.file}; take it out of ${AREAS_FILE}` }));
+    return [...found.filter((finding) => !allowed.has(finding.text)), ...stale].sort((a, b) => a.line - b.line).map((finding) => ({ area: area.name, file: area.file, ...finding }));
   });
 }
 

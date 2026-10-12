@@ -60,6 +60,21 @@ test('a language chosen by hand wins over the device; "Follow my device" follows
   assert.equal(resolveLanguage({ choice: 'es-419', deviceLanguages: ['es-MX'], offered, source: 'en' }), 'en');
 });
 
+test('a language in preview is only ever chosen by hand: a device set to it stays in English (decision 145)', () => {
+  const offered = ['en'];
+  const choosable = ['en', 'hi', 'hi-Latn'];
+  const resolve = (choice, deviceLanguages) => resolveLanguage({ choice, deviceLanguages, offered, choosable, source: 'en' });
+  assert.equal(resolve('hi', ['en-US']), 'hi', 'chosen by hand');
+  assert.equal(resolve(null, ['hi-IN']), 'en', 'a phone in Hindi is never switched to a preview');
+  assert.equal(resolve(null, ['hi-Latn-IN', 'hi-IN']), 'en', 'nor one in Hindi (Latin)');
+  assert.equal(resolve(null, ['hi-IN', 'es-MX']), 'en', 'nor does a preview stand in for the next approved language');
+  assert.equal(resolve('bn', ['bn-BD']), 'en', 'a draft can never be chosen');
+  assert.equal(readChoice('hi', choosable), 'hi');
+  assert.equal(readChoice('bn', choosable), null);
+  // Approved later, the same phone follows it with no choice made.
+  assert.equal(resolveLanguage({ choice: null, deviceLanguages: ['hi-IN'], offered: ['en', 'hi'], source: 'en' }), 'hi');
+});
+
 test('a stored choice reads back as an offered tag or as no choice', () => {
   assert.equal(readChoice('hi', ['en', 'hi']), 'hi');
   for (const value of [null, undefined, '', 'bn', 'HI', 7, {}]) assert.equal(readChoice(value, ['en', 'hi']), null, JSON.stringify(value));

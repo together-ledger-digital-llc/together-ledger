@@ -1,3 +1,4 @@
+import { t } from '../i18n/sentences.js';
 import type { PhoneStorage } from '../storage/ledger-store';
 
 /**
@@ -164,7 +165,7 @@ export function inJourney(name: string) {
 }
 
 /** The toast when a moment is held without reaching the service. */
-export const KEPT_ON_PHONE = 'Kept on this phone. It will be sent when the connection returns.';
+export const keptOnPhone = () => t('mobile.moment.keptOnPhone');
 
 export function sentFromPhone(n: number) {
   return n === 1 ? 'Your waiting moment was sent.' : `${n} waiting moments were sent.`;
@@ -182,28 +183,26 @@ export function discardConsequence(entry: WaitingMoment) {
 /** Signing out on purpose, with moments still waiting: said, and asked, before they are cleared. */
 export function signOutConsequence(n: number) {
   return {
-    title: 'Sign out with moments waiting?',
-    consequence: n === 1
-      ? 'One moment you held hasn’t been sent yet. Signing out removes it from this phone, and it can’t be sent later.'
-      : `${n} moments you held haven’t been sent yet. Signing out removes them from this phone, and they can’t be sent later.`,
-    confirmLabel: n === 1 ? 'Sign out and remove it' : 'Sign out and remove them',
+    title: t('mobile.signOut.waitingTitle'),
+    consequence: t('mobile.signOut.waitingConsequence', { count: n }),
+    confirmLabel: t('mobile.signOut.waitingAction', { count: n }),
     destructive: true,
   };
 }
 
 /** Every device, this one included, signs in again (#194); in the web's words (src/app.js). */
-export const SIGN_OUT_EVERYWHERE_CONSEQUENCE = 'Every device signed in to this account, this one included, will need to sign in again. Nothing in your journeys is deleted.';
+export const signOutEverywhereWords = () => t('common.signOutEverywhere.consequence');
 
 /**
  * Signing out everywhere, said and asked as signing out is (#194). Moments still waiting on this
  * phone are named in signing out's own words, and then the act is the one that cannot be undone.
  */
 export function signOutEverywhereConsequence(n: number) {
-  if (!n) return { title: 'Sign out everywhere?', consequence: SIGN_OUT_EVERYWHERE_CONSEQUENCE, confirmLabel: 'Sign out everywhere', destructive: false };
+  if (!n) return { title: t('common.signOutEverywhere.title'), consequence: signOutEverywhereWords(), confirmLabel: t('common.account.signOutEverywhere'), destructive: false };
   return {
-    title: 'Sign out everywhere with moments waiting?',
-    consequence: `${SIGN_OUT_EVERYWHERE_CONSEQUENCE} ${signOutConsequence(n).consequence}`,
-    confirmLabel: n === 1 ? 'Sign out everywhere and remove it' : 'Sign out everywhere and remove them',
+    title: t('mobile.signOutEverywhere.waitingTitle'),
+    consequence: t('mobile.signOutEverywhere.waitingConsequence', { everywhere: signOutEverywhereWords(), waiting: signOutConsequence(n).consequence }),
+    confirmLabel: t('mobile.signOutEverywhere.waitingAction', { count: n }),
     destructive: true,
   };
 }

@@ -1,10 +1,12 @@
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import {
   HISTORY_ENTRY_PARTS, HISTORY_ENTRY_PARTS_HEADING, HISTORY_EVENT_GROUPS, HISTORY_FIELDS, HISTORY_FIELDS_HEADING, HISTORY_GUIDE_INTRO,
-  HISTORY_GUIDE_SECTIONS, HISTORY_GUIDE_TITLE, HISTORY_KINDS_HEADING, HISTORY_NEVER_LABEL, HISTORY_RECORDS_LABEL, HISTORY_RECORDS_NOTHING,
+  HISTORY_GUIDE_SECTIONS, HISTORY_KINDS_HEADING, HISTORY_NEVER_LABEL, HISTORY_RECORDS_LABEL, HISTORY_RECORDS_NOTHING,
 } from '../../../src/history-guide.js';
 import { Body, Screen } from '../src/components/ui';
-import { fonts, leading, useTheme } from '../src/theme';
+import { fonts, leading, scriptStyles, useTheme } from '../src/theme';
+import { t } from '../src/i18n';
+import { useLanguage } from '../src/i18n/language-provider';
 
 /**
  * "How to read your history" (#349), reached from the History intro. The words are the web's own,
@@ -12,6 +14,8 @@ import { fonts, leading, useTheme } from '../src/theme';
  * sign-in: it explains History, it doesn't show any.
  */
 export default function HistoryGuideScreen() {
+  // Redrawn when the language changes, so its words and its type follow at once.
+  useLanguage();
   const { theme } = useTheme();
   const heading = [styles.heading, fonts.serif, { color: theme.colors.fg }];
   const card = [styles.card, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface, borderRadius: theme.radius.m }];
@@ -19,7 +23,7 @@ export default function HistoryGuideScreen() {
   const body = [styles.body, { color: theme.colors.textSecondary }];
   const label = [styles.label, { color: theme.colors.muted }];
   return (
-    <Screen title={HISTORY_GUIDE_TITLE} lead={HISTORY_GUIDE_INTRO[0]}>
+    <Screen title={t('common.historyGuide.title')} lead={HISTORY_GUIDE_INTRO[0]}>
       {HISTORY_GUIDE_INTRO.slice(1).map((paragraph) => <Body key={paragraph} selectable>{paragraph}</Body>)}
       {HISTORY_GUIDE_SECTIONS.map((section) => (
         <View key={section.id} style={styles.section}>
@@ -63,7 +67,7 @@ export default function HistoryGuideScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = scriptStyles(() => StyleSheet.create({
   section: { gap: 8 },
   heading: { fontSize: 22, lineHeight: leading(22, 28), marginTop: 12 },
   subheading: { fontSize: 18, fontWeight: '700', marginTop: 8 },
@@ -73,4 +77,4 @@ const styles = StyleSheet.create({
   label: { fontWeight: '700' },
   code: { fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }), fontSize: 14 },
   term: { gap: 2 },
-});
+}));

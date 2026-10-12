@@ -247,7 +247,7 @@ test('the words: capacity rests, nobody is removed for non-payment, and nothing 
 });
 
 test('a name is changed from Account, and the private handle is never edited (#253)', () => {
-  assert.match(screens.account, /label="Name journeyers see"/);
+  assert.match(screens.account, /label=\{t\('common\.account\.nameLabel'\)\}/);
   assert.match(screens.account, /changeDisplayName/);
   assert.doesNotMatch(screens.account, /changeUsername|username:\s*name/);
 });

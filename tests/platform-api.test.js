@@ -1987,7 +1987,7 @@ test('the phone app\'s own client carries a whole account journey against this s
   t.after(async () => { await app.close(); await pool.end(); });
   const source = await readFile(new URL('../apps/mobile/src/api/client.ts', import.meta.url), 'utf8');
   const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
-  const { createAccountClient } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+  const { createAccountClient } = await import(`data:text/javascript;base64,${Buffer.from(outputText.replace(/from '(\.[^']+\.js)'/g, (_, specifier) => `from '${new URL(specifier, new URL('../apps/mobile/src/api/client.ts', import.meta.url)).href}'`)).toString('base64')}`);
   let held = null;
   const tokens = { read: async () => held, write: async (value) => { held = value; }, clear: async () => { held = null; } };
   const phone = createAccountClient({
@@ -2076,8 +2076,8 @@ test('the phone reads a shared journey through this server, and never another pe
   assert.deepEqual(recent.map(({ title }) => title), ['The road near Marlow'], 'another person\'s private and share-later moments never reach this phone');
   assert.equal(view.visibilityCue(recent[0].visibility).label, 'Shared now');
   assert.equal(recent[0].createdBy, 'ledger-alice');
-  assert.equal(view.journeyPeriod(snapshot.journey), 'Marlow · Began May 14 · No end date planned');
-  assert.equal(view.moneyContext(recent[0]), '$12.50 is held here as context, not a score.');
+  assert.equal(view.journeyPeriod(snapshot.journey).replace(/[\u2068\u2069]/g, ''), 'Marlow · Began May 14 · No end date planned');
+  assert.equal(view.moneyContext(recent[0]).replace(/[\u2068\u2069]/g, ''), '$12.50 is held here as context, not a score.');
 });
 
 test('the phone begins a journey through this server, and owns it', async (t) => {
@@ -2933,7 +2933,7 @@ test('a moment added by someone who then deleted their account is recorded under
 async function phoneAgainst(app) {
   const url = new URL('../apps/mobile/src/api/client.ts', import.meta.url);
   const { outputText } = ts.transpileModule(await readFile(url, 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
-  const { createAccountClient } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+  const { createAccountClient } = await import(`data:text/javascript;base64,${Buffer.from(outputText.replace(/from '(\.[^']+\.js)'/g, (_, specifier) => `from '${new URL(specifier, new URL('../apps/mobile/src/api/client.ts', import.meta.url)).href}'`)).toString('base64')}`);
   let held = null;
   return createAccountClient({
     base: () => '/api/v1',

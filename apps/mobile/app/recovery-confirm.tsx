@@ -3,12 +3,15 @@ import { useState } from 'react';
 import { accountMessage, ACCOUNT_NOTICES } from '../src/auth/account-messages';
 import { useSession } from '../src/auth/session';
 import { Body, Button, Field, Notice, Screen } from '../src/components/ui';
+import { useLanguage } from '../src/i18n/language-provider';
 
 /**
  * Choose a new password. Reached from the recovery link, which carries its one-time token as
  * `?token=`. Opening the emailed link straight into this screen is part 3 of #180.
  */
 export default function RecoveryConfirmScreen() {
+  // Redrawn when the language changes, so its words and its type follow at once.
+  useLanguage();
   const session = useSession();
   const { token } = useLocalSearchParams<{ token?: string }>();
   const [password, setPassword] = useState('');

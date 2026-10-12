@@ -22,6 +22,10 @@ async function importMobile(path) {
 }
 
 const view = await importMobile('src/journey/journey-view.ts');
+// The phone's sentences are keys (docs/TRANSLATION.md); a date or an amount inside one is isolated
+// with invisible marks, so it is compared without them.
+const english = JSON.parse(await readFile(new URL('../locales/en.json', import.meta.url), 'utf8'));
+const unmarked = (text) => (typeof text === 'string' ? text.replace(/[\u2068\u2069]/g, '') : text);
 
 // The web's own function, lifted out of src/app.js, so the phone is compared with what the web
 // actually runs rather than with a description of it.
@@ -41,7 +45,7 @@ test('dates, money and moment types are the web\'s own functions, not copies', (
   assert.equal(view.money, model.money);
   assert.equal(view.MOMENT_TYPES, model.MOMENT_TYPES);
   assert.equal(view.normalizeMomentTheme, momentThemes.normalizeMomentTheme);
-  assert.equal(view.moneyContext({ moneyCents: 1250, moneyCurrency: 'USD' }), `${model.money(1250, 'USD')} is held here as context, not a score.`);
+  assert.equal(unmarked(view.moneyContext({ moneyCents: 1250, moneyCurrency: 'USD' })), `${model.money(1250, 'USD')} is held here as context, not a score.`);
   assert.ok(web.includes('is held here as context, not a score.</p>'));
   assert.equal(view.moneyContext({ moneyCents: null }), null);
 });
@@ -54,7 +58,7 @@ test('a journey\'s period and a moment\'s label read exactly as the web writes t
     { location: '', startDateStatus: 'unknown', endDateStatus: 'forever' },
     { startDate: '2026-01-02', startDateStatus: 'exact', endDateStatus: 'unsure' },
   ];
-  for (const journey of journeys) assert.equal(view.journeyPeriod(journey), journeyPeriod(journey));
+  for (const journey of journeys) assert.equal(unmarked(view.journeyPeriod(journey)), journeyPeriod(journey));
   for (const [kind, kindLabel] of [['memory'], ['other', 'Our word'], ['other', ''], ['retired-kind']]) assert.equal(view.momentLabel(kind, kindLabel), momentLabel(kind, kindLabel));
 });
 
@@ -118,7 +122,8 @@ test('the visibility cue is drawn with the moment, never after it', async () => 
   assert.match(body, /const cue = visibilityCue\(moment\.visibility\)/);
   assert.match(body, /borderLeftColor: cueColor/, 'the border carries it');
   assert.match(body, /\{cue\.glyph\} <\/Text>\s*\{cue\.label\}/, 'the shape and the word carry it');
-  assert.match(body, /accessibilityLabel=\{`Visibility: \$\{cue\.label\}`\}/, 'and a screen reader says it');
+  assert.match(body, /accessibilityLabel=\{t\('common\.moment\.visibilitySpoken', \{ visibility: cue\.label \}\)\}/, 'and a screen reader says it');
+  assert.equal(english['common.moment.visibilitySpoken'], 'Visibility: {visibility}');
 });
 
 test('a themed card wears its theme without naming it; the form and History still name it (Oct 9)', async () => {
@@ -127,12 +132,14 @@ test('a themed card wears its theme without naming it; the form and History stil
   assert.match(body, /const colors = ownTheme \? getTheme\(ownTheme\)\.colors : app\.colors;/, 'still painted in its own theme');
   assert.doesNotMatch(card, /momentThemeLabel/, 'the card never looks up its theme\'s name');
   assert.doesNotMatch(body, /\btheme`|\btheme'|\btheme"/, 'and writes no "… theme" label beside the visibility cue');
-  assert.match(body, /accessibilityLabel=\{`Visibility: \$\{cue\.label\}`\}/, 'the cue\'s own accessible label is unchanged');
+  assert.match(body, /accessibilityLabel=\{t\('common\.moment\.visibilitySpoken', \{ visibility: cue\.label \}\)\}/, 'the cue\'s own accessible label is unchanged');
   assert.ok(!web.includes('moment-theme-chip') && !css.includes('moment-theme-chip'), 'the web card has dropped it too, with the style only it used');
 
   const form = await read('app/moment.tsx');
-  assert.match(form, /\[\{ id: '', label: 'Use my theme' \}, \.\.\.MOMENT_THEMES\]/, 'the form still offers each theme by name');
-  assert.match(form, /help=\{`\$\{momentThemeLabel\(draft\.theme\)\} · exactly as this moment will appear in the ledger\.`\}/, 'and the live preview still says which');
+  assert.match(form, /\[\{ id: '', label: t\('common\.moment\.useMyTheme'\) \}, \.\.\.MOMENT_THEMES\.map\(\(\{ id, label \}\) => \(\{ id, label: themeName\(id, label\) \}\)\)\]/, 'the form still offers each theme by name');
+  assert.match(form, /help=\{t\('common\.moment\.previewHelp', \{ theme: momentThemeName\(draft\.theme\) \}\)\}/, 'and the live preview still says which');
+  assert.equal(english['common.moment.previewHelp'], '{theme} · exactly as this moment will appear in the ledger.');
+  for (const theme of ['', 'light', 'dark', 'green', 'flexoki', 'rose-pine']) assert.equal(view.momentThemeName(theme), momentThemes.momentThemeLabel(theme), `${theme || 'none'}: the web's name, word for word`);
   const sharing = await importMobile('src/journey/sharing-view.ts');
   assert.equal(sharing.valueLabel('theme', 'flexoki'), 'Flexoki', 'History still names a changed theme');
 });
@@ -178,9 +185,11 @@ test('pull to refresh re-reads the snapshot, and the list only draws what is on 
   assert.match(ledger, /\{listing\.seeAll \? <Button kind="quiet" label=\{expanded \? 'Show recent' : seeAllLabel\(recent\.length\)\}/, '"See all" only when there is more to see (#337)');
   assert.match(await read('src/journey/journey-view.ts'), /seeAll: !compact && seeAllShown\(recent\.length, expanded\)/, 'still the web\'s own rule, in the full view');
   assert.match(ledger, /<RefreshControl refreshing=\{journey\.refreshing\} onRefresh=\{journey\.refresh\}/);
-  assert.match(ledger, /<EmptyState title="No moments here yet" body="A small truth is enough to begin\." \/>/);
+  assert.match(ledger, /<EmptyState title=\{t\('common\.ledger\.emptyTitle'\)\} body=\{t\('common\.ledger\.emptyBody'\)\} \/>/);
+  assert.deepEqual([english['common.ledger.emptyTitle'], english['common.ledger.emptyBody']], ['No moments here yet', 'A small truth is enough to begin.']);
   assert.ok(web.includes("emptyState('No moments here yet', 'A small truth is enough to begin.')"));
   assert.doesNotMatch(ledger + web, /choose another filter to see more/, 'no sentence that asks for a filter that is gone (#405)');
   assert.ok(web.includes("emptyState('No open threads', 'That can be a good place to rest.', { compact: true })"));
-  assert.match(ledger, /<EmptyState compact title="No open threads" body="That can be a good place to rest\." \/>/);
+  assert.match(ledger, /<EmptyState compact title=\{t\('common\.threads\.emptyTitle'\)\} body=\{t\('common\.threads\.emptyBody'\)\} \/>/);
+  assert.deepEqual([english['common.threads.emptyTitle'], english['common.threads.emptyBody']], ['No open threads', 'That can be a good place to rest.']);
 });

@@ -3,11 +3,11 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { fitTyping } from '../../../../src/display-text.js';
 import { useLanguage } from '../i18n/language-provider';
-import { PENDING_LABEL } from '../shell/defaults';
+import { workingLabel } from '../shell/defaults';
 import { STATUS_TONES } from '../shell/status';
 import { useShell } from '../shell/shell-provider';
 import { ScreenStatusRegion } from './status-region';
-import { fonts, leading, targetSize, useTheme } from '../theme';
+import { fonts, leading, scriptStyles, targetSize, useTheme } from '../theme';
 
 /**
  * The small set of pieces every screen is built from. Each screen carries the status region
@@ -97,7 +97,7 @@ type ButtonKind = 'primary' | 'quiet' | 'destructive';
  * A `glyph` sits before the label in the label's size and colour, and is never read aloud: the
  * button's name is its words alone.
  */
-export function Button({ label, glyph, onPress, kind = 'primary', pending = false, pendingLabel = PENDING_LABEL, disabled = false, ref }: {
+export function Button({ label, glyph, onPress, kind = 'primary', pending = false, pendingLabel = workingLabel(), disabled = false, ref }: {
   label: string;
   glyph?: string;
   onPress: () => void;
@@ -145,7 +145,7 @@ export function Body({ children, selectable = false }: { children: ReactNode; se
   return <Text selectable={selectable} style={[styles.body, { color: theme.colors.textSecondary }]}>{children}</Text>;
 }
 
-const styles = StyleSheet.create({
+const styles = scriptStyles(() => StyleSheet.create({
   fill: { flex: 1 },
   screen: { padding: 24, gap: 16 },
   title: { fontSize: 30, lineHeight: leading(30, 36) },
@@ -157,7 +157,9 @@ const styles = StyleSheet.create({
   problemGlyph: { fontSize: 13 },
   problemText: { flex: 1, fontSize: 15, lineHeight: 21, fontWeight: '600' },
   input: { borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, fontSize: 16 },
-  button: { flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, borderWidth: 1 },
-  buttonText: { fontSize: 16, fontWeight: '700' },
+  // 10 above and below, the web's .button: one line stays at the 44-point minimum, and a label that
+  // wraps (Start a return-to conversation at 320 points, or a longer language) has room (101C).
+  button: { flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 10, borderWidth: 1 },
+  buttonText: { flexShrink: 1, fontSize: 16, fontWeight: '700', textAlign: 'center' },
   notice: { borderWidth: 1, padding: 14 },
-});
+}));

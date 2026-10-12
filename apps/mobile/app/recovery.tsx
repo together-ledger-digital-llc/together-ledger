@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { accountMessage, ACCOUNT_NOTICES } from '../src/auth/account-messages';
 import { useSession } from '../src/auth/session';
 import { Button, Field, Notice, Screen } from '../src/components/ui';
+import { useLanguage } from '../src/i18n/language-provider';
 
 /** Ask for a recovery link. The answer never says whether the account exists. */
 export default function RecoveryRequestScreen() {
+  // Redrawn when the language changes, so its words and its type follow at once.
+  useLanguage();
   const session = useSession();
   const [email, setEmail] = useState('');
   const [pending, setPending] = useState(false);

@@ -1,5 +1,6 @@
 import { useSession } from '../auth/session';
-import { JOURNEYS_NOT_LOADED, offlineReason, opensWhenBack } from '../journey/journey-state';
+import { t } from '../i18n';
+import { journeysNotLoaded, offlineReason, opensWhenBack } from '../journey/journey-state';
 import { useJourney } from '../journey/use-journey';
 import { Body, Button, Screen } from './ui';
 
@@ -16,11 +17,11 @@ export function JourneyNotOpen({ title, signedOut, noJourneys }: { title: string
   if (offline || state.phase === 'failed') {
     return (
       <Screen title={title}>
-        <Body>{offline ? opensWhenBack(title) : JOURNEYS_NOT_LOADED}</Body>
-        <Button kind="quiet" label="Try again" onPress={state.phase === 'offline' ? session.refresh : journey.retry} />
+        <Body>{offline ? opensWhenBack(title) : journeysNotLoaded()}</Body>
+        <Button kind="quiet" label={t('mobile.action.tryAgain')} onPress={state.phase === 'offline' ? session.refresh : journey.retry} />
       </Screen>
     );
   }
-  const words = state.phase === 'signed-out' ? signedOut : state.phase === 'no-journeys' ? noJourneys : 'Loading…';
+  const words = state.phase === 'signed-out' ? signedOut : state.phase === 'no-journeys' ? noJourneys : t('common.status.loading');
   return <Screen title={title}><Body>{words}</Body></Screen>;
 }

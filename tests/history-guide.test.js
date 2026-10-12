@@ -265,7 +265,8 @@ test('the web and the phone draw the same words, and History\'s intro leads to t
   const exported = [...guide.matchAll(/^export const (HISTORY_[A-Z_]+)/gm)].map(([, name]) => name).filter((name) => name !== 'HISTORY_EVENT_KINDS');
   for (const name of exported) {
     assert.match(web, new RegExp(`\\b${name}\\b`), `the web draws ${name}`);
-    assert.match(phoneGuide, new RegExp(`\\b${name}\\b`), `the phone draws ${name}`);
+    // The title is a sentence of its own on the phone (common.historyGuide.title), the web's words in English.
+    if (name !== 'HISTORY_GUIDE_TITLE') assert.match(phoneGuide, new RegExp(`\\b${name}\\b`), `the phone draws ${name}`);
   }
   assert.match(web, /from '\.\/history-guide\.js'/);
   assert.match(phoneGuide, /from '\.\.\/\.\.\/\.\.\/src\/history-guide\.js'/);
@@ -273,6 +274,9 @@ test('the web and the phone draw the same words, and History\'s intro leads to t
   // The words of the link are the guide's own title, on both.
   assert.match(html, /<button class="button quiet" type="button" id="history-guide-link" hidden>How to read your history<\/button>/);
   assert.match(html, /<section class="history-guide" id="history-guide"/);
-  assert.match(phoneHistory, /<Button kind="quiet" label=\{HISTORY_GUIDE_TITLE\} onPress=\{\(\) => router\.push\('\/history-guide'\)\} \/>/);
-  assert.match(layout, /<Stack\.Screen name="history-guide" options=\{\{ title: 'How to read your history' \}\} \/>/);
+  assert.match(phoneHistory, /<Button kind="quiet" label=\{t\('common\.historyGuide\.title'\)\} onPress=\{\(\) => router\.push\('\/history-guide'\)\} \/>/);
+  assert.match(phoneGuide, /<Screen title=\{t\('common\.historyGuide\.title'\)\}/);
+  const { HISTORY_GUIDE_TITLE } = await import('../src/history-guide.js');
+  assert.equal(JSON.parse(await read('locales/en.json'))['common.historyGuide.title'], HISTORY_GUIDE_TITLE);
+  assert.match(layout, /<Stack\.Screen name="history-guide" options=\{\{ title: screenTitle\('history-guide'\) \}\} \/>/);
 });

@@ -4,7 +4,7 @@ import { dateLabel, momentLabel } from '../journey/journey-view';
 import { useWaitingMoments } from '../journey/use-waiting-moments';
 import { DISCARD_LABEL, discardConsequence, inJourney, onceSent, SEND_NOW_LABEL, TRY_AGAIN_LABEL, WAITING_CUE, WAITING_HELP, WAITING_TITLE, type WaitingMoment } from '../journey/waiting-moments';
 import { useShell } from '../shell/shell-provider';
-import { fonts, leading, tracking, useTheme } from '../theme';
+import { fonts, leading, scriptStyles, tracking, useTheme } from '../theme';
 import { CardAction } from './moment-card';
 import { Button } from './ui';
 
@@ -73,7 +73,7 @@ function WaitingCard({ entry, elsewhere }: { entry: WaitingMoment; elsewhere: bo
   );
 }
 
-const styles = StyleSheet.create({
+const styles = scriptStyles(() => StyleSheet.create({
   section: { gap: 10, marginTop: 8 },
   title: { fontSize: 20, lineHeight: leading(20, 26) },
   body: { fontSize: 15, lineHeight: 22 },
@@ -86,4 +86,4 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 22, lineHeight: leading(22, 28) },
   refusal: { fontSize: 15, lineHeight: 22, fontWeight: '700' },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
-});
+}));

@@ -16,14 +16,15 @@ async function importMobile(path) {
   const url = new URL(path, mobile);
   let { outputText } = ts.transpileModule(await readFile(url, 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } });
   for (const [whole, specifier] of [...outputText.matchAll(/from '(\.{1,2}\/[^']+)'/g)]) {
-    const dependency = await importMobileUrl(new URL(`${specifier}.ts`, url));
+    // A plain JavaScript module (the phone's t(), src/i18n/sentences.js) is imported as it is.
+    const dependency = specifier.endsWith('.js') ? new URL(specifier, url).href : await importMobileUrl(new URL(`${specifier}.ts`, url));
     outputText = outputText.replace(whole, `from '${dependency}'`);
   }
   return import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
 }
 async function importMobileUrl(url) {
   const { outputText } = ts.transpileModule(await readFile(url, 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
-  return `data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`;
+  return `data:text/javascript;base64,${Buffer.from(outputText.replace(/from '(\.[^']+\.js)'/g, (_, specifier) => `from '${new URL(specifier, url).href}'`)).toString('base64')}`;
 }
 
 const links = await importMobile('src/invitations/invitation-link.ts');
@@ -159,7 +160,7 @@ test('registering and signing in only set who is signed in; the watch above ever
   const providerAt = layout.indexOf('<PendingInvitationProvider>');
   const watchAt = layout.indexOf('<PendingInvitationWatch />');
   assert.ok(sessionAt > 0 && providerAt > sessionAt && watchAt > providerAt, 'inside the session, so it sees every way of signing in');
-  assert.match(layout, /<Stack\.Screen name="invite" options=\{\{ title: 'Invitation' \}\} \/>/);
+  assert.match(layout, /<Stack\.Screen name="invite" options=\{\{ title: screenTitle\('invite'\) \}\} \/>/);
   for (const path of ['app/account.tsx', 'app/register.tsx', 'src/components/social-sign-in.tsx']) {
     assert.match(await read(path), /session\.setUser\(/, `${path} signs in through the session, which the watch follows`);
   }

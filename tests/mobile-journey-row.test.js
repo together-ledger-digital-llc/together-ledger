@@ -73,8 +73,8 @@ test('the phone\'s fades show the row goes on, and are never read or touched', a
 
 test('the ledger shows the row only for more than one journey, with New journey directly below it', async () => {
   const ledger = await read('app/ledger.tsx');
-  const rowAt = ledger.indexOf('{showsJourneyRow(journeys) ? <JourneyRow label="Journey"');
-  const newJourneyAt = ledger.indexOf('<Button kind="quiet" label="＋ New journey"', rowAt);
+  const rowAt = ledger.indexOf("{showsJourneyRow(journeys) ? <JourneyRow label={t('mobile.ledger.journeys')}");
+  const newJourneyAt = ledger.indexOf("<Button kind=\"quiet\" label={t('common.ledger.newJourney')}", rowAt);
   assert.ok(rowAt > 0, 'the row is drawn for more than one journey, and no picker for one');
   assert.ok(newJourneyAt > rowAt, 'New journey follows the row');
   assert.doesNotMatch(ledger.slice(rowAt, newJourneyAt).split('\n').slice(1).join('\n'), /<\w/, 'with nothing between them');

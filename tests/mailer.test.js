@@ -191,7 +191,8 @@ test('the password-changed notice is one plain message that carries no link, cod
   assert.match(message.text, /Every device signed in to the account was signed out, except the one used to change it\./);
   const signIn = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const phone = await readFile(new URL('../apps/mobile/app/account.tsx', import.meta.url), 'utf8');
-  assert.ok(signIn.includes('>I forgot my password<') && phone.includes('label="I forgot my password"'), 'the button the email names is the one both clients show');
+  const english = JSON.parse(await readFile(new URL('../locales/en.json', import.meta.url), 'utf8'));
+  assert.ok(signIn.includes('>I forgot my password<') && phone.includes("label={t('common.account.forgotPassword')}") && english['common.account.forgotPassword'] === 'I forgot my password', 'the button the email names is the one both clients show');
 });
 
 // A name can hold any language, symbol or emoji (owner, Oct 10, 2026). The one email that carries

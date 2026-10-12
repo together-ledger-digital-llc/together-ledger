@@ -1,4 +1,5 @@
 import type { InvitationPreview } from '../api/client';
+import { t } from '../i18n/sentences.js';
 import type { PastedInvitation } from './invitation-link';
 
 /**
@@ -8,10 +9,13 @@ import type { PastedInvitation } from './invitation-link';
  * An invitation reaches someone only after everyone already in the journey agreed to it
  * (022_agree-together-before-adding-someone.sql). Joining is the last decision, and it is theirs:
  * the phone shows it as waiting for their answer, and never says they joined until they have.
+ *
+ * "Have an invitation?" and "Not now" are seen on the welcome and at sign-in, so they read in the
+ * active language (locales/en.json, 103A). The rest of the invitation stays in English for now.
  */
 export const INVITATION_WORDS = {
   title: 'Invitation',
-  haveOne: 'Have an invitation?',
+  get haveOne() { return t('mobile.invitation.haveOne'); },
   pasteLead: 'Paste the link from your invitation email. Just the code after “invite=” works too.',
   pasteLabel: 'Invitation link or code',
   openPasted: 'Open invitation',
@@ -21,7 +25,7 @@ export const INVITATION_WORDS = {
   agreed: 'Everyone already in this journey agreed to invite you. Joining is your decision.',
   join: 'Join this journey',
   joining: 'Joining…',
-  notNow: 'Not now',
+  get notNow() { return t('common.action.notNow'); },
   verifyEmail: 'Verify your email to answer this invitation. Open the verification link we sent you, in your browser, then come back here.',
   anotherAccount: 'This invitation was sent to a different email address. Sign in with the account for that address to answer it. It stays on this phone until then.',
   goToAccount: 'Go to account',

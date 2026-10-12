@@ -1,6 +1,6 @@
 import { Children, type ReactNode } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { PENDING_LABEL } from '../shell/defaults';
+import { workingLabel } from '../shell/defaults';
 import { targetSize, useTheme } from '../theme';
 
 /**
@@ -29,7 +29,7 @@ export function SettingsGroup({ heading, children }: { heading: string; children
   );
 }
 
-export function SettingsRow({ label, detail, onPress, destructive = false, pending = false, pendingLabel = PENDING_LABEL, disabled = false }: {
+export function SettingsRow({ label, detail, onPress, destructive = false, pending = false, pendingLabel = workingLabel(), disabled = false }: {
   label: string;
   /** A second line under the label, such as the account's email. */
   detail?: string;
