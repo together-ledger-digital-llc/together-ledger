@@ -63,6 +63,8 @@ async function openSignIn(page) {
 }
 
 const googleButton = (page) => page.locator('#google-sign-in-button [role="button"]');
+const NEW_ACCOUNT_NAME = 'A new account starts with your first name. You can change it in Account settings.';
+const newAccountName = (page) => page.getByText(NEW_ACCOUNT_NAME, { exact: true });
 const appleButton = (page) => page.locator('#apple-sign-in-button');
 
 // Lets the page finish whatever it started when the dialog opened, so "still hidden" means hidden.
@@ -86,6 +88,7 @@ for (const { name, providers } of NOT_READY) {
     await settle(page);
     await expect(page.locator('#login-form')).toBeVisible();
     await expect(page.locator('#social-sign-in')).toBeHidden();
+    await expect(newAccountName(page)).toBeHidden();
     expect(seen.scripts).toEqual([]);
   });
 }
@@ -171,6 +174,40 @@ test('both buttons are the same size, at least 44px, side by side or stacked, in
   }
   const scan = await new AxeBuilder({ page }).include('#account-dialog').analyze();
   expect(scan.violations).toEqual([]);
+});
+
+test('under both buttons, a new account is said to start with the first name, readably in every theme and width (#399)', async ({ page, baseURL }) => {
+  await signedOutPage(page, baseURL);
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 320, height: 640 }]) {
+    await page.setViewportSize(viewport);
+    for (const theme of ['light', 'dark', 'green', 'flexoki']) {
+      await page.goto('/');
+      await page.evaluate((id) => window.applyTogetherTheme(id), theme);
+      await openSignIn(page);
+      await expect(googleButton(page)).toBeVisible();
+      const label = `${theme} at ${viewport.width}px`;
+      await expect(newAccountName(page), label).toBeVisible();
+      await expect(newAccountName(page), label).toHaveCount(1);
+      const said = await newAccountName(page).boundingBox();
+      const google = await googleButton(page).boundingBox();
+      const apple = await appleButton(page).boundingBox();
+      const divider = await page.locator('.provider-divider').boundingBox();
+      expect(said.y, `${label}: below both buttons`).toBeGreaterThanOrEqual(Math.max(google.y + google.height, apple.y + apple.height));
+      expect(said.y + said.height, `${label}: above "or"`).toBeLessThanOrEqual(divider.y);
+      // Wrapped, not cut off or pushing the dialog sideways.
+      const fits = await page.locator('#account-dialog').evaluate((dialog) => dialog.scrollWidth <= dialog.clientWidth);
+      expect(fits, `${label}: no sideways scroll`).toBe(true);
+      expect(said.x + said.width, `${label}: inside the buttons' width`).toBeLessThanOrEqual(Math.max(google.x + google.width, apple.x + apple.width) + 1);
+      // A field hint's colour.
+      const colours = await page.evaluate(() => ({
+        said: getComputedStyle(document.querySelector('#social-sign-in-name')).color,
+        hint: getComputedStyle(document.querySelector('#register-form .field small')).color,
+      }));
+      expect(colours.said, label).toBe(colours.hint);
+      const scan = await new AxeBuilder({ page }).include('#social-sign-in').withRules(['color-contrast']).analyze();
+      expect(scan.violations, label).toEqual([]);
+    }
+  }
 });
 
 test('Continue with Google signs in with the same cookie and CSRF pair as a password, and stores nothing', async ({ page, baseURL }) => {
