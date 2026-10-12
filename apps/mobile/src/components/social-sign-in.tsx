@@ -6,7 +6,7 @@ import { accountMessage } from '../auth/account-messages';
 import { keptAppleName } from '../auth/kept-apple-name';
 import { useSession } from '../auth/session';
 import { googleIdTokenFromSheet } from '../auth/google-sheet';
-import { appleCancelled, appleSignInBody, NOTHING_OFFERED, offeredSignIns, type Offer } from '../auth/social-sign-in';
+import { appleCancelled, appleSignInBody, NEW_ACCOUNT_NAME, NOTHING_OFFERED, offeredSignIns, type Offer } from '../auth/social-sign-in';
 import { googleClientId, phonePlatform } from '../config/google';
 import { useTheme } from '../theme';
 import { GoogleButton } from './google-button';
@@ -147,6 +147,7 @@ export function SocialSignIn({ onSignedIn }: { onSignedIn?: (user: AccountUser) 
       {offer.google ? (
         <GoogleButton dark={dark} disabled={busy} style={PROVIDER_BUTTON} onPress={continueWithGoogle} />
       ) : null}
+      <Text style={[styles.hint, { color: theme.colors.muted }]}>{NEW_ACCOUNT_NAME}</Text>
       <Notice message={notice} tone="problem" />
       <Text style={[styles.or, { color: theme.colors.muted }]}>or</Text>
     </View>
@@ -157,5 +158,7 @@ const styles = StyleSheet.create({
   group: { gap: 12, alignItems: 'stretch' },
   heading: { fontSize: 18, fontWeight: '700' },
   waiting: { opacity: 0.7 },
+  // A field hint's size and colour (src/components/ui.tsx), as wide as the buttons above it.
+  hint: { fontSize: 13, lineHeight: 18, width: '100%', maxWidth: PROVIDER_BUTTON.maxWidth, alignSelf: 'center' },
   or: { fontSize: 15, textAlign: 'center' },
 });

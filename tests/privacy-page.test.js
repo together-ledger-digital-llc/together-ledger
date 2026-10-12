@@ -36,3 +36,10 @@ test('Markdown the page cannot render fails the build instead of shipping half-r
   assert.throws(() => renderPrivacyBody('# T\n\nsome *emphasis* here'), /does not render/);
   assert.throws(() => renderPrivacyBody('No title'), /top-level # heading/);
 });
+
+test('the sign-in paragraph says what a new account is called, right after what Google and Apple share (#399)', () => {
+  const shared = 'Google shares your name; Apple shares it only the first time you sign in with Apple, and only if you allow it.';
+  const named = 'A new account starts with your first name as the name people in your journeys see, or your full name if no first name is shared. You can change it in Account settings.';
+  assert.ok(policy.includes(`${shared} ${named} If you use Apple's Hide My Email`), 'PRIVACY.md');
+  assert.ok(renderPrivacyPage(policy).includes(`${shared} ${named}`), 'the /privacy page');
+});

@@ -442,3 +442,29 @@ test('deleting an account opened with Apple or Google asks for no password, and 
   assert.match(remove, /disabled=\{\(asksForPassword && !password\) \|\| typed !== 'DELETE'\}/);
   assert.match(remove, /session\.client\.deleteAccount\(asksForPassword \? password : null\)/);
 });
+
+// ---------------------------------------------------------------------------------------------
+// What a new account is called (#399)
+
+const NEW_ACCOUNT_NAME = 'A new account starts with your first name. You can change it in Account settings.';
+
+test('under the buttons, and only with them, the phone says a new account starts with the first name', async () => {
+  assert.equal(social.NEW_ACCOUNT_NAME, NEW_ACCOUNT_NAME, 'the words approved on Oct 12, 2026');
+  const component = await read('src/components/social-sign-in.tsx');
+  const nothing = component.indexOf('if (!offer.google && !offer.apple) return null;');
+  const linking = component.indexOf('if (link) {');
+  const google = component.indexOf('<GoogleButton ');
+  const said = component.indexOf('<Text style={[styles.hint, { color: theme.colors.muted }]}>{NEW_ACCOUNT_NAME}</Text>');
+  const or = component.indexOf('>or</Text>');
+  assert.ok(nothing > 0 && linking > nothing, 'no buttons offered, or a password being asked for, returns before it');
+  assert.ok(component.indexOf('<AppleAuthentication.AppleAuthenticationButton') < google && google < said && said < or, 'below both buttons, above "or"');
+  assert.equal(component.split('{NEW_ACCOUNT_NAME}').length, 2, 'said once');
+  // In a field hint's size and the theme's muted colour, as wide as the buttons.
+  assert.match(await read('src/components/ui.tsx'), /hint: \{ fontSize: 13, lineHeight: 18 \}/);
+  assert.match(component, /hint: \{ fontSize: 13, lineHeight: 18, width: '100%', maxWidth: PROVIDER_BUTTON\.maxWidth, alignSelf: 'center' \}/);
+  // The one component is what Sign in and Create account show, on an iPhone and on Android.
+  for (const screen of ['app/account.tsx', 'app/register.tsx']) assert.match(await read(screen), /<SocialSignIn\b/, screen);
+  // The web says the same words under its own buttons.
+  const web = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(web.includes(`<small id="social-sign-in-name" class="provider-hint">${NEW_ACCOUNT_NAME}</small>`));
+});

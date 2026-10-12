@@ -147,6 +147,13 @@ export async function appleSignInBody(credential: AppleCredential, kept: KeptApp
   return displayName ? { idToken, authorizationCode, displayName } : { idToken, authorizationCode };
 }
 
+/**
+ * Said under the Google and Apple buttons, on the phone and the web alike (index.html,
+ * #social-sign-in): a new account opened with either starts with the first name (#401), and the
+ * person can change it. Approved by the owner, Oct 12, 2026 (#399).
+ */
+export const NEW_ACCOUNT_NAME = 'A new account starts with your first name. You can change it in Account settings.';
+
 /** What an account opened with Apple shows instead of the placeholder it was given for no email. */
 export const APPLE_SHARED_NO_EMAIL = 'Apple didn’t share an email address.';
 

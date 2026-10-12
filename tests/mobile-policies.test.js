@@ -108,3 +108,11 @@ test('payment words reach the phone\'s terms only in their payment section', asy
     if (payment.test(text)) assert.ok(allowed.has(section), `"${section}" names payment: ${text}`);
   }
 });
+
+test('the phone\'s Privacy screen says what a new account is called, in the sign-in paragraph (#399)', async () => {
+  const privacy = JSON.parse(await readFile(MOBILE_PRIVACY_PATH, 'utf8'));
+  const paragraphs = privacy.blocks.filter((block) => block.kind === 'paragraph').map((block) => words(block.spans));
+  const signIn = paragraphs.filter((text) => text.startsWith('If you choose to sign in with Apple or Google'));
+  assert.equal(signIn.length, 1);
+  assert.ok(signIn[0].includes('only if you allow it. A new account starts with your first name as the name people in your journeys see, or your full name if no first name is shared. You can change it in Account settings. If you use'));
+});
