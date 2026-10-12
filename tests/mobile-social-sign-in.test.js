@@ -679,5 +679,6 @@ test('under the buttons, and only with them, the phone says a new account starts
   for (const screen of ['app/account.tsx', 'app/register.tsx']) assert.match(await read(screen), /<SocialSignIn\b/, screen);
   // The web says the same words under its own buttons.
   const web = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-  assert.ok(web.includes(`<small id="social-sign-in-name" class="provider-hint">${NEW_ACCOUNT_NAME}</small>`));
+  const { english } = await import('./fixtures/web-english.js');
+  assert.ok(web.includes('<small id="social-sign-in-name" class="provider-hint" data-i18n="signIn.social.nameHint"></small>') && english['signIn.social.nameHint'] === NEW_ACCOUNT_NAME);
 });

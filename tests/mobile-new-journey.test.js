@@ -7,6 +7,8 @@ const mobile = new URL('../apps/mobile/', import.meta.url);
 const read = (path) => readFile(new URL(path, mobile), 'utf8');
 const web = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+// The web's English is in locales/en.json since 102A (tests/fixtures/web-english.js).
+const { english, webSays } = await import('./fixtures/web-english.js');
 const server = await readFile(new URL('../server/platform.js', import.meta.url), 'utf8');
 
 // The phone's own TypeScript, compiled on the spot, its imports of the web's modules pointed
@@ -24,7 +26,7 @@ const screen = await read('app/new-journey.tsx');
 // The options of one of the web's #journey-form selects, as [value, words] pairs.
 function webOptions(name) {
   const select = html.match(new RegExp(`<select name="${name}">([\\s\\S]*?)</select>`))[1];
-  return [...select.matchAll(/<option value="([^"]+)">([^<]+)<\/option>/g)].map(([, value, words]) => [value, words]);
+  return [...select.matchAll(/<option value="([^"]+)" data-i18n="([^"]+)"><\/option>/g)].map(([, value, key]) => [value, english[key]]);
 }
 
 test('a new journey starts as the web\'s does: begun today, with no end planned', () => {
@@ -83,10 +85,10 @@ test('a draft the server would refuse is stopped first, in the server\'s own wor
 });
 
 test('the screen uses the web\'s words, and the journey it begins is the one that opens', () => {
-  assert.ok(web.includes(`'${draft.CREATED_MESSAGE}'`), 'the toast is the web\'s');
-  assert.ok(html.includes('placeholder="e.g. Mountain weekend"') && screen.includes('placeholder="e.g. Mountain weekend"'));
-  assert.ok(web.includes("'Begin with a name. The optional details can wait until they feel useful.'") && screen.includes('lead="Begin with a name. The optional details can wait until they feel useful."'));
-  assert.ok(web.includes("'Begin a shared journey'") && screen.includes('title="Begin a shared journey"'));
+  assert.ok(webSays(draft.CREATED_MESSAGE), 'the toast is the web\'s');
+  assert.ok(webSays('e.g. Mountain weekend') && screen.includes('placeholder="e.g. Mountain weekend"'));
+  assert.ok(webSays('Begin with a name. The optional details can wait until they feel useful.') && screen.includes('lead="Begin with a name. The optional details can wait until they feel useful."'));
+  assert.ok(webSays('Begin a shared journey') && screen.includes('title="Begin a shared journey"'));
   assert.match(screen, /await journey\.open\(created\.id\);\s+showToast\(CREATED_MESSAGE\);/, 'the new journey opens before the toast says it exists');
 });
 

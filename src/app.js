@@ -39,11 +39,16 @@ import { errorKey, errorMessage } from './i18n/translator.js';
 // words in italics, and the example ledger's days, written for the active language.
 function translatePage() {
   applyTranslations();
+  // A ＋ drawn before the words: the same in every language, so it isn't in the sentence, and in
+  // the same run of text, so a button's flex layout keeps the space between them.
+  document.querySelectorAll('[data-i18n-plus]').forEach((element) => { element.textContent = `＋ ${t(element.dataset.i18nPlus)}`; });
   document.querySelectorAll('[data-i18n-sentence]').forEach(renderEmphasis);
+  // The day in bold, then its month as plain text beside it, as the example has always been drawn.
   document.querySelectorAll('[data-example-day]').forEach((time) => {
     const day = `${time.getAttribute('datetime')}T12:00:00Z`;
-    time.querySelector('strong').textContent = format.date(day, { day: '2-digit', timeZone: 'UTC' });
-    time.querySelector('span').textContent = format.date(day, { month: 'short', timeZone: 'UTC' });
+    const strong = document.createElement('strong');
+    strong.textContent = format.date(day, { day: '2-digit', timeZone: 'UTC' });
+    time.replaceChildren(strong, ` ${format.date(day, { month: 'short', timeZone: 'UTC' })}`);
   });
 }
 
@@ -1027,7 +1032,8 @@ function render() {
   const accountNeedsJourney = Boolean(accountUser && !isCloudJourney(trip));
   renderJourneyControls(trip);
   $('.trip-bar').hidden = isEmptyStart;
-  $$('[data-open-moment]').forEach((button) => { button.textContent = accountNeedsJourney ? t('home.journey.create') : isEmptyStart ? t('home.moment.begin') : t('home.moment.hold'); });
+  // The ＋ is drawn beside the words rather than written in them: it is the same in every language.
+  $$('[data-open-moment]').forEach((button) => { button.textContent = accountNeedsJourney ? t('home.journey.create') : isEmptyStart ? t('home.moment.begin') : `＋ ${t('home.moment.hold')}`; });
   $('#trip-name').textContent = trip.name;
   writeText($('#trip-period'), isEmptyStart ? t('home.trip.empty') : journeyPeriod(trip));
   $('#guidance').hidden = isEmptyStart || guidanceEndedToday();
@@ -1186,7 +1192,7 @@ function renderSharedJourney(trip, moments, isEmptyStart) {
   $('#toggle-moments-button').textContent = momentsExpanded ? t('home.moments.showRecent') : t('home.moments.seeAll', { count: recent.length });
   // Every moment once "See all" is chosen, with no filter between them (#405).
   const visible = momentsExpanded ? recent : recent.slice(0, RECENT_MOMENTS_SHOWN);
-  $('#moment-timeline').innerHTML = visible.length ? visible.map(momentCardMarkup.bind(null, trip)).join('') : isEmptyStart ? `<div class="log-types"><p>${escapeHtml(t('home.moments.possibilities'))}</p><div>${MOMENT_TYPES.filter(([value]) => value !== 'other').map(([value]) => `<span>${escapeHtml(momentKindName(value))}</span>`).join('')}<button type="button" data-open-custom-moment>${escapeHtml(t('home.moments.addYourOwn'))}</button></div></div>` : emptyState(escapeHtml(t('home.moments.emptyTitle')), escapeHtml(t('home.moments.emptyBody')));
+  $('#moment-timeline').innerHTML = visible.length ? visible.map(momentCardMarkup.bind(null, trip)).join('') : isEmptyStart ? `<div class="log-types"><p>${escapeHtml(t('home.moments.possibilities'))}</p><div>${MOMENT_TYPES.filter(([value]) => value !== 'other').map(([value]) => `<span>${escapeHtml(momentKindName(value))}</span>`).join('')}<button type="button" data-open-custom-moment>＋ ${escapeHtml(t('home.moments.addYourOwn'))}</button></div></div>` : emptyState(escapeHtml(t('home.moments.emptyTitle')), escapeHtml(t('home.moments.emptyBody')));
   $$('[data-edit-moment]').forEach((button) => button.addEventListener('click', () => openMoment(button.dataset.editMoment)));
   $$('[data-open-moment-image]').forEach((button) => button.addEventListener('click', () => openMomentImage(button.dataset.openMomentImage)));
   $$('[data-share-moment]').forEach((button) => button.addEventListener('click', () => shareMoment(button.dataset.shareMoment)));

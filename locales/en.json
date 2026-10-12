@@ -403,7 +403,7 @@
   "@common.time.underAMinute": {
     "description": "A countdown with under a minute to go."
   },
-  "common.time.days": "{days, number}d {hours, number, ::integer-width/*00}h {minutes, number, ::integer-width/*00}m left",
+  "common.time.days": "{days, number, ::group-off}d {hours, number, ::integer-width/*00}h {minutes, number, ::integer-width/*00}m left",
   "@common.time.days": {
     "description": "A countdown with a day or more to go: days, hours and minutes, the hours and minutes always two digits (3d 04h 07m left). d, h and m are the units; use your language’s short forms.",
     "placeholders": {
@@ -412,7 +412,7 @@
       "minutes": { "type": "Number", "example": "7", "description": "Minutes left after the hours, 0 to 59." }
     }
   },
-  "common.time.hours": "{hours, number}h {minutes, number, ::integer-width/*00}m left",
+  "common.time.hours": "{hours, number, ::group-off}h {minutes, number, ::integer-width/*00}m left",
   "@common.time.hours": {
     "description": "A countdown with under a day to go: hours, then minutes as two digits (4h 07m left).",
     "placeholders": {
@@ -420,7 +420,7 @@
       "minutes": { "type": "Number", "example": "7", "description": "Minutes left after the hours, 0 to 59." }
     }
   },
-  "common.time.minutes": "{minutes, number}m left",
+  "common.time.minutes": "{minutes, number, ::group-off}m left",
   "@common.time.minutes": {
     "description": "A countdown with under an hour to go (12m left).",
     "placeholders": {
@@ -797,7 +797,7 @@
   "@home.trip.empty": {
     "description": "Under the journey’s name while the ledger is empty."
   },
-  "home.trip.eventHistory": "See event history ({count, number})",
+  "home.trip.eventHistory": "See event history ({count, number, ::group-off})",
   "@home.trip.eventHistory": {
     "description": "Button that opens the journey’s history of recorded changes, with how many there are.",
     "placeholders": {
@@ -849,9 +849,9 @@
       "name": { "type": "String", "example": "Asha", "description": "A journeyer’s name, as they wrote it, in any script." }
     }
   },
-  "home.moment.hold": "＋ Hold a moment",
+  "home.moment.hold": "Hold a moment",
   "@home.moment.hold": {
-    "description": "Button that opens the form to keep a new moment. “Hold” is how the product says keeping something with care. Keep the ＋ at the start."
+    "description": "Button that opens the form to keep a new moment. “Hold” is how the product says keeping something with care. A ＋ is drawn before it."
   },
   "home.moment.begin": "Begin",
   "@home.moment.begin": {
@@ -861,9 +861,9 @@
   "@home.journey.create": {
     "description": "Button shown to someone signed in who has no private journey yet: it opens the form to make one."
   },
-  "home.journey.new": "＋ New journey",
+  "home.journey.new": "New journey",
   "@home.journey.new": {
-    "description": "Button under the row of journeys: opens the form to begin another journey. Keep the ＋ at the start."
+    "description": "Button under the row of journeys: opens the form to begin another journey. A ＋ is drawn before it."
   },
   "home.journeyRow.label": "Switch journey",
   "@home.journeyRow.label": {
@@ -873,7 +873,7 @@
   "@home.journeyRow.switched": {
     "description": "Message after opening another journey from the row."
   },
-  "home.settings.button": "{count, plural, =0 {Journey settings} other {Journey settings · # to answer}}",
+  "home.settings.button": "{count, plural, =0 {Journey settings} other {Journey settings · {count, number, ::group-off} to answer}}",
   "@home.settings.button": {
     "description": "The button that opens Journey settings. When proposals to add someone are waiting for this person’s answer, it says how many.",
     "placeholders": {
@@ -892,7 +892,7 @@
   "@home.guidance.note": {
     "description": "Under the check-in’s title."
   },
-  "home.guidance.progress": "Check-in {current, number} of {total, number}",
+  "home.guidance.progress": "Check-in {current, number, ::group-off} of {total, number, ::group-off}",
   "@home.guidance.progress": {
     "description": "Which of the check-in’s questions is showing.",
     "placeholders": {
@@ -968,7 +968,7 @@
   "@home.moments.copy": {
     "description": "Under the Recent moments heading."
   },
-  "home.moments.seeAll": "{count, plural, one {See all # moment} other {See all # moments}}",
+  "home.moments.seeAll": "{count, plural, one {See all {count, number, ::group-off} moment} other {See all {count, number, ::group-off} moments}}",
   "@home.moments.seeAll": {
     "description": "Button that shows every moment, not only the recent ones.",
     "placeholders": {
@@ -983,9 +983,9 @@
   "@home.moments.possibilities": {
     "description": "Above the kinds of moment shown as suggestions in an empty ledger."
   },
-  "home.moments.addYourOwn": "＋ Add your own moment",
+  "home.moments.addYourOwn": "Add your own moment",
   "@home.moments.addYourOwn": {
-    "description": "Button among those suggestions: hold a moment of a kind the person names. Keep the ＋ at the start."
+    "description": "Button among those suggestions: hold a moment of a kind the person names. A ＋ is drawn before it."
   },
   "home.moments.emptyTitle": "No moments here yet",
   "@home.moments.emptyTitle": {
@@ -1003,9 +1003,9 @@
   "@home.threads.lead": {
     "description": "Under the Return-to conversations heading on the ledger."
   },
-  "home.threads.start": "＋ Start a conversation",
+  "home.threads.start": "Start a conversation",
   "@home.threads.start": {
-    "description": "Button that opens the form to start a return-to conversation. Keep the ＋ at the start."
+    "description": "Button that opens the form to start a return-to conversation. A ＋ is drawn before it."
   },
   "home.threads.open": "open",
   "@home.threads.open": {
@@ -1673,7 +1673,7 @@
   "@sharing.copy.needsJourney": {
     "description": "Under Journey sharing when signed in with no private journey open."
   },
-  "sharing.copy.here": "{count, plural, one {# person is here.} other {# people are here.}}",
+  "sharing.copy.here": "{count, plural, one {{count, number, ::group-off} person is here.} other {{count, number, ::group-off} people are here.}}",
   "@sharing.copy.here": {
     "description": "First sentence under Journey sharing: how many people are in the journey.",
     "placeholders": {
@@ -1695,7 +1695,7 @@
       "person": { "type": "String", "example": "as•••@example.com", "description": "The person invited: their name once they have joined, otherwise their email, partly hidden with dots." }
     }
   },
-  "sharing.copy.reservedMany": "{count, plural, other {# places are reserved, waiting for the people invited to accept.}}",
+  "sharing.copy.reservedMany": "{count, plural, other {{count, number, ::group-off} places are reserved, waiting for the people invited to accept.}}",
   "@sharing.copy.reservedMany": {
     "description": "Follows the count when the open places are held for several people invited (always two or more).",
     "placeholders": {
@@ -1812,7 +1812,7 @@
   "@sharing.member.makeOwner": {
     "description": "Button the owner sees beside another person: hand the journey to them."
   },
-  "sharing.member.showOthers": "{count, plural, one {Show the other # person} other {Show the other # people}}",
+  "sharing.member.showOthers": "{count, plural, one {Show the other {count, number, ::group-off} person} other {Show the other {count, number, ::group-off} people}}",
   "@sharing.member.showOthers": {
     "description": "Opens the rest of a long list of people.",
     "placeholders": {
@@ -1905,7 +1905,7 @@
       "time": { "type": "Object", "example": "Oct 12, 2026, 3:04 PM", "description": "A date and time, already written for the reader’s language. Drawn as a time element." }
     }
   },
-  "sharing.proposal.waiting": "{agreed, number} of {asked, number} have agreed · {pending, number} still to answer",
+  "sharing.proposal.waiting": "{agreed, number, ::group-off} of {asked, number, ::group-off} have agreed · {pending, number, ::group-off} still to answer",
   "@sharing.proposal.waiting": {
     "description": "Under a proposal still being decided.",
     "placeholders": {
@@ -1914,7 +1914,7 @@
       "pending": { "type": "Number", "example": "2", "description": "How many have not answered." }
     }
   },
-  "sharing.proposal.agreedCount": "{agreed, number} of {asked, number} agreed",
+  "sharing.proposal.agreedCount": "{agreed, number, ::group-off} of {asked, number, ::group-off} agreed",
   "@sharing.proposal.agreedCount": {
     "description": "Under a settled proposal.",
     "placeholders": {

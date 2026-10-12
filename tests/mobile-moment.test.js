@@ -8,6 +8,8 @@ const read = (path) => readFile(new URL(path, mobile), 'utf8');
 const web = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const server = await readFile(new URL('../server/platform.js', import.meta.url), 'utf8');
+// The web's English is in locales/en.json since 102A (tests/fixtures/web-english.js).
+const { english, webSays } = await import('./fixtures/web-english.js');
 
 // The phone's own TypeScript, compiled on the spot, its imports of the web's modules pointed
 // at the real files.
@@ -68,7 +70,7 @@ test('places are added in the person\'s words, removed one at a time, and never 
   assert.deepEqual(draft.addPlace([], '   '), { locations: [], problem: null });
   const twelve = Array.from({ length: 12 }, (_, index) => ({ label: `Place ${index}` }));
   assert.equal(draft.addPlace(twelve, 'One more').problem, 'A moment can hold up to 12 places.');
-  assert.ok(web.includes("showToast('A moment can hold up to 12 places.')"));
+  assert.ok(web.includes("showToast(t('moment.form.tooManyPlaces'))") && webSays('A moment can hold up to 12 places.'));
   assert.deepEqual(draft.removePlace([{ label: 'a' }, { label: 'b' }, { label: 'c' }], 1), [{ label: 'a' }, { label: 'c' }]);
 });
 
@@ -76,7 +78,7 @@ test('places carry no price on the phone, and a moment with no room says so with
   const form = await read('app/moment.tsx');
   assert.equal(Object.hasOwn(draft, 'placeNote'), false, 'the web\'s per-place price note stays on the web');
   assert.match(form, /<Section title="Places \(Optional\)" help="Add only what helps tell the story\.">/);
-  assert.ok(web.includes("index === 0 ? 'Included' : '$1/month'"), 'the web form is not touched');
+  assert.ok(web.includes("index === 0 ? t('moment.form.placeIncluded') : t('moment.form.placePrice')") && english['moment.form.placePrice'] === '$1/month', 'the web form is not touched');
   const { accountMessage, NO_ROOM_ADDED_HERE } = await importMobile('src/auth/account-messages.ts');
   const serverWords = 'Hold the first place, then add another through its monthly place add-on.';
   assert.ok((await readFile(new URL('../server/app.js', import.meta.url), 'utf8')).includes(serverWords), 'the words being replaced are still the server\'s');
@@ -95,15 +97,16 @@ test('a shared moment cannot be taken back, and the form says so in the web\'s w
   assert.equal(draft.visibilityLocked(shared, 'shared-now'), false);
   assert.equal(draft.visibilityLocked(existing, 'private'), false);
   assert.equal(draft.visibilityLocked(null, 'private'), false);
-  for (const before of [shared, existing]) assert.ok(web.includes(`'${draft.visibilityHelp(before)}'`), draft.visibilityHelp(before));
-  for (const [before, visibility] of [[existing, 'private'], [null, 'shared-now'], [null, 'private']]) assert.ok(web.includes(`'${draft.savedMessage(before, visibility)}'`));
+  for (const before of [shared, existing]) assert.ok(webSays(draft.visibilityHelp(before)), draft.visibilityHelp(before));
+  for (const [before, visibility] of [[existing, 'private'], [null, 'shared-now'], [null, 'private']]) assert.ok(webSays(draft.savedMessage(before, visibility)));
   assert.equal(draft.sharePayload(existing).visibility, 'shared-now');
   assert.equal(draft.sharePayload(existing).version, 3);
 });
 
 test('sharing and deleting go through the consequence dialog; the currencies are the web\'s', async () => {
   const actions = await read('src/journey/moment-actions.ts');
-  assert.ok(web.includes("confirmConsequence({ title: 'Share this moment now?', consequence: 'Everyone in this journey will be able to see it, including anyone who joins later. That access cannot be undone.', confirmLabel: 'Share this moment' })"));
+  assert.ok(web.includes("confirmConsequence({ title: t('moment.share.title'), consequence: t('moment.share.consequence'), confirmLabel: t('moment.share.confirm') })"));
+  assert.deepEqual(['moment.share.title', 'moment.share.consequence', 'moment.share.confirm'].map((key) => english[key]), ['Share this moment now?', 'Everyone in this journey will be able to see it, including anyone who joins later. That access cannot be undone.', 'Share this moment']);
   assert.match(actions, /title: 'Share this moment now\?',\s*consequence: 'Everyone in this journey will be able to see it, including anyone who joins later\. That access cannot be undone\.',\s*confirmLabel: 'Share this moment',/);
   assert.match(actions, /if \(before && before\.visibility !== 'shared-now' && draft\.visibility === 'shared-now' && !await shell\.confirmConsequence\(SHARE_NOW\)\) return false;/, 'turning an existing moment shared asks first');
   assert.match(actions, /confirmConsequence\(\{ title: 'Delete this moment\?', consequence: deleteConsequence\(moment\), confirmLabel: 'Delete moment', destructive: true \}\)/);
@@ -122,7 +125,7 @@ test('the currency is one compact drop-down, and "No currency" reads as nothing 
   assert.deepEqual(draft.CURRENCIES.map(([value]) => value), ['', 'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'INR'], 'the same values as before, in the same order');
   assert.deepEqual(draft.CURRENCIES[0], ['', 'No currency'], 'the empty choice is worded as no currency, not as the field\'s name');
   assert.ok(html.includes('<select name="moneyCurrency"><option value="">No currency</option>'), 'and the web\'s empty option says the same (the owner, on #351)');
-  assert.ok(html.includes('<span class="sr-only">Currency</span><select name="moneyCurrency">'), 'the web\'s field keeps its own name for a screen reader');
+  assert.ok(html.includes('<span class="sr-only" data-i18n="moment.form.currency"></span><select name="moneyCurrency">') && english['moment.form.currency'] === 'Currency', 'the web\'s field keeps its own name for a screen reader');
   for (const currency of ['', 'INR']) assert.equal(draft.payloadFrom({ ...draft.draftFrom(null), title: 'x', moneyCurrency: currency }, null).moneyCurrency, currency, 'what is saved is unchanged');
 
   const dropDown = await read('src/components/drop-down.tsx');
@@ -148,8 +151,8 @@ test('an empty name is told at its own field, and the form takes the person ther
   assert.match(ui, /accessibilityHint=\{problem \|\| undefined\}/, 'a screen reader hears the problem on the field');
   assert.match(ui, /borderColor: problem \? theme\.colors\.caution : theme\.colors\.border/, 'the mark is caution, never destructive: nothing has been lost');
   assert.match(ui, /STATUS_TONES\.caution\.glyph/, 'and a shape as well as a colour');
-  assert.ok(web.includes('showStatus(MOMENT_NAME_MISSING, { source: \'moment\' });\n      form.elements.title.focus();'), 'the web says the same words and goes to the same field');
-  assert.match(html, /<label class="field full"><span>A short name<\/span><input name="title" required/, 'where the browser\'s own check stops an empty one first');
+  assert.ok(web.includes('showStatus(t(\'moment.form.nameMissing\'), { source: \'moment\' });\n      form.elements.title.focus();') && english['moment.form.nameMissing'] === draft.MOMENT_NAME_MISSING, 'the web says the same words and goes to the same field');
+  assert.match(html, /<label class="field full"><span data-i18n="moment.form.name"><\/span><input name="title" required/, 'where the browser\'s own check stops an empty one first');
 });
 
 test('deleting a moment sits in its own marked zone, apart from Save and Cancel (#338)', async () => {

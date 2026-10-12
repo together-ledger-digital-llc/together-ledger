@@ -84,10 +84,10 @@
 
     <main id="top">
       <section class="welcome" id="welcome" aria-labelledby="welcome-title" data-welcome-only>
-        <!-- The language choice: small, and the first thing on the page, so it is the first thing someone
-             can change. Hidden while English is the only language that may be chosen (src/app.js). -->
-        <div class="welcome-language" id="welcome-language" hidden><label class="language-control"><svg class="language-glyph" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c2.6 2.7 3.9 5.7 3.9 9s-1.3 6.3-3.9 9c-2.6-2.7-3.9-5.7-3.9-9S9.4 5.7 12 3z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><select id="welcome-language-select" data-i18n-aria-label="common.language.title"></select></label></div>
         <div class="welcome-hero">
+          <!-- The language choice: small, and the first thing on the page, so it is the first thing someone
+               can change. Hidden while English is the only language that may be chosen (src/app.js). -->
+          <div class="welcome-language" id="welcome-language" hidden><label class="language-control"><svg class="language-glyph" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c2.6 2.7 3.9 5.7 3.9 9s-1.3 6.3-3.9 9c-2.6-2.7-3.9-5.7-3.9-9S9.4 5.7 12 3z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><select id="welcome-language-select" data-i18n-aria-label="common.language.title"></select></label></div>
           <div class="welcome-copy">
             <p class="welcome-eyebrow" data-i18n="welcome.hero.eyebrow"></p>
             <h1 id="welcome-title" data-i18n-sentence="welcome.hero.title" data-i18n-emphasis="welcome.hero.titleEmphasis"></h1>
@@ -106,9 +106,9 @@
               <h2 data-i18n="welcome.example.heading"></h2>
               <p data-i18n="welcome.example.lead"></p>
               <ol>
-                <li><time datetime="2026-05-14" data-example-day><strong></strong> <span></span></time><div><strong data-i18n="welcome.example.promiseTitle"></strong><span data-i18n="welcome.example.promiseDetail"></span><small data-i18n="welcome.example.shared"></small></div></li>
-                <li><time datetime="2026-06-02" data-example-day><strong></strong> <span></span></time><div><strong data-i18n="welcome.example.roadTitle"></strong><span data-i18n="welcome.example.roadDetail"></span><small data-i18n="welcome.example.shared"></small></div></li>
-                <li><time datetime="2026-06-18" data-example-day><strong></strong> <span></span></time><div><strong data-i18n="welcome.example.nextTitle"></strong><span data-i18n="welcome.example.nextDetail"></span><small data-i18n="welcome.example.later"></small></div></li>
+                <li><time datetime="2026-05-14" data-example-day><strong></strong></time><div><strong data-i18n="welcome.example.promiseTitle"></strong><span data-i18n="welcome.example.promiseDetail"></span><small data-i18n="welcome.example.shared"></small></div></li>
+                <li><time datetime="2026-06-02" data-example-day><strong></strong></time><div><strong data-i18n="welcome.example.roadTitle"></strong><span data-i18n="welcome.example.roadDetail"></span><small data-i18n="welcome.example.shared"></small></div></li>
+                <li><time datetime="2026-06-18" data-example-day><strong></strong></time><div><strong data-i18n="welcome.example.nextTitle"></strong><span data-i18n="welcome.example.nextDetail"></span><small data-i18n="welcome.example.later"></small></div></li>
               </ol>
             </div>
           </article>
@@ -155,11 +155,11 @@
         <section class="trip-bar" data-i18n-aria-label="home.trip.label">
           <div class="trip-identity"><small data-i18n="home.trip.label"></small><strong id="trip-name" data-i18n="home.trip.loading"></strong><span id="trip-period"></span><div class="trip-record-links"><button id="event-manager-button"></button><button id="edit-journey-button" data-i18n="home.trip.editJourney"></button><label id="actor-control"><span data-i18n="home.actor.label"></span> <select id="actor-select" data-i18n-aria-label="home.actor.menuLabel"></select></label><span class="sync-badge" id="sync-badge" data-i18n="common.sync.browserOnly"></span></div></div>
           <div class="journey-actions">
-            <button class="button primary" data-open-moment data-i18n="home.moment.hold"></button>
+            <button class="button primary" data-open-moment data-i18n-plus="home.moment.hold"></button>
           </div>
           <div class="journey-switch">
             <div class="journey-picker" id="journey-picker" hidden><span id="journey-picker-label" data-i18n="home.journeyRow.label"></span><div class="journey-row" id="journey-row" role="radiogroup" aria-labelledby="journey-picker-label"></div></div>
-            <button class="button quiet" id="new-journey-button" data-i18n="home.journey.new"></button>
+            <button class="button quiet" id="new-journey-button" data-i18n-plus="home.journey.new"></button>
           </div>
         </section>
 
@@ -181,12 +181,12 @@
           </details>
 
           <section class="card moments-section" id="moments" aria-labelledby="moments-title">
-            <div class="section-heading"><div><p class="eyebrow" id="moments-eyebrow" data-i18n="home.moments.beginEyebrow"></p><h2 id="moments-title" tabindex="-1" data-i18n="home.moments.beginTitle"></h2><p id="moments-copy" data-i18n="home.moments.beginCopy"></p></div><div class="section-actions"><button class="button quiet" id="toggle-moments-button" type="button" data-i18n="home.moments.showRecent"></button><button class="button primary" data-open-moment data-i18n="home.moment.hold"></button></div></div>
+            <div class="section-heading"><div><p class="eyebrow" id="moments-eyebrow" data-i18n="home.moments.beginEyebrow"></p><h2 id="moments-title" tabindex="-1" data-i18n="home.moments.beginTitle"></h2><p id="moments-copy" data-i18n="home.moments.beginCopy"></p></div><div class="section-actions"><button class="button quiet" id="toggle-moments-button" type="button" data-i18n="home.moments.showRecent"></button><button class="button primary" data-open-moment data-i18n-plus="home.moment.hold"></button></div></div>
             <div class="moment-timeline" id="moment-timeline"></div>
           </section>
 
           <section class="card threads-section" id="threads" aria-labelledby="threads-title">
-            <div class="section-heading"><div><p class="eyebrow" data-i18n="home.threads.eyebrow"></p><h2 id="threads-title" data-i18n="history.concerns.heading"></h2><p data-i18n="home.threads.lead"></p></div><button class="button quiet" type="button" id="add-thread-button" data-i18n="home.threads.start"></button></div>
+            <div class="section-heading"><div><p class="eyebrow" data-i18n="home.threads.eyebrow"></p><h2 id="threads-title" data-i18n="history.concerns.heading"></h2><p data-i18n="home.threads.lead"></p></div><button class="button quiet" type="button" id="add-thread-button" data-i18n-plus="home.threads.start"></button></div>
             <div id="open-threads"></div>
           </section>
         </section>
@@ -198,7 +198,7 @@
       <p data-i18n="footer.page.note"></p>
     </footer>
 
-    <nav class="mobile-action" data-i18n-aria-label="home.quickAction.label" data-ledger-only><button data-open-moment data-i18n="home.moment.hold"></button></nav>
+    <nav class="mobile-action" data-i18n-aria-label="home.quickAction.label" data-ledger-only><button data-open-moment data-i18n-plus="home.moment.hold"></button></nav>
 
     <dialog id="moment-dialog">
       <form id="moment-form" method="dialog">

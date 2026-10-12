@@ -193,13 +193,15 @@ test('accountMessage shows the service\'s own words, and the web\'s fallback oth
   assert.equal(accountMessage({ code: 'invalid_credentials', message: 'Password confirmation failed.' }), 'Password confirmation failed.');
   assert.equal(accountMessage(new Error('boom')), ACCOUNT_FALLBACK_MESSAGE);
   const web = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
-  assert.ok(web.includes(`return '${ACCOUNT_FALLBACK_MESSAGE}';`));
+  // The web's words are in locales/en.json since 102A (tests/fixtures/web-english.js).
+  const { webSays } = await import('./fixtures/web-english.js');
+  assert.ok(web.includes("return t('status.banner.accountService');") && webSays(ACCOUNT_FALLBACK_MESSAGE));
   const notices = await readFile(new URL('src/auth/account-messages.ts', mobile), 'utf8');
   // The phone's words for a moment with no room are its own on purpose: the web's point at a
   // payment the app does not offer (#268). Everything else is the web's.
   const phoneOnly = new Set(Object.values(NO_ROOM_ADDED_HERE));
   for (const phrase of [...notices.matchAll(/:\s*'([^']+)',/g)].map((match) => match[1]).filter((phrase) => !phoneOnly.has(phrase))) {
-    assert.ok(web.includes(phrase), `"${phrase}" is not the web's wording`);
+    assert.ok(web.includes(phrase) || webSays(phrase), `"${phrase}" is not the web's wording`);
   }
 });
 

@@ -238,10 +238,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .text-button { background: transparent; border: 0; color: var(--spruce); font-weight: 800; padding: 8px 0; text-decoration: underline; text-underline-offset: 3px; }
 
 .welcome { overflow: hidden; }
-/* The language choice at the top of the welcome page: small, at the end of the line, and only
-   there once a language besides English may be chosen. The select names the language it is in;
+/* The language choice at the top of the welcome page: small, in the hero's top corner above the
+   heading, and only there once a language besides English may be chosen. The select names the language it is in;
    the globe says what it is for, in any language. */
-.welcome-language { display: flex; justify-content: flex-end; margin: 0 auto; max-width: 1500px; padding: 14px clamp(18px, 4vw, 58px) 0; }
+.welcome-language { position: absolute; right: clamp(18px, 4vw, 58px); top: 14px; z-index: 1; }
 .language-control { align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-pill); color: var(--muted); display: inline-flex; gap: 2px; max-width: 100%; min-height: 44px; padding-left: 12px; }
 .language-glyph { flex: none; height: 18px; width: 18px; }
 .language-control select { background: transparent; border: 0; border-radius: var(--radius-pill); color: var(--ink); font-size: 14px; font-weight: 800; max-width: min(300px, calc(100vw - 92px)); min-height: 44px; min-width: 0; padding: 8px 12px 8px 6px; }
@@ -255,7 +255,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .welcome-intro { color: var(--muted); font-size: clamp(18px, 1.7vw, 22px); line-height: 1.65; margin: 31px 0 0; max-width: 590px; }
 .welcome-actions { display: flex; flex-wrap: wrap; gap: 11px; margin-top: 34px; }
 .welcome-actions .button { min-width: 180px; }
-.welcome-actions .button span, .welcome-closing .button span { margin-left: 11px; }
+.welcome-actions .button span[aria-hidden="true"], .welcome-closing .button span[aria-hidden="true"] { margin-left: 11px; }
 .welcome-boundary { align-items: start; color: var(--muted); display: flex; font-size: 14px; gap: 10px; margin: 25px 0 0; max-width: 590px; }
 .welcome-boundary > span:first-child { border: 2px solid var(--accent); border-radius: var(--radius-xs); color: transparent; height: 13px; margin-top: 4px; position: relative; width: 11px; }
 .welcome-boundary > span:first-child::before { border: 2px solid var(--accent); border-bottom: 0; border-radius: var(--radius-s) var(--radius-s) 0 0; content: ""; height: 6px; left: 1px; position: absolute; top: -7px; width: 5px; }
@@ -812,6 +812,8 @@ footer p { color: var(--on-accent); margin-bottom: 0; opacity: .8; }
   .theme-control span { display: none; }
   .theme-control select { min-height: 42px; max-width: 155px; }
   .welcome-hero { min-height: 0; padding: 65px 15px 78px; }
+  /* Room under the language choice, only while it shows. */
+  .welcome-hero:has(> .welcome-language:not([hidden])) { padding-top: 80px; }
   .welcome-hero::before { height: 390px; left: -285px; top: -190px; width: 390px; }
   .welcome h1 { font-size: clamp(55px, 17vw, 76px); }
   .welcome-intro { font-size: 18px; line-height: 1.65; }
