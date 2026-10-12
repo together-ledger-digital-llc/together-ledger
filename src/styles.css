@@ -262,7 +262,8 @@ h1 em { color: var(--on-accent); font-weight: 500; opacity: .82; }
 .hero-note p { color: var(--on-accent); margin: 10px 0 0; opacity: .8; }
 .hero-note strong { color: var(--on-accent); }
 
-.trip-bar { align-items: center; background: var(--card); border-bottom: 1px solid var(--line); display: flex; gap: 22px; justify-content: space-between; padding: 20px clamp(18px, 5vw, 72px); }
+/* The journeys' row and New journey take the bar's whole width on a line of their own (#404). */
+.trip-bar { --trip-bar-inline: clamp(18px, 5vw, 72px); align-items: center; background: var(--card); border-bottom: 1px solid var(--line); display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr) auto; padding: 20px var(--trip-bar-inline); }
 .trip-bar small, .trip-bar strong, .trip-bar span { display: block; }
 .trip-bar small { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
 .trip-bar strong { font-family: Georgia, serif; font-size: 27px; }
@@ -283,9 +284,25 @@ h1 em { color: var(--on-accent); font-weight: 500; opacity: .82; }
 .sync-badge { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius-pill); color: var(--muted); font-size: 14px !important; font-weight: 900; padding: 3px 8px; text-decoration: none; }
 .sync-badge.cloud { background: color-mix(in srgb, var(--accent) 12%, var(--card)); color: var(--ink); }
 .journey-actions { align-items: end; display: flex; flex-wrap: wrap; gap: 8px; justify-content: end; }
-.journey-picker { display: grid; gap: 3px; }
-.journey-picker > span { font-size: 12px; font-weight: 900; letter-spacing: .1em; padding-left: 11px; text-transform: uppercase; }
-.journey-picker select { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-pill); color: var(--ink); font-weight: 800; min-height: 48px; min-width: 190px; padding: 8px 35px 8px 14px; }
+.journey-switch { display: grid; gap: 10px; grid-column: 1 / -1; min-width: 0; }
+.journey-switch > .button { width: 100%; }
+.journey-picker { display: grid; gap: 3px; min-width: 0; }
+.journey-picker > span { font-size: 12px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+/* One row that scrolls sideways (#404). It runs on under the bar's own padding to the screen's
+   edge, so the last journey in sight is cut by it rather than ending neatly, and an end with more
+   beyond it fades. The padding above and below keeps a focused journey's ring inside the row. */
+.journey-row { --journey-row-fade: 32px; display: flex; gap: 8px; margin-inline: calc(-1 * var(--trip-bar-inline)); overflow-x: auto; overscroll-behavior-x: contain; padding: 7px var(--trip-bar-inline); position: relative; scrollbar-width: thin; }
+.journey-row[data-more-after] { mask-image: linear-gradient(to right, #000 calc(100% - var(--journey-row-fade)), transparent); }
+.journey-row[data-more-before] { mask-image: linear-gradient(to left, #000 calc(100% - var(--journey-row-fade)), transparent); }
+.journey-row[data-more-before][data-more-after] { mask-image: linear-gradient(to right, transparent, #000 var(--journey-row-fade), #000 calc(100% - var(--journey-row-fade)), transparent); }
+.journey-choice { align-items: center; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-pill); color: var(--ink); cursor: pointer; display: inline-flex; flex: 0 0 auto; font-weight: 800; gap: 6px; max-width: min(260px, 75vw); min-height: 44px; padding: 8px 14px; position: relative; }
+.trip-bar .journey-choice span { color: inherit; font-size: 15px; }
+.trip-bar .journey-choice-mark { display: none; }
+.trip-bar .journey-choice-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Chosen is told by the filled shape and the dot, not by colour alone. */
+.journey-choice:has(input:checked) { background: var(--spruce); border-color: var(--spruce); color: var(--on-accent); }
+.trip-bar .journey-choice:has(input:checked) .journey-choice-mark { display: inline; }
+.journey-choice:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 3px; }
 
 .workspace { margin: 0 auto; max-width: 1450px; padding: clamp(30px, 5vw, 70px) clamp(15px, 4vw, 55px) 110px; }
 .workspace-nav { align-items: center; display: flex; gap: 8px; margin-bottom: 16px; }
@@ -730,13 +747,11 @@ footer p { color: var(--on-accent); margin-bottom: 0; opacity: .8; }
   .welcome-privacy { gap: 35px; }
   .hero { padding: 55px 20px; }
   h1 { font-size: 48px; }
-  .trip-bar { align-items: stretch; display: grid; padding: 17px; }
+  .trip-bar { --trip-bar-inline: 17px; align-items: stretch; grid-template-columns: minmax(0, 1fr); padding: 17px; }
   .trip-record-links { align-items: start; display: grid; justify-items: start; }
-  .journey-actions { display: grid; grid-template-columns: 1fr auto; }
-  .journey-picker { grid-column: 1 / -1; }
-  .journey-picker select { width: 100%; }
+  /* Its one action lives in the persistent bar on a small screen. */
+  .journey-actions { display: none; }
   .trip-bar [data-open-expense] { display: none; }
-  .journey-actions .button { min-height: 46px; padding-inline: 13px; }
   .workspace-nav { align-items: stretch; flex-wrap: wrap; }
   .workspace-nav span { flex-basis: 100%; margin-left: 0; }
   .summary-grid { grid-template-columns: 1fr 1fr; gap: 9px; }
@@ -796,6 +811,8 @@ footer p { color: var(--on-accent); margin-bottom: 0; opacity: .8; }
   .moment-card { border-left: 5px solid CanvasText; }
   .moment-card.private, .moment-card.shared-now, .moment-card.share-later { border-left: 5px solid CanvasText; }
   .moment-theme-options label:has(input:checked) { outline: 2px solid Highlight; }
+  .journey-choice { border: 1px solid CanvasText; }
+  .journey-choice:has(input:checked) { border: 2px solid Highlight; }
 }
 
 /* A record of who was asked and what they decided, and a membership too long to sit open, are the

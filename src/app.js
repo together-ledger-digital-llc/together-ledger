@@ -28,6 +28,7 @@ import {
 import { exportState, importState, loadState, resetState, saveState } from './store.js';
 import { ApiError, TogetherApi } from './api.js';
 import { fitTyping } from './display-text.js';
+import { rowEdges, scrollToShow, showsJourneyRow } from './journey-row.js';
 import {
   LEAVE_CONFIRM_LABEL, LEAVE_FIELD_HINT, LEAVE_FIELD_LABEL, LEAVE_OWNER_FIRST, LEAVE_PENDING_LABEL, LEAVE_SAFETY, LEAVE_START_LABEL,
   LEAVE_STAY_LABEL, LEAVE_WORD, LEAVE_ZONE_NOTE, LEAVE_ZONE_TITLE, leaveConsequence, leaveOffer, leaveRefusalTone, leftJourney,
@@ -856,9 +857,53 @@ function waitingSuffix(count) {
   return count ? ` · ${count} to answer` : '';
 }
 
+// The journeys as one row that scrolls sideways (#404), the same as the phone's. Each is a radio,
+// so a keyboard reaches the row with Tab and moves along it with the arrow keys, and a screen
+// reader announces the chosen one. The row is only rebuilt when the journeys or their names
+// change: the arrow keys switch journeys as they go, and a row rebuilt under them would drop focus.
+let journeyRowNames = '';
+// The journey last brought into view; null until the row has been seen with a width.
+let journeyRowShown = null;
+
+function renderJourneyRow(trip) {
+  const row = $('#journey-row');
+  $('#journey-picker').hidden = !showsJourneyRow(state.trips);
+  const names = JSON.stringify(state.trips.map((item) => [item.id, item.name]));
+  if (names !== journeyRowNames) {
+    journeyRowNames = names;
+    // A long name is cut short on screen with an ellipsis; the radio's name is still the whole of
+    // it, and pointing at it shows it whole.
+    row.innerHTML = state.trips.map((item) => `<label class="journey-choice" title="${escapeHtml(item.name)}"><input class="sr-only" type="radio" name="journey" value="${escapeHtml(item.id)}"><span class="journey-choice-mark" aria-hidden="true">●</span><span class="journey-choice-name">${escapeHtml(item.name)}</span></label>`).join('');
+  }
+  row.querySelectorAll('input[name="journey"]').forEach((input) => { input.checked = input.value === trip.id; });
+  revealOpenJourney();
+  markJourneyRowEdges();
+}
+
+// The open journey comes into view when the ledger opens and whenever it changes, never on any
+// other render, so a row someone has scrolled stays where they left it.
+function revealOpenJourney() {
+  const row = $('#journey-row');
+  const chosen = row.querySelector('input[name="journey"]:checked')?.closest('.journey-choice');
+  if (!chosen || !row.clientWidth || journeyRowShown === chosen.firstElementChild.value) return;
+  const style = getComputedStyle(row);
+  const inset = Math.max(parseFloat(style.paddingLeft) || 0, parseFloat(style.getPropertyValue('--journey-row-fade')) || 0);
+  const left = scrollToShow({ start: chosen.offsetLeft, end: chosen.offsetLeft + chosen.offsetWidth, scrolled: row.scrollLeft, visible: row.clientWidth, total: row.scrollWidth, inset });
+  const smooth = journeyRowShown !== null && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (left !== null) row.scrollTo({ left, behavior: smooth ? 'smooth' : 'instant' });
+  journeyRowShown = chosen.firstElementChild.value;
+}
+
+// An end with journeys beyond it fades, so the row reads as one that goes on.
+function markJourneyRowEdges() {
+  const row = $('#journey-row');
+  const edges = rowEdges({ scrolled: row.scrollLeft, visible: row.clientWidth, total: row.scrollWidth });
+  row.toggleAttribute('data-more-before', edges.before);
+  row.toggleAttribute('data-more-after', edges.after);
+}
+
 function renderJourneyControls(trip) {
-  $('#journey-select').innerHTML = state.trips.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join('');
-  $('#journey-select').value = trip.id;
+  renderJourneyRow(trip);
   const actor = currentActor(trip);
   $('#actor-select').innerHTML = trip.members.map((member) => `<option>${escapeHtml(member)}</option>`).join('');
   $('#actor-select').value = actor;
@@ -1521,7 +1566,8 @@ $$('[data-close-moment]').forEach((button) => button.addEventListener('click', (
 $$('[data-close-image-viewer]').forEach((button) => button.addEventListener('click', () => $('#moment-image-viewer').close()));
 $$('[data-close-journey]').forEach((button) => button.addEventListener('click', () => $('#journey-dialog').close()));
 
-$('#journey-select').addEventListener('change', (event) => {
+$('#journey-row').addEventListener('change', (event) => {
+  if (event.target.name !== 'journey') return;
   state.activeTripId = event.target.value;
   filter = 'All';
   selectedDay = null;
@@ -1531,6 +1577,10 @@ $('#journey-select').addEventListener('change', (event) => {
   refreshBillingState().catch((error) => showStatus(accountMessage(error)));
 });
 
+$('#journey-row').addEventListener('scroll', markJourneyRowEdges, { passive: true });
+// Seen with a width for the first time (the ledger opening) or resized: bring the open journey
+// into view if it has not been yet, and mark which ends go on.
+new ResizeObserver(() => { revealOpenJourney(); markJourneyRowEdges(); }).observe($('#journey-row'));
 $('#new-journey-button').addEventListener('click', () => openJourney());
 $('#edit-journey-button').addEventListener('click', () => openJourney(activeTrip(state)));
 $('#journey-form').elements.startDateStatus.addEventListener('change', () => syncJourneyDateFields());
