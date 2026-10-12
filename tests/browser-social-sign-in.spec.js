@@ -210,6 +210,62 @@ test('under both buttons, a new account is said to start with the first name, re
   }
 });
 
+// Google Identity Services draws its button inside an iframe whose own document is light. When the
+// frame's colour scheme differs from the element that embeds it, the browser paints the frame
+// opaque, which on a dark theme is a hard white square around the pill (#398, seen in Safari and in
+// every iPhone and iPad browser). This stand-in draws the pill the same way, in a frame with a
+// transparent, light document, and the corners outside the pill must show the dialog behind them.
+const GOOGLE_FRAME_STAND_IN = `
+window.google = { accounts: { id: {
+  initialize(config) { window.__google = config; },
+  renderButton(element, options) {
+    const frame = document.createElement('iframe');
+    frame.title = 'Sign in with Google Button';
+    frame.style.cssText = 'border:0;display:block;height:40px;width:' + options.width + 'px';
+    frame.srcdoc = '<body style="margin:0"><div role="button" style="background:#fff;border:1px solid #747775;border-radius:20px;box-sizing:border-box;height:40px"></div></body>';
+    element.replaceChildren(frame);
+  },
+} } };`;
+
+// One pixel of what is on screen, as [r, g, b].
+async function pixelAt(page, x, y) {
+  const png = await page.screenshot({ clip: { x: Math.round(x), y: Math.round(y), width: 1, height: 1 } });
+  return page.evaluate(async (data) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${data}`;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    const context = canvas.getContext('2d');
+    context.drawImage(image, 0, 0);
+    return [...context.getImageData(0, 0, 1, 1).data.slice(0, 3)];
+  }, png.toString('base64'));
+}
+
+test('Google\'s button sits on the dialog with no box around it, in every theme and width (#398)', async ({ page, baseURL }) => {
+  await signedOutPage(page, baseURL);
+  await page.route(GOOGLE_SCRIPT, (route) => route.fulfill({ contentType: 'text/javascript', body: GOOGLE_FRAME_STAND_IN }));
+  for (const viewport of [{ width: 1280, height: 900 }, { width: 320, height: 640 }]) {
+    await page.setViewportSize(viewport);
+    for (const theme of ['light', 'dark', 'green', 'flexoki']) {
+      await page.goto('/');
+      await page.evaluate((id) => window.applyTogetherTheme(id), theme);
+      await openSignIn(page);
+      const frame = page.locator('#google-sign-in-button iframe');
+      await expect(frame).toBeVisible();
+      await expect(frame.contentFrame().getByRole('button')).toBeVisible();
+      const label = `${theme} at ${viewport.width}px`;
+      const box = await frame.boundingBox();
+      // Just inside the frame's top-left corner, outside the pill's curve, against just above the
+      // frame, in the gap the dialog's own surface fills.
+      const corner = await pixelAt(page, box.x + 2, box.y + 2);
+      const dialog = await pixelAt(page, box.x + 2, box.y - 6);
+      expect(corner, `${label}: the corner shows the dialog, not a box`).toEqual(dialog);
+    }
+  }
+});
+
 test('Continue with Google signs in with the same cookie and CSRF pair as a password, and stores nothing', async ({ page, baseURL }) => {
   await signedOutPage(page, baseURL);
   let sent = null;
