@@ -5,8 +5,6 @@ import {
   appendJourneyEvent,
   CATEGORIES,
   CATEGORY_ICONS,
-  conversationPrompts,
-  countOf,
   CURRENT_SCHEMA_VERSION,
   dateLabel,
   dateRange,
@@ -14,14 +12,12 @@ import {
   isValidState,
   localDay,
   money,
-  MOMENT_NAME_MISSING,
   MOMENT_TYPES,
   normalizeConcern,
   normalizeEntry,
   normalizeMoment,
   normalizeTrip,
   RECENT_MOMENTS_SHOWN,
-  remainingLabel,
   seeAllShown,
   summarize,
 } from './model.js';
@@ -29,20 +25,73 @@ import { exportState, importState, loadState, resetState, saveState } from './st
 import { ApiError, TogetherApi } from './api.js';
 import { fitTyping } from './display-text.js';
 import { rowEdges, scrollToShow, showsJourneyRow } from './journey-row.js';
-import {
-  LEAVE_CONFIRM_LABEL, LEAVE_FIELD_HINT, LEAVE_FIELD_LABEL, LEAVE_OWNER_FIRST, LEAVE_PENDING_LABEL, LEAVE_SAFETY, LEAVE_START_LABEL,
-  LEAVE_STAY_LABEL, LEAVE_WORD, LEAVE_ZONE_NOTE, LEAVE_ZONE_TITLE, leaveConsequence, leaveOffer, leaveRefusalTone, leftJourney,
-} from './leave-journey.js';
+import { LEAVE_WORD, leaveOffer, leaveRefusalTone } from './leave-journey.js';
 import { MOMENT_THEMES, momentThemeLabel, normalizeMomentTheme } from './moment-themes.js';
-import { PHOTO_METADATA_REMOVED, stripPhotoMetadata } from './photo-metadata.js';
+import { stripPhotoMetadata } from './photo-metadata.js';
 import {
   HISTORY_ENTRY_PARTS, HISTORY_ENTRY_PARTS_HEADING, HISTORY_EVENT_GROUPS, HISTORY_FIELDS, HISTORY_FIELDS_HEADING, HISTORY_GUIDE_INTRO,
   HISTORY_GUIDE_SECTIONS, HISTORY_GUIDE_TITLE, HISTORY_KINDS_HEADING, HISTORY_NEVER_LABEL, HISTORY_RECORDS_LABEL, HISTORY_RECORDS_NOTHING,
 } from './history-guide.js';
-import { activeLanguage, applyTranslations, chooseLanguage, languageChoice, languageOptions, t } from './i18n/web.js';
+import { activeLanguage, applyTranslations, chooseLanguage, format, languageChoice, languageOptions, t } from './i18n/web.js';
+import { errorKey, errorMessage } from './i18n/translator.js';
+
+// The sentences index.html names by key but data-i18n can't fill on its own: a heading with
+// words in italics, and the example ledger's days, written for the active language.
+function translatePage() {
+  applyTranslations();
+  document.querySelectorAll('[data-i18n-sentence]').forEach(renderEmphasis);
+  document.querySelectorAll('[data-example-day]').forEach((time) => {
+    const day = `${time.getAttribute('datetime')}T12:00:00Z`;
+    time.querySelector('strong').textContent = format.date(day, { day: '2-digit', timeZone: 'UTC' });
+    time.querySelector('span').textContent = format.date(day, { month: 'short', timeZone: 'UTC' });
+  });
+}
+
+// A heading whose last words are drawn in italics. The italic words are their own key, and are
+// found inside the sentence rather than joined onto it, so a translation can put them anywhere;
+// if a translation's italic words aren't in its sentence, the sentence still reads, just upright.
+function renderEmphasis(element) {
+  const sentence = t(element.dataset.i18nSentence);
+  const emphasis = t(element.dataset.i18nEmphasis);
+  const at = emphasis ? sentence.lastIndexOf(emphasis) : -1;
+  if (at === -1) {
+    element.textContent = sentence;
+    return;
+  }
+  const em = document.createElement('em');
+  em.textContent = emphasis;
+  element.replaceChildren(sentence.slice(0, at), em, sentence.slice(at + emphasis.length));
+}
 
 // Every sentence index.html names by key (data-i18n) is filled in before anything else draws.
-applyTranslations();
+translatePage();
+
+// A sentence as markup for a row built as an HTML string: the words escaped, a person's own text
+// in a <bdi>, and a value given as { html } (a <time>) put in as it is.
+function sentenceMarkup(key, values = {}) {
+  return t.parts(key, values, (text) => ({ isolated: text }))
+    .map((part) => {
+      if (typeof part === 'string') return escapeHtml(part);
+      if (part && typeof part.html === 'string') return part.html;
+      return `<bdi>${escapeHtml(part?.isolated ?? part)}</bdi>`;
+    })
+    .join('');
+}
+
+const timeMarkup = (value) => ({ html: `<time datetime="${escapeHtml(value || '')}">${escapeHtml(dateTimeLabel(value))}</time>` });
+
+// Text from t() into an element. A value t() inserted (a name, a journey, an amount) arrives
+// between Unicode's isolate marks, U+2068 … U+2069; on a page it goes in a <bdi> instead, which
+// lays it out on its own the same way and leaves the words as they were (docs/TRANSLATION.md).
+function writeText(element, text) {
+  const parts = String(text ?? '').split(/\u2068([^\u2069]*)\u2069/);
+  element.replaceChildren(...parts.map((part, index) => {
+    if (index % 2 === 0) return part;
+    const bdi = document.createElement('bdi');
+    bdi.textContent = part;
+    return bdi;
+  }));
+}
 
 // An emailed link's one-time code: verify, recovery or invite. The server puts it after the #,
 // which no browser sends to any server or puts in a Referer (#261). A link sent before that
@@ -87,23 +136,24 @@ window.addEventListener('hashchange', () => {
 // out, a half ring is meant for later, a full ring is out. The order reads even in
 // monochrome, in forced colours, and for anyone who cannot separate the three hues.
 const VISIBILITY_CUES = Object.freeze({
-  private: { glyph: '○', label: 'Private' },
-  'share-later': { glyph: '◐', label: 'Share later' },
-  'shared-now': { glyph: '●', label: 'Shared now' },
+  private: { glyph: '○', key: 'common.visibility.private' },
+  'share-later': { glyph: '◐', key: 'common.visibility.shareLater' },
+  'shared-now': { glyph: '●', key: 'common.visibility.sharedNow' },
 });
 
 function visibilityCue(visibility) {
-  return VISIBILITY_CUES[visibility] || { glyph: '○', label: String(visibility || '').replaceAll('-', ' ') };
+  const cue = VISIBILITY_CUES[visibility];
+  return cue ? { glyph: cue.glyph, label: t(cue.key) } : { glyph: '○', label: String(visibility || '').replaceAll('-', ' ') };
 }
 
 // A consequence is read before it is agreed to. The confirming button names the act rather
 // than saying OK, and focus opens on the way out, so the irreversible choice is never the one
 // a stray Return key reaches first.
-function confirmConsequence({ title, consequence, confirmLabel, keepLabel = 'Keep things as they are', destructive = false }) {
+function confirmConsequence({ title, consequence, confirmLabel, keepLabel = t('common.consequence.keep'), destructive = false }) {
   const dialog = document.querySelector('#consequence-dialog');
   if (!dialog?.showModal) return Promise.resolve(false);
-  dialog.querySelector('#consequence-dialog-title').textContent = title;
-  dialog.querySelector('#consequence-dialog-consequence').textContent = consequence;
+  writeText(dialog.querySelector('#consequence-dialog-title'), title);
+  writeText(dialog.querySelector('#consequence-dialog-consequence'), consequence);
   const cancel = dialog.querySelector('#consequence-dialog-cancel');
   const accept = dialog.querySelector('#consequence-dialog-accept');
   cancel.textContent = keepLabel;
@@ -120,7 +170,7 @@ function confirmConsequence({ title, consequence, confirmLabel, keepLabel = 'Kee
 // says the same words (apps/mobile/src/auth/account-messages.ts).
 const SIGN_OUT_EVERYWHERE_CONSEQUENCE = 'Every device signed in to this account, this one included, will need to sign in again. Nothing in your journeys is deleted.';
 const SIGNED_OUT_EVERYWHERE = 'Signed out on every device, this one included. Sign in again to continue.';
-const SIGNED_OUT_HERE = 'This device was signed out. This can happen when the password is changed, when Sign out everywhere is used, or when a sign-in runs out. Sign in again to continue.';
+const signedOutHere = () => t('signIn.status.signedOutHere');
 const PASSWORD_CHANGED_HERE = 'Password changed. Every other device was signed out, and this one stays signed in.';
 
 // A confirmation may pass; a problem must not. Anything a person needs to read twice, act on,
@@ -162,11 +212,11 @@ function showStatus(message, { tone = 'problem', source = 'action' } = {}) {
   const banner = document.querySelector('#status-banner');
   if (!banner) return;
   // Being signed out is a condition to act on, not a failure, whichever request noticed it first.
-  if (message === SIGNED_OUT_HERE) ({ tone, source } = { tone: 'caution', source: 'signed-out' });
+  if (message === signedOutHere()) ({ tone, source } = { tone: 'caution', source: 'signed-out' });
   placeStatus(banner);
   const shape = STATUS_TONES[tone] || STATUS_TONES.problem;
   banner.querySelector('.status-banner-glyph').textContent = shape.glyph;
-  banner.querySelector('#status-banner-message').textContent = message;
+  writeText(banner.querySelector('#status-banner-message'), message);
   banner.className = `status-banner ${shape.className}`;
   banner.hidden = false;
   statusBannerSource = source;
@@ -215,7 +265,7 @@ function saveWorkingState() {
     // Invalid data is a bug and stays loud. A full or blocked store is said in the status
     // region instead, and the change still shows (#185).
     if (!isValidState(state)) throw error;
-    showStatus('This browser could not save that change. It shows for now, but may not be here the next time this page opens.', { tone: 'caution', source: 'storage' });
+    showStatus(t('status.banner.storageFull'), { tone: 'caution', source: 'storage' });
   }
 }
 
@@ -223,10 +273,15 @@ function isCloudJourney(trip = activeTrip(state)) {
   return Boolean(accountUser && trip && cloudJourneyIds.has(trip.id));
 }
 
-function accountMessage(error) {
-  if (error instanceof ApiError && error.sessionEnded) return SIGNED_OUT_HERE;
-  if (error instanceof ApiError) return error.message;
-  return 'The account service could not complete that request.';
+// A refusal from the service reads in the person's language, by its code (docs/TRANSLATION.md),
+// and in the server's own English for a code with no sentence yet. area is where a code means
+// something narrower than it does everywhere: on the sign-in forms, invalid_credentials is only
+// ever a wrong sign-in (error.signIn), never the wrong password for deleting an account.
+function accountMessage(error, area = '') {
+  if (error instanceof ApiError && error.sessionEnded) return signedOutHere();
+  if (error instanceof ApiError && area && error.code && t.has(errorKey(error.code, area))) return t(errorKey(error.code, area));
+  if (error instanceof ApiError) return errorMessage(t, error);
+  return t('status.banner.accountService');
 }
 
 function snapshotToState(snapshots) {
@@ -242,7 +297,7 @@ function snapshotToState(snapshots) {
     const creationEvent = snapshot.events.find((event) => event.action === 'journey_created');
     const fallbackCreator = snapshot.members.find((member) => member.role === 'owner');
     const createdByUserId = creationEvent?.actorUserId || fallbackCreator?.id || '';
-    const createdByDisplayName = membersById[createdByUserId] || (creationEvent ? 'Former journeyer' : fallbackCreator?.displayName || 'Journey member');
+    const createdByDisplayName = membersById[createdByUserId] || (creationEvent ? t('common.person.formerJourneyer') : fallbackCreator?.displayName || t('common.person.journeyMember'));
     const milestones = { reviewedPicture: false, chosePrompt: false, agreedNextAction: false };
     snapshot.milestones.forEach((item) => { milestones[item.key] = item.completed; });
     trips.push({ ...snapshot.journey, members: snapshot.members.map((member) => member.displayName), memberRecords: snapshot.members, invitationRecords: snapshot.invitations || [], inviteProposalRecords: snapshot.inviteProposals || [], capacity: snapshot.capacity, createdByUserId, createdByDisplayName, createdAt: creationEvent?.createdAt || snapshot.journey.createdAt, milestones, archivedAt: '' });
@@ -250,12 +305,12 @@ function snapshotToState(snapshots) {
     const imagesByMoment = Object.groupBy((snapshot.images || []).filter((image) => !image.deletedAt), (image) => image.momentId);
     const removedImagesByMoment = Object.groupBy((snapshot.images || []).filter((image) => image.deletedAt), (image) => image.momentId);
     moments.push(...snapshot.moments.map((moment) => ({ ...moment, tripId: moment.journeyId, images: imagesByMoment[moment.id] || [], removedImages: removedImagesByMoment[moment.id] || [] })));
-    concerns.push(...snapshot.concerns.map((concern) => ({ ...concern, tripId: concern.journeyId, updatedBy: 'Journey member', updatedAt: new Date(concern.updatedAt).toISOString() })));
+    concerns.push(...snapshot.concerns.map((concern) => ({ ...concern, tripId: concern.journeyId, updatedBy: t('common.person.journeyMember'), updatedAt: new Date(concern.updatedAt).toISOString() })));
     snapshot.events.forEach((event, index) => events.push({
       ...event,
       tripId: snapshot.journey.id,
       occurredAt: event.createdAt,
-      actorName: membersById[event.actorUserId] || 'Former journeyer',
+      actorName: membersById[event.actorUserId] || t('common.person.formerJourneyer'),
       previousEventId: snapshot.events[index - 1]?.id || '',
       source: 'server-authoritative',
     }));
@@ -283,14 +338,14 @@ async function refreshCloudState({ announce = false } = {}) {
     if (heldCloudJourneys) state = loadState();
     renderAccountState();
     render();
-    if (announce) showToast('Account ready. Create your first private journey.');
+    if (announce) showToast(t('signIn.toast.accountReady'));
     return;
   }
   const snapshots = await Promise.all(journeys.map((journey) => api.request(`/journeys/${journey.id}/snapshot`)));
   state = snapshotToState(snapshots);
   renderAccountState();
   render();
-  if (announce) showToast('Private journeys refreshed.');
+  if (announce) showToast(t('signIn.toast.refreshed'));
 }
 
 function renderBillingState() {
@@ -435,7 +490,7 @@ function landOnSignIn(explanation) {
 // The service refused this page's session: it was ended somewhere else, or it ran out. Every
 // request that was waiting on it fails the same way, so this runs once, for the first.
 api.onSignedOut = () => {
-  if (accountUser) landOnSignIn(SIGNED_OUT_HERE);
+  if (accountUser) landOnSignIn(signedOutHere());
 };
 
 function renderAccountState() {
@@ -444,9 +499,7 @@ function renderAccountState() {
   $('#account-unavailable').hidden = signedIn || accountsAvailable;
   $('#signed-out-account').hidden = signedIn || !accountsAvailable;
   $('#signed-in-account').hidden = !signedIn;
-  $('#account-button').textContent = signedIn ? 'Account settings' : accountsAvailable ? 'Sign in' : 'Accounts soon';
-  $$('[data-open-account]').forEach((button) => { button.textContent = signedIn ? 'Account settings' : accountsAvailable ? 'Sign in' : 'Accounts soon'; });
-  $('#account-dialog-copy').textContent = accountsAvailable ? 'Passwords are never shared between journeyers.' : 'The private account service is not live on this public page yet.';
+  renderAccountLabels(signedIn, accountsAvailable);
   $('#account-name').textContent = signedIn ? accountUser.displayName : '';
   const nameInput = $('#display-name-form [name=displayName]');
   if (document.activeElement !== nameInput) nameInput.value = signedIn ? accountUser.displayName : '';
@@ -467,39 +520,18 @@ function renderAccountState() {
   $$('#change-password-form input').forEach((input) => { input.disabled = !changesPassword; });
   $('#account-sync-copy').textContent = isCloudJourney() ? 'Private journey sync is active. Moment visibility is enforced by the account service; shared threads and practical context remain visible to people in this journey.' : 'Your account is ready. Create a private journey when you are ready to invite another journeyer.';
   $('#settings-storage-copy').textContent = t(isCloudJourney() ? 'settings.storage.signedIn' : 'settings.storage.browserOnly');
-  $('#sync-badge').textContent = isCloudJourney() ? 'Private sync' : signedIn ? 'Account ready' : accountsAvailable ? 'Browser only' : 'Accounts soon';
+  $('#sync-badge').textContent = syncBadgeLabel(signedIn, accountsAvailable);
   $('#sync-badge').classList.toggle('cloud', signedIn);
   renderBillingState();
   $('#actor-control').hidden = isCloudJourney();
   const sharing = isCloudJourney();
-  const needsPrivateJourney = signedIn && !sharing;
-  const canInvite = activeTrip(state)?.capacity?.canInvite ?? activeTrip(state)?.members.length < 2;
-  // Any journeyer may ask; the asking is not the adding, so this is no longer the owner's form.
-  $('#invite-form').hidden = !sharing || !canInvite;
-  $('#sharing-create-journey-button').hidden = !needsPrivateJourney;
-  $('#sharing-copy').textContent = sharing
-    ? sharingCopy(activeTrip(state).members.length, canInvite, reservedFor(activeTrip(state)))
-    : needsPrivateJourney
-      ? 'Your account is ready. Create a private journey to invite another journeyer.'
-      : 'Sign in and create a private journey to invite another journeyer.';
-  $('#journey-record').hidden = !sharing;
+  renderJourneySharing(signedIn, sharing);
   renderGraceBanner(sharing ? activeTrip(state) : null);
   if (sharing) {
     const trip = activeTrip(state);
     const members = trip.memberRecords || [];
-    const memberActions = (member) => trip.role === 'owner' && member.id !== accountUser.id
-      ? `<div class="journey-member-actions"><button class="button quiet" type="button" data-transfer-owner="${escapeHtml(member.id)}" data-member-name="${escapeHtml(member.displayName)}">Make owner</button><button class="button danger" type="button" data-remove-member="${escapeHtml(member.id)}" data-member-name="${escapeHtml(member.displayName)}">Remove</button></div>`
-      : '';
-    const memberRow = (member) => {
-      const createdJourney = member.id === trip.createdByUserId;
-      const timestamp = createdJourney ? trip.createdAt : member.joinedAt;
-      const description = createdJourney ? `Created by ${escapeHtml(member.displayName)}` : `${escapeHtml(member.displayName)} joined the journey`;
-      const timing = createdJourney ? 'Created' : 'Joined';
-      const role = member.role === 'owner' ? 'Owner' : createdJourney ? 'Creator' : 'Journeyer';
-      return `<div class="journey-record-row"><div><strong>${description}</strong><small>${timing} <time datetime="${escapeHtml(timestamp)}">${escapeHtml(dateTimeLabel(timestamp))}</time></small>${memberActions(member)}</div><span class="journey-role">${role}${member.id === accountUser.id ? ' · You' : ''}</span></div>`;
-    };
-    $('#member-list').innerHTML = memberListMarkup(members, memberRow)
-      || emptyState('No one is listed yet', 'The people in this journey appear here once the account service answers.', { compact: true });
+    $('#member-list').innerHTML = memberListMarkup(members, (member) => memberRowMarkup(trip, member))
+      || emptyState(t('sharing.member.emptyTitle'), t('sharing.member.emptyBody'), { compact: true });
     const invitations = trip.invitationRecords || [];
     // Once everyone has agreed and the invitation is out, nothing is being decided any more: the
     // place is held for the person until they accept, it runs out, or it is withdrawn (#350).
@@ -530,9 +562,52 @@ function renderAccountState() {
   $('#theme-copy').textContent = t('common.theme.note');
 }
 
+// Sign in, Account settings or Accounts soon, wherever an account is opened from.
+function renderAccountLabels(signedIn, accountsAvailable) {
+  const label = signedIn ? t('common.account.settings') : accountsAvailable ? t('common.action.signIn') : t('common.account.soon');
+  $('#account-button').textContent = label;
+  $$('[data-open-account]').forEach((button) => { button.textContent = label; });
+  $('#account-dialog-copy').textContent = accountsAvailable ? t('account.dialog.copy') : t('account.dialog.unavailable');
+}
+
+function syncBadgeLabel(signedIn, accountsAvailable) {
+  if (isCloudJourney()) return t('common.sync.privateSync');
+  if (signedIn) return t('common.sync.accountReady');
+  return accountsAvailable ? t('common.sync.browserOnly') : t('common.account.soon');
+}
+
+// The top of Journey sharing: who is here and how someone is added, or how to get there.
+function renderJourneySharing(signedIn, sharing) {
+  const needsPrivateJourney = signedIn && !sharing;
+  const canInvite = activeTrip(state)?.capacity?.canInvite ?? activeTrip(state)?.members.length < 2;
+  // Any journeyer may ask; the asking is not the adding, so this is no longer the owner's form.
+  $('#invite-form').hidden = !sharing || !canInvite;
+  $('#sharing-create-journey-button').hidden = !needsPrivateJourney;
+  writeText($('#sharing-copy'), sharing
+    ? sharingCopy(activeTrip(state).members.length, canInvite, reservedFor(activeTrip(state)))
+    : needsPrivateJourney
+      ? t('sharing.copy.needsJourney')
+      : t('sharing.copy.signedOut'));
+  $('#journey-record').hidden = !sharing;
+}
+
+// One person in Journey record: who they are, when they came, and their part in the journey.
+function memberRowMarkup(trip, member) {
+  const memberActions = trip.role === 'owner' && member.id !== accountUser.id
+    ? `<div class="journey-member-actions"><button class="button quiet" type="button" data-transfer-owner="${escapeHtml(member.id)}" data-member-name="${escapeHtml(member.displayName)}">${escapeHtml(t('sharing.member.makeOwner'))}</button><button class="button danger" type="button" data-remove-member="${escapeHtml(member.id)}" data-member-name="${escapeHtml(member.displayName)}">${escapeHtml(t('common.action.remove'))}</button></div>`
+    : '';
+  const createdJourney = member.id === trip.createdByUserId;
+  const timestamp = createdJourney ? trip.createdAt : member.joinedAt;
+  const description = sentenceMarkup(createdJourney ? 'sharing.member.createdBy' : 'sharing.member.joined', { name: member.displayName });
+  const timing = sentenceMarkup(createdJourney ? 'sharing.member.createdAt' : 'sharing.member.joinedAt', { time: timeMarkup(timestamp) });
+  const role = member.role === 'owner' ? 'owner' : createdJourney ? 'creator' : 'journeyer';
+  const roleLabel = t(member.id === accountUser.id ? 'sharing.member.roleYou' : 'sharing.member.role', { role });
+  return `<div class="journey-record-row"><div><strong>${description}</strong><small>${timing}</small>${memberActions}</div><span class="journey-role">${escapeHtml(roleLabel)}</span></div>`;
+}
+
 function dateTimeLabel(value) {
   const date = new Date(value);
-  if (!value || Number.isNaN(date.getTime())) return 'Time not recorded';
+  if (!value || Number.isNaN(date.getTime())) return t('common.time.notRecorded');
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 }
 
@@ -551,18 +626,17 @@ function memberListMarkup(members, memberRow) {
   const inView = members.filter((member) => member.role === 'owner' || member.id === accountUser?.id);
   const folded = members.filter((member) => !inView.includes(member));
   if (!folded.length) return members.map(memberRow).join('');
-  const people = folded.length === 1 ? 'person' : 'people';
-  return `${inView.map(memberRow).join('')}<details class="member-overflow"><summary>Show the other ${folded.length} ${people}</summary>${folded.map(memberRow).join('')}</details>`;
+  return `${inView.map(memberRow).join('')}<details class="member-overflow"><summary>${escapeHtml(t('sharing.member.showOthers', { count: folded.length }))}</summary>${folded.map(memberRow).join('')}</details>`;
 }
 
 // "N people are here…": the top line of Journey sharing. Where the journey is full only because
 // places are held for people invited, it says so, rather than that there is no open place (#350).
 function sharingCopy(memberCount, canInvite, reserved) {
-  const here = `${memberCount} ${memberCount === 1 ? 'person is' : 'people are'} here.`;
-  let room = canInvite ? 'There is room to add another person, and everybody here has to agree to them.' : 'There is no open place right now.';
-  if (!canInvite && reserved?.held && reserved.invitations.length === 1) room = `1 place is reserved for ${invitedPerson(reserved.invitations[0])}, waiting for them to accept the invitation.`;
-  else if (!canInvite && reserved?.held && reserved.invitations.length > 1) room = `${reserved.invitations.length} places are reserved, waiting for the people invited to accept.`;
-  return `${here} ${room} Each person signs in separately.`;
+  const here = t('sharing.copy.here', { count: memberCount });
+  let room = canInvite ? t('sharing.copy.room') : t('sharing.copy.noRoom');
+  if (!canInvite && reserved?.held && reserved.invitations.length === 1) room = t('sharing.copy.reservedOne', { person: invitedPerson(reserved.invitations[0]) });
+  else if (!canInvite && reserved?.held && reserved.invitations.length > 1) room = t('sharing.copy.reservedMany', { count: reserved.invitations.length });
+  return [here, room, t('sharing.copy.separately')].join(' ');
 }
 
 function reservedFor(trip) {
@@ -584,41 +658,54 @@ function splitProposals(proposals) {
   return { deciding: proposals.filter((proposal) => proposal.status === 'open'), settled: proposals.filter((proposal) => proposal.status !== 'open') };
 }
 
-function reservedPlaceTitle(invitation) {
-  return `1 place reserved — waiting for ${invitedPerson(invitation)} to accept the invitation`;
+// Time left, said in the units that are actually left, as src/model.js's remainingLabel says it
+// for the phone. A month-long wait reads in days, a short-lived invitation in minutes.
+function remainingText(expiresAt, now = Date.now()) {
+  const deadline = new Date(expiresAt).getTime();
+  if (!expiresAt || Number.isNaN(deadline)) return t('common.time.noEnd');
+  const remaining = deadline - now;
+  if (remaining <= 0) return t('common.time.none');
+  const minutes = Math.floor(remaining / 60000);
+  if (minutes < 1) return t('common.time.underAMinute');
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  const rest = minutes % 60;
+  if (days > 0) return t('common.time.days', { days, hours, minutes: rest });
+  if (hours > 0) return t('common.time.hours', { hours, minutes: rest });
+  return t('common.time.minutes', { minutes: rest });
 }
 
 // Two different waits, and they are not the same length: the journeyers have a month to answer,
 // and the person invited has two weeks to accept (#347). "left" is said once, by the value (#282).
-function countdownMarkup(expiresAt, prefix) {
-  return `<small class="countdown" data-expires-at="${escapeHtml(expiresAt || '')}" data-countdown-prefix="${escapeHtml(prefix)}">${escapeHtml(prefix)}: ${escapeHtml(remainingLabel(expiresAt))}</small>`;
+function countdownMarkup(expiresAt, key) {
+  return `<small class="countdown" data-expires-at="${escapeHtml(expiresAt || '')}" data-countdown-key="${escapeHtml(key)}">${escapeHtml(t(key, { left: remainingText(expiresAt) }))}</small>`;
+}
+
+function sentByMarkup(invitation) {
+  return sentenceMarkup('sharing.invitation.sentBy', { name: invitation.invitedByDisplayName, time: timeMarkup(invitation.sentAt) });
 }
 
 function reservedPlaceRow(invitation) {
   const withdraw = invitation.viewerMayWithdraw
-    ? `<div class="settings-actions"><button class="button quiet" type="button" data-withdraw-invitation="${escapeHtml(invitation.id)}">Withdraw the invitation</button></div>`
+    ? `<div class="settings-actions"><button class="button quiet" type="button" data-withdraw-invitation="${escapeHtml(invitation.id)}">${escapeHtml(t('sharing.invitation.withdraw'))}</button></div>`
     : '';
-  return `<div class="journey-record-row"><div><strong>${escapeHtml(reservedPlaceTitle(invitation))}</strong><small>Sent by ${escapeHtml(invitation.invitedByDisplayName)} · <time datetime="${escapeHtml(invitation.sentAt || '')}">${escapeHtml(dateTimeLabel(invitation.sentAt))}</time></small>${countdownMarkup(invitation.expiresAt, 'Time to join')}${withdraw}</div><span class="invitation-status ${escapeHtml(invitation.status)}">${escapeHtml(invitationStatusLabel(invitation.status))}</span></div>`;
-}
-
-function sendAgainNote(invitation) {
-  return `Everyone has already agreed, so it can be sent again until ${dateTimeLabel(invitation.sendAgainUntil)} without asking them again.`;
+  return `<div class="journey-record-row"><div><strong>${sentenceMarkup('sharing.reserved.title', { person: invitedPerson(invitation) })}</strong><small>${sentByMarkup(invitation)}</small>${countdownMarkup(invitation.expiresAt, 'sharing.invitation.timeToJoin')}${withdraw}</div><span class="invitation-status ${escapeHtml(invitation.status)}">${escapeHtml(invitationStatusLabel(invitation.status))}</span></div>`;
 }
 
 function invitationHistoryRow(invitation) {
-  const joining = invitation.status === 'pending' ? countdownMarkup(invitation.expiresAt, 'Time to join') : '';
+  const joining = invitation.status === 'pending' ? countdownMarkup(invitation.expiresAt, 'sharing.invitation.timeToJoin') : '';
   const sendAgain = invitation.viewerMaySendAgain
-    ? `<small>${escapeHtml(sendAgainNote(invitation))}</small><div class="settings-actions"><button class="button quiet" type="button" data-send-invitation-again="${escapeHtml(invitation.id)}">Send it again</button></div>`
+    ? `<small>${sentenceMarkup('sharing.invitation.sendAgainNote', { time: dateTimeLabel(invitation.sendAgainUntil) })}</small><div class="settings-actions"><button class="button quiet" type="button" data-send-invitation-again="${escapeHtml(invitation.id)}">${escapeHtml(t('sharing.invitation.sendAgain'))}</button></div>`
     : '';
-  return `<div class="journey-record-row"><div><strong>Invitation sent to ${escapeHtml(invitedPerson(invitation))}</strong><small>Sent by ${escapeHtml(invitation.invitedByDisplayName)} · <time datetime="${escapeHtml(invitation.sentAt)}">${escapeHtml(dateTimeLabel(invitation.sentAt))}</time></small>${joining}${sendAgain}</div><span class="invitation-status ${escapeHtml(invitation.status)}">${escapeHtml(invitationStatusLabel(invitation.status))}</span></div>`;
+  return `<div class="journey-record-row"><div><strong>${sentenceMarkup('sharing.invitation.sentTo', { person: invitedPerson(invitation) })}</strong><small>${sentByMarkup(invitation)}</small>${joining}${sendAgain}</div><span class="invitation-status ${escapeHtml(invitation.status)}">${escapeHtml(invitationStatusLabel(invitation.status))}</span></div>`;
 }
 
 // The times on both sides of a decision are kept in the record: when somebody was asked, and
 // when they answered. A journey can fold this away to read the summary, and cannot lose it.
 function inviteProposalRow(proposal, trip) {
   const waiting = proposal.status === 'open'
-    ? `${proposal.agreedCount} of ${proposal.askedCount} have agreed · ${proposal.pendingCount} still to answer`
-    : `${proposal.agreedCount} of ${proposal.askedCount} agreed`;
+    ? t('sharing.proposal.waiting', { agreed: proposal.agreedCount, asked: proposal.askedCount, pending: proposal.pendingCount })
+    : t('sharing.proposal.agreedCount', { agreed: proposal.agreedCount, asked: proposal.askedCount });
   // Whoever asked can stop asking, and so can the owner. Withdrawing settles the question
   // without recording a refusal against anybody who simply had not answered yet.
   const mayWithdraw = proposal.status === 'open' && (proposal.proposedByUserId === accountUser?.id || trip?.role === 'owner');
@@ -626,37 +713,38 @@ function inviteProposalRow(proposal, trip) {
   // the product having an opinion about how somebody should answer a question about another
   // person's access to everything this journey has shared. It does not get one.
   const buttons = [
-    proposal.viewerMayDecide ? `<button class="button quiet" type="button" data-agree-proposal="${escapeHtml(proposal.id)}">Agree to add them</button>` : '',
-    proposal.viewerMayDecide ? `<button class="button quiet" type="button" data-decline-proposal="${escapeHtml(proposal.id)}">Decline</button>` : '',
-    mayWithdraw ? `<button class="button quiet" type="button" data-withdraw-proposal="${escapeHtml(proposal.id)}">Withdraw</button>` : '',
+    proposal.viewerMayDecide ? `<button class="button quiet" type="button" data-agree-proposal="${escapeHtml(proposal.id)}">${escapeHtml(t('sharing.proposal.agree'))}</button>` : '',
+    proposal.viewerMayDecide ? `<button class="button quiet" type="button" data-decline-proposal="${escapeHtml(proposal.id)}">${escapeHtml(t('sharing.proposal.decline'))}</button>` : '',
+    mayWithdraw ? `<button class="button quiet" type="button" data-withdraw-proposal="${escapeHtml(proposal.id)}">${escapeHtml(t('sharing.proposal.withdraw'))}</button>` : '',
   ].filter(Boolean).join('');
   const actions = buttons ? `<div class="settings-actions">${buttons}</div>` : '';
   const note = proposal.note ? `<small>${escapeHtml(proposal.note)}</small>` : '';
-  const countdown = proposal.status === 'open' ? countdownMarkup(proposal.expiresAt, 'Time to answer') : '';
-  return `<div class="journey-record-row"><div><strong>${escapeHtml(invitedPerson(proposal))}</strong><small>Proposed by ${escapeHtml(proposal.proposedByDisplayName)} · <time datetime="${escapeHtml(proposal.proposedAt || '')}">${escapeHtml(dateTimeLabel(proposal.proposedAt))}</time></small>${note}<small>${escapeHtml(waiting)}</small>${countdown}${actions}<details class="proposal-detail"><summary>Who was asked, and when</summary>${proposal.decisions.map(proposalDecisionRow).join('')}</details></div><span class="invitation-status ${escapeHtml(proposal.status)}">${escapeHtml(proposalStatusLabel(proposal.status))}</span></div>`;
+  const countdown = proposal.status === 'open' ? countdownMarkup(proposal.expiresAt, 'sharing.proposal.timeToAnswer') : '';
+  const proposedBy = sentenceMarkup('sharing.proposal.proposedBy', { name: proposal.proposedByDisplayName, time: timeMarkup(proposal.proposedAt) });
+  return `<div class="journey-record-row"><div><strong>${escapeHtml(invitedPerson(proposal))}</strong><small>${proposedBy}</small>${note}<small>${escapeHtml(waiting)}</small>${countdown}${actions}<details class="proposal-detail"><summary>${escapeHtml(t('sharing.proposal.whoWasAsked'))}</summary>${proposal.decisions.map(proposalDecisionRow).join('')}</details></div><span class="invitation-status ${escapeHtml(proposal.status)}">${escapeHtml(proposalStatusLabel(proposal.status))}</span></div>`;
 }
 
 function proposalDecisionRow(entry) {
-  const answered = entry.decision === 'pending'
-    ? 'has not answered yet'
-    : `${entry.decision === 'agree' ? 'agreed' : 'declined'} ${dateTimeLabel(entry.decidedAt)}`;
-  return `<div class="journey-record-row"><div><strong>${escapeHtml(entry.displayName)}</strong><small>Asked <time datetime="${escapeHtml(entry.requestedAt || '')}">${escapeHtml(dateTimeLabel(entry.requestedAt))}</time> · ${escapeHtml(answered)}</small></div><span class="invitation-status ${escapeHtml(entry.decision)}">${escapeHtml(proposalDecisionLabel(entry.decision))}</span></div>`;
+  const asked = entry.decision === 'pending'
+    ? sentenceMarkup('sharing.proposal.askedWaiting', { time: timeMarkup(entry.requestedAt) })
+    : sentenceMarkup('sharing.proposal.askedAnswered', { time: timeMarkup(entry.requestedAt), decision: entry.decision === 'agree' ? 'agree' : 'decline', answeredAt: dateTimeLabel(entry.decidedAt) });
+  return `<div class="journey-record-row"><div><strong>${escapeHtml(entry.displayName)}</strong><small>${asked}</small></div><span class="invitation-status ${escapeHtml(entry.decision)}">${escapeHtml(proposalDecisionLabel(entry.decision))}</span></div>`;
 }
 
 // The countdowns are redrawn in place rather than by re-rendering the journey, so that a fold
 // somebody opened to read the record does not close under them while they are reading it.
 function refreshCountdowns() {
   document.querySelectorAll('.countdown[data-expires-at]').forEach((element) => {
-    element.textContent = `${element.dataset.countdownPrefix}: ${remainingLabel(element.dataset.expiresAt)}`;
+    element.textContent = t(element.dataset.countdownKey, { left: remainingText(element.dataset.expiresAt) });
   });
 }
 
 function proposalStatusLabel(status) {
-  return ({ open: 'Waiting on everyone', agreed: 'Agreed', declined: 'Declined', withdrawn: 'Withdrawn', lapsed: 'Lapsed' })[status] || 'Recorded';
+  return t('sharing.proposal.status', { status });
 }
 
 function proposalDecisionLabel(decision) {
-  return ({ agree: 'Agreed', decline: 'Declined', pending: 'Waiting' })[decision] || 'Recorded';
+  return t('sharing.proposal.decision', { decision });
 }
 
 // Only the owner sees this: they hold the journey and the payment, and the decision is theirs.
@@ -766,41 +854,73 @@ async function saveUnpaidCapacityRest(trip, payload) {
 }
 
 function invitationStatusLabel(status) {
-  return ({ accepted: 'Accepted', expired: 'Expired', pending: 'Pending', revoked: 'Revoked', withdrawn: 'Withdrawn' })[status] || 'Recorded';
+  return t('sharing.invitation.status', { status });
+}
+
+// The four themes' names, read by key. src/themes.js keeps their ids and colours, for the web and
+// the phone alike; what a theme is called is a sentence like any other.
+const THEME_NAME_KEYS = Object.freeze({
+  light: 'common.themeName.light',
+  dark: 'common.themeName.dark',
+  green: 'common.themeName.green',
+  flexoki: 'common.themeName.flexoki',
+});
+
+function themeName(id) {
+  return THEME_NAME_KEYS[id] ? t(THEME_NAME_KEYS[id]) : t('common.theme.label');
+}
+
+function renderThemeOptions() {
+  const themes = window.TOGETHER_THEMES || [];
+  $$('[data-theme-picker]').forEach((select) => {
+    select.replaceChildren(...themes.map((theme) => {
+      const option = document.createElement('option');
+      option.value = theme.id;
+      option.textContent = themeName(theme.id);
+      return option;
+    }));
+    select.value = document.documentElement.dataset.theme || 'light';
+  });
 }
 
 function initializeThemePicker() {
   const selects = $$('[data-theme-picker]');
-  const themes = window.TOGETHER_THEMES || [];
+  renderThemeOptions();
   selects.forEach((select) => {
-    select.innerHTML = themes.map((theme) => `<option value="${theme.id}">${theme.label}</option>`).join('');
-    select.value = document.documentElement.dataset.theme || 'light';
     select.addEventListener('change', () => {
       const id = window.applyTogetherTheme(select.value);
       localStorage.setItem('theme', id);
       selects.forEach((item) => { item.value = id; });
-      showToast(`${themes.find((theme) => theme.id === id)?.label || 'Theme'} applied.`);
+      showToast(t('common.theme.applied', { theme: themeName(id) }));
     });
   });
 }
 
-// The Language row (101B). It lists only languages the manifest marks approved, each in its own
-// name and script, after "Follow my device"; while English is the only one, it stays hidden.
-function renderLanguageRow() {
-  const options = languageOptions();
-  const section = $('#language-settings');
-  section.hidden = options.length < 2;
-  if (section.hidden) return;
-  const select = $('#language-select');
-  select.replaceChildren(...[{ tag: '', nativeName: t('common.language.followDevice') }, ...options].map(({ tag, nativeName }) => {
+// The language menus: the Language row in Settings (101B) and the small one at the top of the
+// welcome page (102A). Both list "Follow my device", then every language that may be chosen, each
+// in its own name and script; a language in preview carries the word Preview beside its name
+// (owner, Oct 12, 2026, decision 145). While English is the only one, both stay hidden.
+function languageMenuOptions() {
+  return [{ tag: '', nativeName: t('common.language.followDevice'), preview: false }, ...languageOptions()].map(({ tag, nativeName, preview }) => {
     const option = document.createElement('option');
     option.value = tag;
-    option.textContent = nativeName;
+    option.textContent = preview ? t('common.language.preview', { language: nativeName }) : nativeName;
     // Each name in its own language, so a screen reader says हिन्दी as Hindi, not as English.
     if (tag) option.lang = tag;
+    if (preview) option.dataset.preview = '';
     return option;
-  }));
-  select.value = languageChoice() || '';
+  });
+}
+
+function renderLanguageRow() {
+  const shown = languageOptions().length >= 2;
+  $('#language-settings').hidden = !shown;
+  $('#welcome-language').hidden = !shown;
+  if (!shown) return;
+  for (const select of [$('#language-select'), $('#welcome-language-select')]) {
+    select.replaceChildren(...languageMenuOptions());
+    select.value = languageChoice() || '';
+  }
 }
 
 // Switches the page to a choice (a tag, or null for "Follow my device") and redraws what app.js
@@ -809,6 +929,9 @@ async function showLanguage(choice) {
   const before = activeLanguage();
   await chooseLanguage(choice);
   if (activeLanguage() !== before) {
+    translatePage();
+    renderThemeOptions();
+    setSurface(document.body.dataset.surface || 'welcome');
     render();
     renderAccountState();
   }
@@ -834,17 +957,19 @@ async function settleLanguage() {
 
 function initializeLanguageRow() {
   renderLanguageRow();
-  $('#language-select').addEventListener('change', async (event) => {
-    const choice = event.currentTarget.value || null;
-    try {
-      // Signed in, the choice is saved to the account first, and the page follows what it kept.
-      if (accountUser) accountUser = await api.setLanguage(choice);
-      await showLanguage(accountUser ? accountUser.language : choice);
-    } catch (error) {
-      showStatus(accountMessage(error));
-      renderLanguageRow();
-    }
-  });
+  for (const select of [$('#language-select'), $('#welcome-language-select')]) {
+    select.addEventListener('change', async (event) => {
+      const choice = event.currentTarget.value || null;
+      try {
+        // Signed in, the choice is saved to the account first, and the page follows what it kept.
+        if (accountUser) accountUser = await api.setLanguage(choice);
+        await showLanguage(accountUser ? accountUser.language : choice);
+      } catch (error) {
+        showStatus(accountMessage(error));
+        renderLanguageRow();
+      }
+    });
+  }
 }
 
 function initializeDialogBranding() {
@@ -864,7 +989,7 @@ function setSurface(surface) {
   $$('[data-ledger-only]').forEach((element) => { element.hidden = welcome; });
   const skipLink = $('.skip-link');
   skipLink.href = welcome ? '#welcome-title' : '#moments-title';
-  skipLink.textContent = welcome ? 'Skip to the main story' : 'Skip to the shared ledger';
+  skipLink.textContent = welcome ? t('header.skip.story') : t('header.skip.ledger');
   if (!welcome) $('#ledger-app').hidden = false;
 }
 
@@ -902,9 +1027,9 @@ function render() {
   const accountNeedsJourney = Boolean(accountUser && !isCloudJourney(trip));
   renderJourneyControls(trip);
   $('.trip-bar').hidden = isEmptyStart;
-  $$('[data-open-moment]').forEach((button) => { button.textContent = accountNeedsJourney ? 'Create a journey' : isEmptyStart ? 'Begin' : '＋ Hold a moment'; });
+  $$('[data-open-moment]').forEach((button) => { button.textContent = accountNeedsJourney ? t('home.journey.create') : isEmptyStart ? t('home.moment.begin') : t('home.moment.hold'); });
   $('#trip-name').textContent = trip.name;
-  $('#trip-period').textContent = isEmptyStart ? 'Nothing has been written here yet.' : journeyPeriod(trip);
+  writeText($('#trip-period'), isEmptyStart ? t('home.trip.empty') : journeyPeriod(trip));
   $('#guidance').hidden = isEmptyStart || guidanceEndedToday();
   $('#threads').hidden = isEmptyStart;
   renderSharedJourney(trip, moments, isEmptyStart);
@@ -919,9 +1044,6 @@ function awaitingYourAnswer(trip) {
   return (trip?.inviteProposalRecords || []).filter((proposal) => proposal.viewerMayDecide).length;
 }
 
-function waitingSuffix(count) {
-  return count ? ` · ${count} to answer` : '';
-}
 
 // The journeys as one row that scrolls sideways (#404), the same as the phone's. Each is a radio,
 // so a keyboard reaches the row with Tab and moves along it with the arrow keys, and a screen
@@ -973,8 +1095,8 @@ function renderJourneyControls(trip) {
   const actor = currentActor(trip);
   $('#actor-select').innerHTML = trip.members.map((member) => `<option>${escapeHtml(member)}</option>`).join('');
   $('#actor-select').value = actor;
-  $('#event-count').textContent = `(${state.events.filter((event) => event.tripId === trip.id).length})`;
-  $('#settings-button').textContent = `Journey settings${waitingSuffix(awaitingYourAnswer(trip))}`;
+  $('#event-manager-button').textContent = t('home.trip.eventHistory', { count: state.events.filter((event) => event.tripId === trip.id).length });
+  $('#settings-button').textContent = t('home.settings.button', { count: awaitingYourAnswer(trip) });
   const accountWithoutJourney = Boolean(accountUser && !isCloudJourney(trip));
   $$('[data-open-moment]').forEach((button) => { button.disabled = false; });
   $('#edit-journey-button').disabled = accountWithoutJourney;
@@ -982,9 +1104,38 @@ function renderJourneyControls(trip) {
   renderAccountState();
 }
 
+// The kinds of moment, read by key. src/model.js keeps which kinds there are, for the web and the
+// phone alike; what each is called is a sentence like any other.
+const MOMENT_KIND_KEYS = Object.freeze({
+  promise: 'common.momentKind.promise',
+  acknowledgment: 'common.momentKind.acknowledgment',
+  trigger: 'common.momentKind.trigger',
+  'missed-chance': 'common.momentKind.missedChance',
+  'heart-to-heart': 'common.momentKind.heartToHeart',
+  memory: 'common.momentKind.memory',
+  feeling: 'common.momentKind.feeling',
+  boundary: 'common.momentKind.boundary',
+  'repair-request': 'common.momentKind.repairRequest',
+  'learned-something': 'common.momentKind.learnedSomething',
+  'call-me': 'common.momentKind.callMe',
+  'called-you': 'common.momentKind.calledYou',
+  'practical-matter': 'common.momentKind.practicalMatter',
+  other: 'common.momentKind.addYourOwn',
+});
+
+function momentKindName(kind) {
+  return MOMENT_KIND_KEYS[kind] ? t(MOMENT_KIND_KEYS[kind]) : t('common.momentKind.moment');
+}
+
 function momentLabel(kind, kindLabel = '') {
-  if (kind === 'other') return kindLabel || 'A shared note';
-  return MOMENT_TYPES.find(([value]) => value === kind)?.[1] || 'Moment';
+  if (kind === 'other') return kindLabel || t('common.momentKind.sharedNote');
+  return momentKindName(kind);
+}
+
+// A moment's own theme, by name: one of the four themes, or each reader's own.
+function momentThemeName(value) {
+  const theme = normalizeMomentTheme(value);
+  return theme ? themeName(theme) : t('common.momentTheme.own');
 }
 
 function momentThemeAttribute(value) {
@@ -1003,38 +1154,39 @@ function guidanceEndedToday() {
 function journeyPeriod(trip) {
   const pieces = [];
   if (trip.location) pieces.push(trip.location);
-  pieces.push(trip.startDateStatus === 'unknown' ? 'Began at an unknown time' : `Began ${dateLabel(trip.startDate)}`);
-  pieces.push(trip.endDateStatus === 'forever' ? 'No end date planned' : trip.endDateStatus === 'unsure' ? 'Ending not decided yet' : `Ends ${dateLabel(trip.endDate)}`);
+  pieces.push(trip.startDateStatus === 'unknown' ? t('home.trip.beganUnknown') : t('home.trip.began', { date: dateLabel(trip.startDate) }));
+  pieces.push(trip.endDateStatus === 'forever' ? t('home.trip.noEnd') : trip.endDateStatus === 'unsure' ? t('home.trip.endUnsure') : t('home.trip.ends', { date: dateLabel(trip.endDate) }));
   return pieces.join(' · ');
 }
+
+// The check-in's questions, one key each, in the order they are asked.
+const GUIDANCE_PROMPT_KEYS = Object.freeze([
+  'home.guidance.nameWithCare',
+  'home.guidance.appreciated',
+  'home.guidance.lighterThread',
+  'home.guidance.spaciousBoundary',
+  'home.guidance.rememberSeason',
+]);
 
 function renderSharedJourney(trip, moments, isEmptyStart) {
   const threads = state.concerns.filter((concern) => concern.tripId === trip.id && concern.status === 'open');
   const recent = [...moments].sort((a, b) => `${b.occurredOn}-${b.updatedAt}`.localeCompare(`${a.occurredOn}-${a.updatedAt}`));
 
-  const prompts = conversationPrompts();
+  const prompts = GUIDANCE_PROMPT_KEYS;
   guidanceIndex = Math.min(guidanceIndex, prompts.length - 1);
-  $('#guidance-progress').textContent = `Check-in ${guidanceIndex + 1} of ${prompts.length}`;
-  $('#guidance-prompt').textContent = prompts[guidanceIndex];
+  $('#guidance-progress').textContent = t('home.guidance.progress', { current: guidanceIndex + 1, total: prompts.length });
+  $('#guidance-prompt').textContent = t(prompts[guidanceIndex]);
   $('#guidance-prev').disabled = guidanceIndex === 0;
   $('#guidance-skip').hidden = guidanceIndex === prompts.length - 1;
   $('#guidance-done').hidden = guidanceIndex !== prompts.length - 1;
-  $('#moments-eyebrow').textContent = isEmptyStart ? 'A place to begin' : 'Our shared journey';
-  $('#moments-title').textContent = isEmptyStart ? 'What can live here?' : 'Recent moments';
-  $('#moments-copy').textContent = isEmptyStart ? 'A ledger can hold the things you want to remember, name, or return to. It begins empty.' : 'Hold what happened in words that feel true.';
+  $('#moments-eyebrow').textContent = isEmptyStart ? t('home.moments.beginEyebrow') : t('home.sharedJourney.eyebrow');
+  $('#moments-title').textContent = isEmptyStart ? t('home.moments.beginTitle') : t('home.moments.title');
+  $('#moments-copy').textContent = isEmptyStart ? t('home.moments.beginCopy') : t('home.moments.copy');
   $('#toggle-moments-button').hidden = !seeAllShown(recent.length, momentsExpanded);
-  $('#toggle-moments-button').textContent = momentsExpanded ? 'Show recent' : `See all ${countOf(recent.length, 'moment', 'moments')}`;
+  $('#toggle-moments-button').textContent = momentsExpanded ? t('home.moments.showRecent') : t('home.moments.seeAll', { count: recent.length });
   // Every moment once "See all" is chosen, with no filter between them (#405).
   const visible = momentsExpanded ? recent : recent.slice(0, RECENT_MOMENTS_SHOWN);
-  $('#moment-timeline').innerHTML = visible.length ? visible.map((moment) => {
-    const attribution = `<span>Held by ${escapeHtml(moment.createdBy || 'Journey member')}</span>${moment.shapedByBoth ? '<span class="moment-collaboration-badge">Shaped by more than one journeyer</span>' : ''}`;
-    const shareAction = isCloudJourney(trip) && moment.visibility === 'share-later' ? `<button data-share-moment="${escapeHtml(moment.id)}">Share now</button>` : '';
-    const attachments = moment.images?.length ? `<div class="moment-attachments">${moment.images.map((image) => `<button type="button" class="moment-image-attachment" data-open-moment-image="${escapeHtml(image.id)}" aria-label="Open photo ${escapeHtml(image.filename || 'Image')}"><img data-moment-image-preview="${escapeHtml(image.id)}" alt="Photo held with ${escapeHtml(moment.title)}" /><span class="moment-image-attachment-copy"><span>Photo</span><strong>${escapeHtml(image.filename || 'Image')}</strong><small>Open larger</small></span></button>`).join('')}</div>` : '';
-    const removed = moment.removedImages?.length ? `<details class="moment-removed-photos"><summary>Removed photo</summary>${moment.removedImages.map((image) => `<button type="button" class="moment-image-attachment" data-open-moment-image="${escapeHtml(image.id)}" aria-label="Open removed photo ${escapeHtml(image.filename || 'Image')}"><span class="moment-image-attachment-copy"><span>Removed photo</span><strong>${escapeHtml(image.filename || 'Image')}</strong><small>Open larger</small></span></button>`).join('')}</details>` : '';
-    const locations = Array.isArray(moment.locations) ? moment.locations : [];
-    const locationContext = locations.length ? `<div class="location-context">${escapeHtml(locations.map((location) => location.label).join(' · '))}</div>` : '';
-    return `<article class="moment-card ${moment.visibility}"${momentThemeAttribute(moment.theme)}><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn)}</span><span class="visibility-chip ${moment.visibility}"><span class="visibility-glyph" aria-hidden="true">${visibilityCue(moment.visibility).glyph}</span>${escapeHtml(visibilityCue(moment.visibility).label)}</span></div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${locationContext}${attachments}${removed}${moment.moneyCents != null ? `<details class="money-context"><summary>Practical money context</summary><p>${money(moment.moneyCents, moment.moneyCurrency)} is held here as context, not a score.</p></details>` : ''}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">Edit</button></div></article>`;
-  }).join('') : isEmptyStart ? `<div class="log-types"><p>There are no examples here—only possibilities:</p><div>${MOMENT_TYPES.filter(([value]) => value !== 'other').map(([, label]) => `<span>${escapeHtml(label)}</span>`).join('')}<button type="button" data-open-custom-moment>＋ Add your own moment</button></div></div>` : emptyState('No moments here yet', 'A small truth is enough to begin.');
+  $('#moment-timeline').innerHTML = visible.length ? visible.map(momentCardMarkup.bind(null, trip)).join('') : isEmptyStart ? `<div class="log-types"><p>${escapeHtml(t('home.moments.possibilities'))}</p><div>${MOMENT_TYPES.filter(([value]) => value !== 'other').map(([value]) => `<span>${escapeHtml(momentKindName(value))}</span>`).join('')}<button type="button" data-open-custom-moment>${escapeHtml(t('home.moments.addYourOwn'))}</button></div></div>` : emptyState(escapeHtml(t('home.moments.emptyTitle')), escapeHtml(t('home.moments.emptyBody')));
   $$('[data-edit-moment]').forEach((button) => button.addEventListener('click', () => openMoment(button.dataset.editMoment)));
   $$('[data-open-moment-image]').forEach((button) => button.addEventListener('click', () => openMomentImage(button.dataset.openMomentImage)));
   $$('[data-share-moment]').forEach((button) => button.addEventListener('click', () => shareMoment(button.dataset.shareMoment)));
@@ -1042,9 +1194,22 @@ function renderSharedJourney(trip, moments, isEmptyStart) {
     if (accountUser && !isCloudJourney(trip)) { openJourney(); return; }
     openMoment('', 'other');
   }));
-  $('#open-threads').innerHTML = threads.length ? threads.map((thread) => `<article class="thread-row"><div><span class="status-chip open">open</span><strong>${escapeHtml(thread.title)}</strong>${thread.detail ? `<p>${escapeHtml(thread.detail)}</p>` : ''}</div><button data-edit-thread="${escapeHtml(thread.id)}">Open</button></article>`).join('') : emptyState('No open threads', 'That can be a good place to rest.', { compact: true });
+  $('#open-threads').innerHTML = threads.length ? threads.map((thread) => `<article class="thread-row"><div><span class="status-chip open">${escapeHtml(t('home.threads.open'))}</span><strong>${escapeHtml(thread.title)}</strong>${thread.detail ? `<p>${escapeHtml(thread.detail)}</p>` : ''}</div><button data-edit-thread="${escapeHtml(thread.id)}">${escapeHtml(t('common.action.open'))}</button></article>`).join('') : emptyState(escapeHtml(t('home.threads.emptyTitle')), escapeHtml(t('home.threads.emptyBody')), { compact: true });
   $$('[data-edit-thread]').forEach((button) => button.addEventListener('click', () => openConcern(button.dataset.editThread)));
   hydrateMomentImagePreviews(trip);
+}
+
+// One moment, as it reads on the ledger.
+function momentCardMarkup(trip, moment) {
+  const attribution = `<span>${sentenceMarkup('moment.card.heldBy', { name: moment.createdBy || t('common.person.journeyMember') })}</span>${moment.shapedByBoth ? `<span class="moment-collaboration-badge">${escapeHtml(t('moment.card.shapedByMore'))}</span>` : ''}`;
+  const shareAction = isCloudJourney(trip) && moment.visibility === 'share-later' ? `<button data-share-moment="${escapeHtml(moment.id)}">${escapeHtml(t('moment.card.shareNow'))}</button>` : '';
+  const photoName = (image) => image.filename || t('moment.photo.fallbackName');
+  const attachments = moment.images?.length ? `<div class="moment-attachments">${moment.images.map((image) => `<button type="button" class="moment-image-attachment" data-open-moment-image="${escapeHtml(image.id)}" aria-label="${escapeHtml(t('moment.photo.open', { name: photoName(image) }))}"><img data-moment-image-preview="${escapeHtml(image.id)}" alt="${escapeHtml(t('moment.photo.alt', { title: moment.title }))}" /><span class="moment-image-attachment-copy"><span>${escapeHtml(t('moment.photo.label'))}</span><strong>${escapeHtml(photoName(image))}</strong><small>${escapeHtml(t('moment.photo.openLarger'))}</small></span></button>`).join('')}</div>` : '';
+  const removed = moment.removedImages?.length ? `<details class="moment-removed-photos"><summary>${escapeHtml(t('moment.photo.removed'))}</summary>${moment.removedImages.map((image) => `<button type="button" class="moment-image-attachment" data-open-moment-image="${escapeHtml(image.id)}" aria-label="${escapeHtml(t('moment.photo.openRemoved', { name: photoName(image) }))}"><span class="moment-image-attachment-copy"><span>${escapeHtml(t('moment.photo.removed'))}</span><strong>${escapeHtml(photoName(image))}</strong><small>${escapeHtml(t('moment.photo.openLarger'))}</small></span></button>`).join('')}</details>` : '';
+  const locations = Array.isArray(moment.locations) ? moment.locations : [];
+  const locationContext = locations.length ? `<div class="location-context">${escapeHtml(locations.map((location) => location.label).join(' · '))}</div>` : '';
+  const moneyContext = moment.moneyCents != null ? `<details class="money-context"><summary>${escapeHtml(t('moment.money.title'))}</summary><p>${sentenceMarkup('moment.card.money', { amount: money(moment.moneyCents, moment.moneyCurrency) })}</p></details>` : '';
+  return `<article class="moment-card ${moment.visibility}"${momentThemeAttribute(moment.theme)}><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn)}</span><span class="visibility-chip ${moment.visibility}"><span class="visibility-glyph" aria-hidden="true">${visibilityCue(moment.visibility).glyph}</span>${escapeHtml(visibilityCue(moment.visibility).label)}</span></div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${locationContext}${attachments}${removed}${moneyContext}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">${escapeHtml(t('common.action.edit'))}</button></div></article>`;
 }
 
 async function imageUrlForMoment(trip, moment, image) {
@@ -1067,7 +1232,7 @@ async function hydrateMomentImagePreviews(trip) {
       preview.src = await imageUrlForMoment(trip, moment, image);
     } catch {
       preview.closest('.moment-image-attachment')?.classList.add('image-unavailable');
-      preview.alt = 'Photo could not be loaded. Select to try again.';
+      preview.alt = t('moment.photo.unavailable');
     }
   }));
 }
@@ -1077,12 +1242,12 @@ async function openMomentImage(imageId) {
   const moment = activeMoments(state).find((item) => item.images?.some((image) => image.id === imageId));
   const image = moment?.images.find((item) => item.id === imageId);
   if (!trip || !moment || !image) return;
-  $('#moment-image-viewer-name').textContent = image.filename || 'Image';
+  $('#moment-image-viewer-name').textContent = image.filename || t('moment.photo.fallbackName');
   const viewer = $('#moment-image-viewer-image');
   const error = $('#moment-image-viewer-error');
   viewer.hidden = true;
   error.hidden = true;
-  viewer.alt = `Photo held with ${moment.title}`;
+  viewer.alt = t('moment.photo.alt', { title: moment.title });
   $('#moment-image-viewer').showModal();
   try {
     viewer.src = await imageUrlForMoment(trip, moment, image);
@@ -1105,20 +1270,20 @@ function syncMomentThemePreview(form) {
   const preview = $('#moment-theme-preview');
   if (theme) preview.dataset.momentTheme = theme;
   else delete preview.dataset.momentTheme;
-  $('#moment-theme-preview-name').textContent = momentThemeLabel(theme);
+  $('#moment-theme-preview-name').textContent = momentThemeName(theme);
 }
 
 function renderMomentThemeChooser(form, selectedTheme = '') {
   const selected = normalizeMomentTheme(selectedTheme);
-  const choices = [{ id: '', label: 'Use my theme' }, ...MOMENT_THEMES];
-  $('#moment-theme-options').innerHTML = choices.map(({ id, label }) => `<label><input type="radio" name="theme" value="${id}"${id === selected ? ' checked' : ''} /><span class="moment-theme-swatch${id ? '' : ' inherited'}"${momentThemeAttribute(id)} aria-hidden="true"></span><span>${escapeHtml(label)}</span></label>`).join('');
+  const choices = [{ id: '' }, ...MOMENT_THEMES];
+  $('#moment-theme-options').innerHTML = choices.map(({ id }) => `<label><input type="radio" name="theme" value="${id}"${id === selected ? ' checked' : ''} /><span class="moment-theme-swatch${id ? '' : ' inherited'}"${momentThemeAttribute(id)} aria-hidden="true"></span><span>${escapeHtml(momentThemeName(id))}</span></label>`).join('');
   $$('input[name="theme"]', form).forEach((input) => input.addEventListener('change', () => syncMomentThemePreview(form)));
   syncMomentThemePreview(form);
 }
 
 function renderMomentLocations() {
   const list = $('#moment-locations');
-  list.innerHTML = momentLocations.map((location, index) => `<li><strong>${escapeHtml(location.label)}</strong><small>${index === 0 ? 'Included' : '$1/month'}</small><button type="button" data-remove-location="${index}" aria-label="Remove ${escapeHtml(location.label)}">Remove</button></li>`).join('');
+  list.innerHTML = momentLocations.map((location, index) => `<li><strong>${escapeHtml(location.label)}</strong><small>${escapeHtml(index === 0 ? t('moment.form.placeIncluded') : t('moment.form.placePrice'))}</small><button type="button" data-remove-location="${index}" aria-label="${escapeHtml(t('moment.form.removePlace', { place: location.label }))}">${escapeHtml(t('common.action.remove'))}</button></li>`).join('');
   $$('[data-remove-location]', list).forEach((button) => button.addEventListener('click', () => {
     momentLocations.splice(Number(button.dataset.removeLocation), 1);
     renderMomentLocations();
@@ -1127,7 +1292,7 @@ function renderMomentLocations() {
 
 function addMomentLocation(location) {
   if (!location.label?.trim()) return;
-  if (momentLocations.length >= 12) { showToast('A moment can hold up to 12 places.'); return; }
+  if (momentLocations.length >= 12) { showToast(t('moment.form.tooManyPlaces')); return; }
   momentLocations.push({ ...location, label: location.label.trim() });
   renderMomentLocations();
 }
@@ -1153,7 +1318,7 @@ async function prepareMomentPhoto(input) {
     if (input.files?.[0] !== file) return; // another photo was picked meanwhile
     preparedMomentPhoto = { source: file, photo: new File([bytes], file.name, { type: contentType }) };
     const note = $('#moment-image-privacy');
-    note.textContent = PHOTO_METADATA_REMOVED;
+    note.textContent = t('moment.form.photoMetadataRemoved');
     note.hidden = false;
   } catch (error) {
     if (input.files?.[0] !== file) return; // a newer pick is not this one's to clear
@@ -1171,19 +1336,19 @@ function openMoment(id = '', initialKind = '') {
   forgetMomentPhoto();
   // A new moment must never inherit an ID from a dialog that previously edited one.
   form.elements.id.value = '';
-  form.elements.kind.innerHTML = MOMENT_TYPES.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
+  form.elements.kind.innerHTML = MOMENT_TYPES.map(([value]) => `<option value="${value}">${escapeHtml(momentKindName(value))}</option>`).join('');
   form.elements.occurredOn.value = localDay();
   form.elements.visibility.value = 'shared-now';
   renderMomentThemeChooser(form, moment?.theme);
   momentLocations = [];
-  $('#moment-dialog-title').textContent = moment ? 'Edit this moment' : 'Hold a moment';
-  $('#save-moment').textContent = moment ? 'Save moment' : 'Hold this moment';
-  $('#moment-dialog-copy').textContent = hosted ? 'Choose whether this stays with you, is shared now, or waits until you are ready.' : 'Choose visibility with care. In browser-only mode, it is a local cue, not separate-account privacy.';
+  $('#moment-dialog-title').textContent = moment ? t('moment.form.editTitle') : t('moment.form.title');
+  $('#save-moment').textContent = moment ? t('moment.form.saveChanges') : t('moment.form.save');
+  $('#moment-dialog-copy').textContent = hosted ? t('moment.form.hostedCopy') : t('moment.form.localCopy');
   $('#moment-visibility-help').textContent = hosted
     ? moment?.visibility === 'shared-now'
-      ? 'Already shared: everyone in this journey can see this moment, including anyone who joins later. Prior access cannot be undone.'
-      : 'Private stays with you. Shared now opens it to everyone in this journey, including anyone who joins later. Share later stays with you until you deliberately share it.'
-    : 'Browser only: Private and Share later are local cues, not separate-account privacy controls.';
+      ? t('moment.form.visibilityShared')
+      : t('moment.form.visibilityHosted')
+    : t('moment.form.visibilityLocal');
   $('#moment-visibility-field').hidden = false;
   $('#moment-image-field').hidden = !hosted;
   $$('input[name="visibility"]', form).forEach((input) => { input.disabled = Boolean(hosted && moment?.visibility === 'shared-now' && input.value !== 'shared-now'); });
@@ -1196,7 +1361,7 @@ function openMoment(id = '', initialKind = '') {
   const hasIncludedImage = Boolean(moment?.images?.length);
   const includedImage = moment?.images?.[0];
   form.elements.image.disabled = hasIncludedImage;
-  $('#moment-image-help').textContent = hasIncludedImage ? 'This moment already holds its included image. Another image is a $1/month add-on.' : 'JPEG, PNG, or WebP, up to 25 MB. One image is included with every hosted moment.';
+  $('#moment-image-help').textContent = hasIncludedImage ? t('moment.form.photoHeld') : t('moment.form.photoHelp');
   $('#remove-moment-image-button').hidden = !hosted || !includedImage;
   $('#remove-moment-image-button').dataset.momentId = moment?.id || '';
   $('#remove-moment-image-button').dataset.imageId = includedImage?.id || '';
@@ -1211,7 +1376,7 @@ function openMoment(id = '', initialKind = '') {
       if (!slot || !$('#moment-dialog').open) return;
       form.elements.image.disabled = false;
       form.dataset.paidSlotId = slot.id;
-      $('#moment-image-help').textContent = 'Your $1/month image add-on is ready. Choose the additional image, up to 25 MB.';
+      $('#moment-image-help').textContent = t('moment.form.photoReady');
     }).catch(() => {});
   }
   form.elements.kind.onchange = () => updateMomentKindField(form);
@@ -1224,12 +1389,12 @@ async function shareMoment(id) {
   const moment = state.moments.find((item) => item.id === id);
   const trip = activeTrip(state);
   if (!moment || !isCloudJourney(trip) || moment.visibility !== 'share-later') return;
-  if (!await confirmConsequence({ title: 'Share this moment now?', consequence: 'Everyone in this journey will be able to see it, including anyone who joins later. That access cannot be undone.', confirmLabel: 'Share this moment' })) return;
+  if (!await confirmConsequence({ title: t('moment.share.title'), consequence: t('moment.share.consequence'), confirmLabel: t('moment.share.confirm') })) return;
   try {
     const payload = { kind: moment.kind, kindLabel: moment.kindLabel || '', title: moment.title, detail: moment.detail, occurredOn: moment.occurredOn, visibility: 'shared-now', theme: normalizeMomentTheme(moment.theme), moneyCents: moment.moneyCents, moneyCurrency: moment.moneyCurrency || '', locations: moment.locations || [], version: moment.version };
     await api.mutate(`/journeys/${trip.id}/moments/${moment.id}`, 'PATCH', payload);
     await refreshCloudState();
-    showToast('Moment shared with your journeyer.');
+    showToast(t('moment.share.done'));
   } catch (error) {
     showStatus(accountMessage(error));
   }
@@ -1392,12 +1557,10 @@ function openJourney(trip = null) {
   form.elements.endDate.value = today;
   form.elements.startDateStatus.value = 'exact';
   form.elements.endDateStatus.value = 'forever';
-  $('#journey-dialog-title').textContent = trip ? 'Edit journey details' : 'Begin a shared journey';
-  $('#journey-dialog-eyebrow').textContent = accountUser ? 'Private journey details' : 'Local journey details';
-  $('#journey-dialog-copy').textContent = accountUser
-    ? 'Begin with a name. The optional details can wait until they feel useful.'
-    : 'Two people share the journey. The information stays in this browser until you export it.';
-  $('#save-journey-button').textContent = trip ? 'Save journey changes' : 'Create journey';
+  $('#journey-dialog-title').textContent = trip ? t('journey.form.editTitle') : t('journey.form.title');
+  $('#journey-dialog-eyebrow').textContent = accountUser ? t('journey.form.privateEyebrow') : t('journey.form.localEyebrow');
+  $('#journey-dialog-copy').textContent = accountUser ? t('journey.form.privateCopy') : t('journey.form.localCopy');
+  $('#save-journey-button').textContent = trip ? t('journey.form.saveChanges') : t('journey.form.create');
   $$('.member-field').forEach((field) => {
     field.hidden = Boolean(accountUser);
     const input = field.querySelector('input');
@@ -1486,8 +1649,9 @@ function openConcern(id = '') {
   const form = $('#concern-form');
   const concern = state.concerns.find((item) => item.id === id);
   form.reset();
-  $('#concern-dialog-title').textContent = concern ? 'Edit return-to conversation' : 'Start a return-to conversation';
-  $('#save-concern-button').textContent = concern ? 'Save conversation changes' : 'Keep this open';
+  $('#concern-dialog-title').textContent = concern ? t('concern.form.editTitle') : t('concern.form.title');
+  $('#save-concern-button').textContent = concern ? t('concern.form.saveChanges') : t('concern.form.keepOpen');
+  $$('select[name="status"] option', form).forEach((option) => { option.textContent = t('history.concern.status', { status: option.value }); });
   if (concern) {
     form.elements.id.value = concern.id;
     form.elements.title.value = concern.title;
@@ -1536,13 +1700,13 @@ function persistAndRender(message) {
 
 function showToast(message) {
   const toast = $('#toast');
-  toast.textContent = message;
+  writeText(toast, message);
   toast.classList.add('show');
   window.clearTimeout(showToast.timer);
   showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 2600);
 }
 
-function setButtonPending(button, pending, pendingLabel = 'Working…') {
+function setButtonPending(button, pending, pendingLabel = t('common.action.working')) {
   if (!button) return;
   if (pending) {
     button.dataset.idleLabel = button.textContent;
@@ -1604,21 +1768,23 @@ $('#manual-location').addEventListener('keydown', (event) => {
   if (event.key === 'Enter') { event.preventDefault(); $('#add-manual-location').click(); }
 });
 $('#use-device-location').addEventListener('click', () => {
-  if (!navigator.geolocation) { showToast('This browser cannot share a device location. You can still enter a place.'); return; }
+  if (!navigator.geolocation) { showToast(t('moment.form.noGeolocation')); return; }
   const button = $('#use-device-location');
   button.disabled = true;
-  button.textContent = 'Finding your location…';
+  button.textContent = t('moment.form.findingLocation');
   navigator.geolocation.getCurrentPosition(
     (position) => {
       const { latitude, longitude, accuracy } = position.coords;
-      addMomentLocation({ label: `Device location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`, latitude, longitude, accuracyMeters: accuracy });
+      // Kept with the moment as it is written, so the coordinates go in as plain text, unmarked.
+      const label = t.parts('moment.form.deviceLocation', { latitude: latitude.toFixed(4), longitude: longitude.toFixed(4) }, (text) => text).join('');
+      addMomentLocation({ label, latitude, longitude, accuracyMeters: accuracy });
       button.disabled = false;
-      button.textContent = 'Use my device location';
+      button.textContent = t('moment.form.useLocation');
     },
     () => {
       button.disabled = false;
-      button.textContent = 'Use my device location';
-      showToast('Location was not shared. You can still enter a place in your own words.');
+      button.textContent = t('moment.form.useLocation');
+      showToast(t('moment.form.locationRefused'));
     },
     { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 },
   );
@@ -1634,7 +1800,7 @@ $('#journey-row').addEventListener('change', (event) => {
   selectedDay = null;
   selectedCategory = null;
   guidanceIndex = 0;
-  persistAndRender('Journey switched.');
+  persistAndRender(t('home.journeyRow.switched'));
   refreshBillingState().catch((error) => showStatus(accountMessage(error)));
 });
 
@@ -1649,7 +1815,7 @@ $('#journey-form').elements.endDateStatus.addEventListener('change', () => syncJ
 $('#actor-select').addEventListener('change', (event) => {
   state.preferences.activeActorByTrip[activeTrip(state).id] = event.target.value;
   saveWorkingState();
-  showToast(`New local events will be attributed to ${event.target.value}.`);
+  showToast(t('home.actor.changed', { name: event.target.value }));
 });
 $('#event-manager-button').addEventListener('click', () => {
   renderEventManager();
@@ -1683,7 +1849,7 @@ $('#journey-form').addEventListener('submit', async (event) => {
       state.activeTripId = result.journey.id;
       $('#journey-dialog').close();
       await refreshCloudState();
-      showToast(existing ? 'Journey changes synced.' : 'Private journey created. Invite your journeyer in Settings.');
+      showToast(existing ? t('journey.form.synced') : t('journey.form.createdPrivate'));
       return;
     }
     const existingIndex = state.trips.findIndex((trip) => trip.id === input.id);
@@ -1711,15 +1877,14 @@ $('#journey-form').addEventListener('submit', async (event) => {
     selectedDay = null;
     selectedCategory = null;
     $('#journey-dialog').close();
-    persistAndRender(existingIndex >= 0 ? 'Journey details updated.' : 'New journey created in this browser.');
+    persistAndRender(existingIndex >= 0 ? t('journey.form.updatedLocal') : t('journey.form.createdLocal'));
   } catch (error) {
     showToast(error.message);
   }
 });
 
 $('#guidance-skip').addEventListener('click', () => {
-  const prompts = conversationPrompts();
-  guidanceIndex = Math.min(prompts.length - 1, guidanceIndex + 1);
+  guidanceIndex = Math.min(GUIDANCE_PROMPT_KEYS.length - 1, guidanceIndex + 1);
   renderSharedJourney(activeTrip(state), activeMoments(state));
 });
 $('#guidance-prev').addEventListener('click', () => {
@@ -1733,8 +1898,8 @@ function endGuidanceForToday(message) {
   showToast(message);
 }
 
-$('#guidance-end').addEventListener('click', () => endGuidanceForToday('Check-in set aside for today.'));
-$('#guidance-done').addEventListener('click', () => endGuidanceForToday('Check-in complete. It can rest until tomorrow.'));
+$('#guidance-end').addEventListener('click', () => endGuidanceForToday(t('home.guidance.ended')));
+$('#guidance-done').addEventListener('click', () => endGuidanceForToday(t('home.guidance.finished')));
 
 $('#remove-moment-image-button').addEventListener('click', async (event) => {
   const button = event.currentTarget;
@@ -1742,15 +1907,15 @@ $('#remove-moment-image-button').addEventListener('click', async (event) => {
   const momentId = button.dataset.momentId;
   const imageId = button.dataset.imageId;
   if (!trip || !momentId || !imageId || !isCloudJourney(trip)) return;
-  if (!await confirmConsequence({ title: 'Remove this photo?', consequence: 'This cannot be undone. Removing the photo does not cancel a paid image add-on.', confirmLabel: 'Remove photo', destructive: true })) return;
+  if (!await confirmConsequence({ title: t('moment.removePhoto.title'), consequence: t('moment.removePhoto.consequence'), confirmLabel: t('moment.form.removePhoto'), destructive: true })) return;
   button.disabled = true;
   const originalLabel = button.textContent;
-  button.textContent = 'Removing photo…';
+  button.textContent = t('moment.removePhoto.pending');
   try {
     await api.deleteMomentImage(trip.id, momentId, imageId);
     $('#moment-dialog').close();
     await refreshCloudState();
-    showToast('Photo removed from this moment.');
+    showToast(t('moment.removePhoto.done'));
   } catch (error) {
     showToast(error.message);
   } finally {
@@ -1769,7 +1934,7 @@ $('#moment-form').addEventListener('submit', async (event) => {
     // The browser stops an empty name; a name of only spaces gets past it, so it is caught here,
     // in the form's own name for the field, and the person is taken back to it (#354).
     if (!String(input.title || '').trim()) {
-      showStatus(MOMENT_NAME_MISSING, { source: 'moment' });
+      showStatus(t('moment.form.nameMissing'), { source: 'moment' });
       form.elements.title.focus();
       return;
     }
@@ -1785,7 +1950,7 @@ $('#moment-form').addEventListener('submit', async (event) => {
       if (image) await api.uploadMomentImage(trip.id, result.moment.id, preparedMomentPhoto?.source === image ? preparedMomentPhoto.photo : image, form.dataset.paidSlotId || '');
       $('#moment-dialog').close();
       await refreshCloudState();
-      showToast(before ? 'Moment updated.' : input.visibility === 'shared-now' ? 'Moment shared.' : 'Moment held with you.');
+      showToast(before ? t('moment.form.updated') : input.visibility === 'shared-now' ? t('moment.form.shared') : t('moment.form.heldWithYou'));
       return;
     }
     const actorName = currentActor();
@@ -1795,7 +1960,7 @@ $('#moment-form').addEventListener('submit', async (event) => {
     eventRecord({ action: existingIndex >= 0 ? 'moment_updated' : 'moment_added', entityType: 'moment', entityId: moment.id, summary: `${existingIndex >= 0 ? 'Updated' : 'Held'} ${momentLabel(moment.kind, moment.kindLabel).toLowerCase()}: ${moment.title}`, before, after: moment });
     if (before && before.theme !== moment.theme) eventRecord({ action: 'moment_theme_changed', entityType: 'moment', entityId: moment.id, summary: 'Changed moment theme', before: { theme: before.theme }, after: { theme: moment.theme } });
     $('#moment-dialog').close();
-    persistAndRender(existingIndex >= 0 ? 'Moment updated.' : 'Moment held in this browser.');
+    persistAndRender(existingIndex >= 0 ? t('moment.form.updated') : t('moment.form.heldLocally'));
   } catch (error) {
     showToast(error.message);
   }
@@ -1851,7 +2016,7 @@ $$('[data-close-account]').forEach((button) => button.addEventListener('click', 
 $('#login-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const button = event.currentTarget.querySelector('button[type="submit"], button:not([type])');
-  setButtonPending(button, true, 'Signing in…');
+  setButtonPending(button, true, t('signIn.form.pending'));
   try {
     accountUser = await api.login(Object.fromEntries(new FormData(event.currentTarget)));
     await settleLanguage();
@@ -1861,7 +2026,7 @@ $('#login-form').addEventListener('submit', async (event) => {
     renderAccountState();
     $('#account-dialog').close();
   } catch (error) {
-    showStatus(accountMessage(error));
+    showStatus(accountMessage(error, 'error.signIn'));
   } finally {
     setButtonPending(button, false);
   }
@@ -1870,7 +2035,7 @@ $('#login-form').addEventListener('submit', async (event) => {
 $('#register-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const button = event.currentTarget.querySelector('button');
-  setButtonPending(button, true, 'Creating account…');
+  setButtonPending(button, true, t('register.form.pending'));
   try {
     accountUser = await api.register(Object.fromEntries(new FormData(event.currentTarget)));
     await settleLanguage();
@@ -1878,7 +2043,7 @@ $('#register-form').addEventListener('submit', async (event) => {
     refreshBillingState().catch((error) => showStatus(accountMessage(error)));
     showLedgerSurface({ persist: true });
     renderAccountState();
-    showToast(api.lastVerificationSent ? 'Account created. Check your email to verify it.' : 'Account created, but email is delayed. Use resend verification shortly.');
+    showToast(api.lastVerificationSent ? t('register.form.created') : t('register.form.createdDelayed'));
   } catch (error) {
     showStatus(accountMessage(error));
   } finally {
@@ -1982,7 +2147,7 @@ async function signInWith(signIn, onRefused = () => {}) {
     $('#account-dialog').close();
   } catch (error) {
     onRefused(error);
-    showStatus(accountMessage(error));
+    showStatus(accountMessage(error, 'error.signIn'));
   }
 }
 
@@ -2114,7 +2279,7 @@ $('#logout-button').addEventListener('click', async () => {
   render();
   if (state.preferences.onboardingComplete) showLedgerSurface();
   else showWelcomeSurface();
-  showToast('Signed out.');
+  showToast(t('signIn.toast.signedOut'));
 });
 
 $('#logout-everywhere-button').addEventListener('click', async (event) => {
@@ -2253,15 +2418,13 @@ $('#invite-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
   const button = form.querySelector('button[type="submit"]');
-  setButtonPending(button, true, 'Proposing…');
+  setButtonPending(button, true, t('sharing.invite.pending'));
   try {
     const result = await api.mutate(`/journeys/${activeTrip(state).id}/invitations`, 'POST', Object.fromEntries(new FormData(form)));
     form.reset();
     // A journey of one has nobody to ask, so the invitation goes out there and then. Everywhere
     // else this has only asked a question, and saying "sent" would not be true.
-    showToast(result?.invitationSent
-      ? 'Invitation sent. The journeyer must use their own verified account.'
-      : 'Proposed. Nothing is sent to them until every journeyer agrees.');
+    showToast(result?.invitationSent ? t('sharing.invite.sent') : t('sharing.invite.proposed'));
     await refreshCloudState();
   } catch (error) {
     showStatus(accountMessage(error));
@@ -2284,22 +2447,24 @@ function renderLeaveJourney(trip) {
     return;
   }
   if (leaveAskedFor && leaveAskedFor !== trip.id) leaveAskedFor = '';
-  $('#leave-journey-title').textContent = LEAVE_ZONE_TITLE;
-  $('#leave-journey-note').textContent = offer === 'hand-over-first' ? LEAVE_OWNER_FIRST : LEAVE_ZONE_NOTE;
-  $('#leave-journey-safety').textContent = LEAVE_SAFETY;
+  $('#leave-journey-title').textContent = t('common.leave.title');
+  $('#leave-journey-note').textContent = offer === 'hand-over-first' ? t('common.leave.ownerFirst') : t('common.leave.note');
+  $('#leave-journey-safety').textContent = t('common.leave.safety');
   const button = $('#leave-journey-button');
-  button.textContent = LEAVE_START_LABEL;
+  button.textContent = t('common.leave.start');
   const asked = offer === 'leave' && leaveAskedFor === trip.id;
   button.hidden = offer !== 'leave' || asked;
   const form = $('#leave-journey-form');
   if (form.hidden === asked) form.reset();
   form.hidden = !asked;
-  $('#leave-journey-field-label').textContent = LEAVE_FIELD_LABEL;
-  $('#leave-journey-hint').textContent = LEAVE_FIELD_HINT;
-  $('#leave-journey-stay').textContent = LEAVE_STAY_LABEL;
+  // LEAVE is what the server checks, so it is the same word in every language, and goes in as it is.
+  const word = (key) => t.parts(key, { word: LEAVE_WORD }, (text) => text).join('');
+  $('#leave-journey-field-label').textContent = word('common.leave.fieldLabel');
+  $('#leave-journey-hint').textContent = word('common.leave.fieldHint');
+  $('#leave-journey-stay').textContent = t('common.leave.stay');
   const confirm = $('#leave-journey-confirm');
   if (confirm.getAttribute('aria-busy') !== 'true') {
-    confirm.textContent = LEAVE_CONFIRM_LABEL;
+    confirm.textContent = t('common.leave.confirm');
     confirm.disabled = form.elements.confirmation.value !== LEAVE_WORD;
   }
 }
@@ -2307,7 +2472,7 @@ function renderLeaveJourney(trip) {
 $('#leave-journey-button').addEventListener('click', async () => {
   const trip = activeTrip(state);
   if (!isCloudJourney(trip)) return;
-  if (!await confirmConsequence(leaveConsequence(trip.name))) return;
+  if (!await confirmConsequence({ title: t('common.leave.consequenceTitle', { journey: trip.name }), consequence: t('common.leave.consequence'), confirmLabel: t('common.leave.continue') })) return;
   leaveAskedFor = trip.id;
   renderLeaveJourney(trip);
   $('#leave-journey-form [name=confirmation]').focus();
@@ -2328,7 +2493,7 @@ $('#leave-journey-form').addEventListener('submit', async (event) => {
   const trip = activeTrip(state);
   if (!isCloudJourney(trip) || leaveAskedFor !== trip.id || event.currentTarget.elements.confirmation.value !== LEAVE_WORD) return;
   const button = $('#leave-journey-confirm');
-  setButtonPending(button, true, LEAVE_PENDING_LABEL);
+  setButtonPending(button, true, t('common.leave.pending'));
   try {
     await api.mutate(`/journeys/${trip.id}/leave`, 'POST', { confirmation: LEAVE_WORD });
   } catch (error) {
@@ -2345,7 +2510,7 @@ $('#leave-journey-form').addEventListener('submit', async (event) => {
   } catch (error) {
     showStatus(accountMessage(error));
   }
-  showToast(leftJourney(trip.name));
+  showToast(t('common.leave.left', { journey: trip.name }));
 });
 
 $('#member-list').addEventListener('click', async (event) => {
@@ -2381,13 +2546,13 @@ async function onProposalClick(event) {
   if (!proposal) return;
   if (withdrawButton) {
     if (!await confirmConsequence({
-      title: `Withdraw the proposal to add ${proposal.email}?`,
-      consequence: 'The question is taken back, and nothing is sent to them. Nobody is recorded as having refused, and this person can be proposed again later.',
-      confirmLabel: 'Withdraw the proposal',
+      title: t('sharing.proposal.withdrawTitle', { email: proposal.email }),
+      consequence: t('sharing.proposal.withdrawConsequence'),
+      confirmLabel: t('sharing.proposal.withdrawConfirm'),
     })) return;
     try {
       await api.mutate(`/journeys/${activeTrip(state).id}/invite-proposals/${proposalId}`, 'DELETE', {});
-      showToast('Withdrawn. Nothing was sent, and nobody was added.');
+      showToast(t('sharing.proposal.withdrawn'));
       await refreshCloudState();
     } catch (error) {
       showStatus(accountMessage(error));
@@ -2396,14 +2561,14 @@ async function onProposalClick(event) {
   }
   const agreeing = Boolean(agreeButton);
   const consequence = agreeing
-    ? { title: `Agree to add ${proposal.email}?`, consequence: 'Once every journeyer has agreed and they join, they can read every moment this journey has shared, including moments shared long before they arrived. Moments you kept private stay private.', confirmLabel: 'Agree to add them' }
-    : { title: `Decline adding ${proposal.email}?`, consequence: 'This settles it for everybody straight away, and nothing is ever sent to them. Your name and the time are kept with the decision, where the other journeyers can see them.', confirmLabel: 'Decline', destructive: true };
+    ? { title: t('sharing.proposal.agreeTitle', { email: proposal.email }), consequence: t('sharing.proposal.agreeConsequence'), confirmLabel: t('sharing.proposal.agree') }
+    : { title: t('sharing.proposal.declineTitle', { email: proposal.email }), consequence: t('sharing.proposal.declineConsequence'), confirmLabel: t('sharing.proposal.decline'), destructive: true };
   if (!await confirmConsequence(consequence)) return;
   try {
     const result = await api.mutate(`/journeys/${activeTrip(state).id}/invite-proposals/${proposalId}/decision`, 'POST', { decision: agreeing ? 'agree' : 'decline' });
-    if (result?.invitationSent) showToast('Everyone agreed. The invitation is on its way to them.');
-    else if (agreeing) showToast('Your agreement is recorded. Nothing is sent until everyone has answered.');
-    else showToast('Recorded. Nobody was added, and nothing was sent to them.');
+    if (result?.invitationSent) showToast(t('sharing.proposal.everyoneAgreed'));
+    else if (agreeing) showToast(t('sharing.proposal.agreed'));
+    else showToast(t('sharing.proposal.declined'));
     await refreshCloudState();
   } catch (error) {
     showStatus(accountMessage(error));
@@ -2425,16 +2590,16 @@ async function onInvitationClick(event) {
   try {
     if (withdrawButton) {
       if (!await confirmConsequence({
-        title: `Withdraw the invitation to ${invitation.email}?`,
-        consequence: 'Their link stops working, and the place it held is free again straight away. The journey’s history keeps a record that it was withdrawn.',
-        confirmLabel: 'Withdraw the invitation',
+        title: t('sharing.invitation.withdrawTitle', { email: invitation.email }),
+        consequence: t('sharing.invitation.withdrawConsequence'),
+        confirmLabel: t('sharing.invitation.withdraw'),
       })) return;
       await api.mutate(`/journeys/${activeTrip(state).id}/invitations/${invitationId}`, 'DELETE', {});
-      showToast('Withdrawn. The link no longer works, and the place is free again.');
+      showToast(t('sharing.invitation.withdrawn'));
     } else {
-      setButtonPending(button, true, 'Sending…');
+      setButtonPending(button, true, t('common.action.sending'));
       await api.mutate(`/journeys/${activeTrip(state).id}/invitations/${invitationId}/send-again`, 'POST', {});
-      showToast('Sent again. Everyone had already agreed, so nobody was asked again.');
+      showToast(t('sharing.invitation.sentAgain'));
     }
     await refreshCloudState();
   } catch (error) {
@@ -2523,7 +2688,7 @@ $('#concern-form').addEventListener('submit', async (event) => {
       $('#concern-dialog').close();
       await refreshCloudState();
       renderEventManager();
-      showToast(existing ? 'Concern changes synced.' : 'Concern securely synced.');
+      showToast(existing ? t('concern.form.synced') : t('concern.form.created'));
       return;
     }
     const index = state.concerns.findIndex((concern) => concern.id === input.id);
@@ -2536,7 +2701,7 @@ $('#concern-form').addEventListener('submit', async (event) => {
     saveWorkingState();
     render();
     renderEventManager();
-    showToast(index >= 0 ? 'Concern updated.' : 'Concern logged in this browser.');
+    showToast(index >= 0 ? t('concern.form.updatedLocal') : t('concern.form.createdLocal'));
   } catch (error) {
     showToast(error.message);
   }
@@ -2594,7 +2759,7 @@ async function initializeAccount() {
   try {
     if (emailedCodes.has('verify')) {
       await api.request('/auth/verify-email', { method: 'POST', body: { token: emailedCodes.get('verify') } });
-      showToast('Email verified. You can now accept invitations.');
+      showToast(t('signIn.toast.emailVerified'));
     }
     if (emailedCodes.has('recovery')) {
       $('#recovery-confirm-form').elements.token.value = emailedCodes.get('recovery');
@@ -2617,7 +2782,7 @@ async function initializeAccount() {
       }
     } else if (emailedCodes.has('invite')) {
       $('#account-dialog').showModal();
-      showToast('Sign in with the invited email, then reopen the invitation link.');
+      showToast(t('signIn.toast.invitedEmail'));
     }
     if (params.get('billing') === 'success') {
       showToast(accountUser ? 'Payment received. Paid capacity will appear after Stripe confirms it.' : 'Payment received. Sign in to see the journey’s paid capacity.');
@@ -2654,7 +2819,7 @@ document.querySelectorAll('dialog').forEach((dialog) => dialog.addEventListener(
 // when the connection returns rather than leaving a stale warning on the page.
 function reportConnection() {
   if (navigator.onLine) clearStatus('connection');
-  else showStatus('You are offline. This journey is still here, and anything needing the account service will wait until you reconnect.', { tone: 'caution', source: 'connection' });
+  else showStatus(t('status.banner.offline'), { tone: 'caution', source: 'connection' });
 }
 window.addEventListener('online', reportConnection);
 window.addEventListener('offline', reportConnection);

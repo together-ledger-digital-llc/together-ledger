@@ -1,0 +1,148 @@
+// The language choice on the welcome page, and languages in preview (102A, docs/TRANSLATION.md).
+//
+// A preview is offered by hand only, with the word Preview beside its name; a browser set to it
+// stays in English until the language is approved (owner, Oct 12, 2026, decision 145). Draft and
+// in-review languages are never shown. Statuses are set here by answering locales/languages.json,
+// as the manifest would hold them.
+
+import { readFileSync } from 'node:fs';
+import { test, expect } from './browser-test.js';
+
+const manifest = JSON.parse(readFileSync(new URL('../locales/languages.json', import.meta.url), 'utf8'));
+const english = JSON.parse(readFileSync(new URL('../locales/en.json', import.meta.url), 'utf8'));
+
+// Test sentences only: just enough of each language to see the page switch to it.
+const FILES = {
+  hi: { '@@locale': 'hi', 'welcome.hero.eyebrow': 'देखभाल से रखी साझा यात्रा', 'common.language.title': 'भाषा' },
+  bn: { '@@locale': 'bn', 'welcome.hero.eyebrow': 'যত্নে রাখা একসাথে পথচলা' },
+  'es-419': { '@@locale': 'es-419', 'welcome.hero.eyebrow': 'Un viaje compartido, cuidado' },
+  'hi-Latn': { '@@locale': 'hi-Latn', 'welcome.hero.eyebrow': 'Ek saath ka safar, pyaar se sambhala' },
+};
+
+const json = (route, body) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+
+async function withStatuses(page, statuses) {
+  const languages = manifest.languages.map((language) => {
+    const status = statuses[language.tag];
+    if (!status) return language;
+    return { ...language, status, ...(status === 'approved' ? { reviewer: 'A fluent reviewer', approvedOn: '2026-10-12' } : {}) };
+  });
+  await page.route('**/locales/languages.json', (route) => json(route, { ...manifest, languages }));
+  const fetched = [];
+  for (const tag of Object.keys(FILES)) {
+    await page.route(`**/locales/${tag}.json`, (route) => { fetched.push(tag); return json(route, FILES[tag]); });
+  }
+  return fetched;
+}
+
+async function browserLanguages(page, languages) {
+  await page.addInitScript((list) => {
+    Object.defineProperty(navigator, 'languages', { get: () => list });
+    Object.defineProperty(navigator, 'language', { get: () => list[0] });
+  }, languages);
+}
+
+const optionsOf = (select) => select.locator('option').evaluateAll((elements) => elements.map((option) => ({ value: option.value, text: option.textContent, lang: option.getAttribute('lang') })));
+
+test('while English is the only language that may be chosen, the welcome page has no language choice', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#welcome-title')).toBeVisible();
+  await expect(page.locator('#welcome-language')).toBeHidden();
+});
+
+test('the welcome page offers approved languages plainly and previews marked Preview, and never a draft or one in review', async ({ page }) => {
+  await withStatuses(page, { hi: 'preview', bn: 'in-review', 'es-419': 'approved', 'hi-Latn': 'draft' });
+  await page.goto('/');
+  const choice = page.locator('#welcome-language');
+  await expect(choice).toBeVisible();
+  // It is the first thing on the page that can be changed, before the welcome's own heading.
+  const first = await page.evaluate(() => [...document.querySelectorAll('main select, main button, main a')].find((element) => element.offsetParent)?.id);
+  expect(first).toBe('welcome-language-select');
+  const select = choice.getByRole('combobox', { name: english['common.language.title'] });
+  expect(await optionsOf(select)).toEqual([
+    { value: '', text: english['common.language.followDevice'], lang: null },
+    { value: 'en', text: 'English', lang: 'en' },
+    // The name is isolated (U+2068 … U+2069), as every inserted value is, so it lays out on its own.
+    { value: 'hi', text: '\u2068हिन्दी\u2069 · Preview', lang: 'hi' },
+    { value: 'es-419', text: 'Español (Latinoamérica)', lang: 'es-419' },
+  ]);
+  await expect(select).toHaveValue('');
+
+  // Settings' Language row lists exactly the same.
+  await page.getByRole('button', { name: /Begin your ledger/ }).first().click();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Journey settings' }).click();
+  expect(await optionsOf(page.locator('#language-select'))).toEqual(await optionsOf(page.locator('#welcome-language-select')));
+});
+
+test('a browser set to a preview language stays in English, and does not even fetch it', async ({ page }) => {
+  const fetched = await withStatuses(page, { hi: 'preview' });
+  await browserLanguages(page, ['hi-IN', 'hi']);
+  await page.goto('/');
+  await expect(page.locator('#welcome-language')).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.locator('.welcome-hero .welcome-eyebrow')).toHaveText(english['welcome.hero.eyebrow']);
+  expect(fetched).toEqual([]);
+});
+
+test('a browser set to a preview goes on to the next approved language in its list', async ({ page }) => {
+  await withStatuses(page, { hi: 'preview', bn: 'approved' });
+  await browserLanguages(page, ['hi-IN', 'bn-BD']);
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'bn');
+});
+
+test('a preview chosen by hand on the welcome page switches the page, is kept, and Settings shows the same choice', async ({ page }) => {
+  await withStatuses(page, { hi: 'preview' });
+  await page.goto('/');
+  await page.locator('#welcome-language-select').selectOption('hi');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'hi');
+  await expect(page.locator('.welcome-hero .welcome-eyebrow')).toHaveText(FILES.hi['welcome.hero.eyebrow']);
+  // A sentence the preview lacks reads in English.
+  await expect(page.locator('#welcome-title')).toHaveText(english['welcome.hero.title']);
+  expect(await page.evaluate(() => localStorage.getItem('language'))).toBe('hi');
+
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'hi');
+  await expect(page.locator('#welcome-language-select')).toHaveValue('hi');
+  await page.getByRole('button', { name: /Begin your ledger/ }).first().click();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Journey settings' }).click();
+  await expect(page.locator('#language-select')).toHaveValue('hi');
+
+  // Back to following the browser, which is English here.
+  await page.locator('#language-select').selectOption('');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+});
+
+test('once the language is approved, the same browser reads in it without choosing, and Preview is gone', async ({ page }) => {
+  await withStatuses(page, { hi: 'approved' });
+  await browserLanguages(page, ['hi-IN']);
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'hi');
+  expect((await optionsOf(page.locator('#welcome-language-select'))).map((option) => option.text)).toEqual([english['common.language.followDevice'], 'English', 'हिन्दी']);
+});
+
+test('a choice kept for a language no longer in preview or approved is dropped, and the page follows the browser', async ({ page }) => {
+  await withStatuses(page, { hi: 'in-review' });
+  await page.addInitScript(() => localStorage.setItem('language', 'hi'));
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.locator('#welcome-language')).toBeHidden();
+});
+
+// #420: the × that closes Settings keeps its full 44px, at every width and in the test language.
+for (const [label, width, query] of [['320px, English', 320, ''], ['320px, the pseudo-language', 320, '?pseudo'], ['desktop, the pseudo-language', 1280, '?pseudo'], ['desktop, English', 1280, '']]) {
+  test(`at ${label}, the × that closes Settings is 44px wide and 44px high`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/${query}`);
+    await page.locator('[data-begin-ledger]').filter({ visible: true }).first().click();
+    await page.keyboard.press('Escape');
+    await page.locator('#settings-button').click();
+    const close = page.locator('#settings-dialog [data-close-settings]');
+    await expect(close).toBeVisible();
+    const box = await close.boundingBox();
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+  });
+}

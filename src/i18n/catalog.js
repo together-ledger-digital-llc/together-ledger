@@ -5,7 +5,10 @@
 // "key": "ICU message", where "@key" holds the notes for translators and "@@locale" names the
 // language. Crowdin, Lokalise and Weblate each import it, ICU plurals and notes included.
 
-export const STATUSES = Object.freeze(['draft', 'in-review', 'approved']);
+// A language moves draft → in-review → approved. A preview is a language people may try before it
+// is approved: it is offered by hand only, marked "Preview", and never chosen for anyone from their
+// browser or phone (owner, Oct 12, 2026, decision 145).
+export const STATUSES = Object.freeze(['draft', 'in-review', 'preview', 'approved']);
 
 /** area.thing.element, each part lowerCamelCase: journey.leave.confirm, common.theme.label. */
 export const KEY_PATTERN = /^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*){2,}$/;
@@ -149,9 +152,26 @@ export function manifestProblems(manifest) {
   return problems;
 }
 
-/** The languages that may be offered to people: approved ones, and only those. */
+/**
+ * The languages a device's own languages may be matched to: approved ones, and only those. A
+ * preview is never among them, so nobody is moved into one because of what their browser or
+ * phone speaks.
+ */
 export function offeredLanguages(manifest) {
   return (manifest?.languages || []).filter((language) => language.status === 'approved');
+}
+
+/**
+ * The languages a person may choose by hand, in the manifest's order: every approved one, and
+ * every one in preview. Draft and in-review languages are never among them.
+ */
+export function choosableLanguages(manifest) {
+  return (manifest?.languages || []).filter((language) => language.status === 'approved' || language.status === 'preview');
+}
+
+/** True when a language is offered as a preview: chosen by hand only, and marked so. */
+export function isPreview(language) {
+  return language?.status === 'preview';
 }
 
 /**
@@ -164,6 +184,21 @@ export function approvedLanguageProblems(manifest, source, translations, Message
     .flatMap((language) => (translations[language.tag]
       ? translationProblems(source, translations[language.tag], language.tag, MessageFormat).map((problem) => `${language.tag}: ${problem}`)
       : [`${language.tag}: approved, but it has no translation file`]));
+}
+
+/**
+ * The gate on every preview: each must have its file, and every sentence in it must pass
+ * translationProblems against the source. A preview may lack sentences, which read in English;
+ * it may not have one the source lacks, or a broken one.
+ */
+export function previewLanguageProblems(manifest, source, translations, MessageFormat) {
+  return (manifest?.languages || [])
+    .filter(isPreview)
+    .flatMap((language) => (translations[language.tag]
+      ? translationProblems(source, translations[language.tag], language.tag, MessageFormat)
+        .filter((problem) => !problem.endsWith(' is missing'))
+        .map((problem) => `${language.tag}: ${problem}`)
+      : [`${language.tag}: in preview, but it has no translation file`]));
 }
 
 /** One language's entry, or undefined. */

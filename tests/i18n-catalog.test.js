@@ -6,10 +6,12 @@ import { dirname, join, relative } from 'node:path';
 import test from 'node:test';
 import { IntlMessageFormat } from 'intl-messageformat';
 import {
-  approvedLanguageProblems, glossaryToTbx, KEY_PATTERN, languageOf, manifestProblems, messagesOf, notesOf, offeredLanguages,
+  approvedLanguageProblems, choosableLanguages, glossaryToTbx, isPreview, KEY_PATTERN, languageOf, manifestProblems, messagesOf, notesOf, offeredLanguages,
+  previewLanguageProblems,
   sourceProblems, translationProblems,
 } from '../src/i18n/catalog.js';
 import { collectFiles } from '../scripts/check-public-safety.mjs';
+import { errorKey } from '../src/i18n/translator.js';
 import { vendoredSource, VENDORED } from '../scripts/vendor-intl-messageformat.mjs';
 
 // The translation files, the languages manifest and the glossary (docs/TRANSLATION.md).
@@ -78,7 +80,37 @@ test('the manifest: five languages, only approved ones offered, and every one fa
   const hinglishToHindi = { ...manifest, languages: manifest.languages.map((language) => (language.tag === 'hi-Latn' ? { ...language, fallback: 'hi' } : language)) };
   assert.deepEqual(manifestProblems(hinglishToHindi), ['hi-Latn falls back to "hi"; every language falls back to the source, en']);
   const unknownStatus = { ...manifest, languages: manifest.languages.map((language) => (language.tag === 'bn' ? { ...language, status: 'live' } : language)) };
-  assert.deepEqual(manifestProblems(unknownStatus), ['bn has the status "live"; it must be one of draft, in-review, approved']);
+  assert.deepEqual(manifestProblems(unknownStatus), ['bn has the status "live"; it must be one of draft, in-review, preview, approved']);
+});
+
+// A preview (owner, Oct 12, 2026, decision 145): offered to be chosen by hand, marked so, and never
+// matched to anyone's browser or phone. Draft and in-review languages are offered nowhere.
+test('a preview can be chosen by hand but is never offered for a device to match, and a draft or one in review is neither', () => {
+  const statuses = { hi: 'preview', bn: 'in-review', 'es-419': 'draft', 'hi-Latn': 'approved' };
+  const mixed = {
+    ...manifest,
+    languages: manifest.languages.map((language) => (statuses[language.tag]
+      ? { ...language, status: statuses[language.tag], ...(statuses[language.tag] === 'approved' ? { reviewer: 'A fluent reviewer', approvedOn: '2026-10-12' } : {}) }
+      : language)),
+  };
+  assert.deepEqual(manifestProblems(mixed), [], 'a preview needs no reviewer or approval date');
+  assert.deepEqual(offeredLanguages(mixed).map((language) => language.tag), ['en', 'hi-Latn']);
+  assert.deepEqual(choosableLanguages(mixed).map((language) => language.tag), ['en', 'hi', 'hi-Latn']);
+  assert.deepEqual(choosableLanguages(mixed).filter(isPreview).map((language) => language.tag), ['hi']);
+  const datedPreview = { ...mixed, languages: mixed.languages.map((language) => (language.tag === 'hi' ? { ...language, approvedOn: '2026-10-12' } : language)) };
+  assert.deepEqual(manifestProblems(datedPreview), ['hi has an approval date but is preview']);
+
+  // A preview's file may lack sentences (they read in English), but may not break or add one.
+  const source = fixture('en.json');
+  assert.deepEqual(previewLanguageProblems(mixed, source, {}, IntlMessageFormat), ['hi: in preview, but it has no translation file']);
+  assert.deepEqual(previewLanguageProblems(mixed, source, { hi: { '@@locale': 'hi' } }, IntlMessageFormat), []);
+  assert.deepEqual(previewLanguageProblems(mixed, source, { hi: { '@@locale': 'hi', 'not.in.source': 'x' } }, IntlMessageFormat), ['hi: not.in.source is not in the source']);
+});
+
+test('every language in preview has its file, and every sentence in it passes the gate', () => {
+  const previews = manifest.languages.filter(isPreview);
+  const translations = Object.fromEntries(previews.map((language) => [language.tag, json(`locales/${language.tag}.json`)]));
+  assert.deepEqual(previewLanguageProblems(manifest, source, translations, IntlMessageFormat), []);
 });
 
 test('the glossary holds the careful words, with a place for each language, and exports as TBX', () => {
@@ -118,6 +150,16 @@ test('every key in use is in English, and every English key is in use', () => {
     for (const [, key] of text.matchAll(KEY_LITERAL)) if (keys.has(key)) used.add(key);
     for (const [, key] of text.matchAll(/\bt\(\s*'([^']+)'/g)) assert.ok(keys.has(key), `${path} uses ${key}, which locales/en.json does not have`);
     for (const [, key] of text.matchAll(/data-i18n(?:-[a-z-]+)?="([^"]+)"/g)) assert.ok(keys.has(key), `${path} names ${key}, which locales/en.json does not have`);
+  }
+  // A server error's sentence is looked up by its code (errorKey), never written as a key: it is in
+  // use while the server, or the web's own client, still answers with that code.
+  const codes = new Set();
+  for (const path of [...collectFiles(join(root, 'server')).map((file) => relative(root, file)).filter((file) => file.endsWith('.js')), 'src/api.js']) {
+    for (const [, code] of read(path).matchAll(/(?:code: '|PlatformError\(\d+, ')([a-z_]+)'/g)) codes.add(code);
+  }
+  for (const key of keys) {
+    const [area, group, name] = key.split('.');
+    if (area === 'error' && [...codes].some((code) => errorKey(code, `${area}.${group}`) === `${area}.${group}.${name}`)) used.add(key);
   }
   assert.deepEqual([...keys].filter((key) => !used.has(key)), [], 'unused keys');
   for (const key of keys) assert.match(key, KEY_PATTERN);

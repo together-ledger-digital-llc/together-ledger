@@ -6,7 +6,7 @@
 // service. Loading them is part of loading the page: app.js waits for this module, as it waits
 // for every other one it imports.
 import { IntlMessageFormat } from '../vendor/intl-messageformat.js';
-import { languageOf, messagesOf, offeredLanguages } from './catalog.js';
+import { choosableLanguages, isPreview, languageOf, messagesOf, offeredLanguages } from './catalog.js';
 import { applyTranslations as applyAll, renderSentence as render, sentenceHtml as html } from './dom.js';
 import { createFormatter } from './format.js';
 import { readChoice, resolveLanguage, speechLanguage } from './language-choice.js';
@@ -34,9 +34,11 @@ if (pseudo) {
   console.info(`[i18n] Showing the pseudo-language (${PSEUDO_LOCALE}), for testing layouts only.`);
 }
 
-// Only a language the manifest marks approved is ever offered, read or matched (catalog.js).
-const offered = offeredLanguages(manifest);
-const offeredTags = offered.map((language) => language.tag);
+// A browser's own languages are matched only to approved ones. A person may also choose a
+// preview by hand; a draft or a language in review is never offered, read or matched (catalog.js).
+const offeredTags = offeredLanguages(manifest).map((language) => language.tag);
+const choosable = choosableLanguages(manifest);
+const choosableTags = choosable.map((language) => language.tag);
 
 // The choice this browser keeps: a language chosen by hand, or nothing for "Follow my device".
 // Before signing in it is the only choice there is; once signed in, it mirrors the account's, so
@@ -45,7 +47,7 @@ const offeredTags = offered.map((language) => language.tag);
 const CHOICE_KEY = 'language';
 
 function storedChoice() {
-  try { return readChoice(localStorage.getItem(CHOICE_KEY), offeredTags); } catch { return null; }
+  try { return readChoice(localStorage.getItem(CHOICE_KEY), choosableTags); } catch { return null; }
 }
 
 function storeChoice(choice) {
@@ -115,7 +117,9 @@ function declareLanguage(tag) {
   else document.body?.removeAttribute('lang');
 }
 
-await activate(pseudo ? manifest.source : resolveLanguage({ choice: storedChoice(), deviceLanguages: browserLanguages(), offered: offeredTags, source: manifest.source }));
+const resolve = (choice) => resolveLanguage({ choice, deviceLanguages: browserLanguages(), offered: offeredTags, choosable: choosableTags, source: manifest.source });
+
+await activate(pseudo ? manifest.source : resolve(storedChoice()));
 
 /** The active language's tag. */
 export const activeLanguage = () => active;
@@ -123,8 +127,11 @@ export const activeLanguage = () => active;
 /** The choice this browser keeps: a tag, or null for "Follow my device". */
 export const languageChoice = () => storedChoice();
 
-/** The languages that may be chosen, each with its own name, in the manifest's order. */
-export const languageOptions = () => offered.map((language) => ({ tag: language.tag, nativeName: language.nativeName }));
+/**
+ * The languages that may be chosen, each with its own name, in the manifest's order. preview is
+ * true for a language offered before it is approved, which the menu marks "Preview".
+ */
+export const languageOptions = () => choosable.map((language) => ({ tag: language.tag, nativeName: language.nativeName, preview: isPreview(language) }));
 
 /**
  * Keeps choice (a tag, or null to follow the browser) on this browser and switches the page's
@@ -132,9 +139,9 @@ export const languageOptions = () => offered.map((language) => ({ tag: language.
  * data-i18n are redrawn here; whatever app.js draws itself, it redraws.
  */
 export async function chooseLanguage(choice) {
-  const kept = readChoice(choice, offeredTags);
+  const kept = readChoice(choice, choosableTags);
   storeChoice(kept);
-  const next = resolveLanguage({ choice: kept, deviceLanguages: browserLanguages(), offered: offeredTags, source: manifest.source });
+  const next = resolve(kept);
   if (next !== active) {
     await activate(next);
     applyTranslations();

@@ -60,6 +60,22 @@ test('a language chosen by hand wins over the device; "Follow my device" follows
   assert.equal(resolveLanguage({ choice: 'es-419', deviceLanguages: ['es-MX'], offered, source: 'en' }), 'en');
 });
 
+// A preview (owner, Oct 12, 2026, decision 145) is chosen by hand or not at all: a browser or phone
+// set to it is never moved into it, and reads in the next match or in English until it is approved.
+test('a preview is only ever chosen by hand: a device set to it stays in English until it is approved', () => {
+  const offered = ['en', 'bn'];
+  const choosable = ['en', 'hi', 'bn'];
+  assert.equal(resolveLanguage({ choice: null, deviceLanguages: ['hi-IN'], offered, choosable, source: 'en' }), 'en', 'a Hindi phone is not moved into the Hindi preview');
+  assert.equal(resolveLanguage({ choice: null, deviceLanguages: ['hi-IN', 'bn-BD'], offered, choosable, source: 'en' }), 'bn', 'the walk goes on to an approved match');
+  assert.equal(resolveLanguage({ choice: 'hi', deviceLanguages: ['en-US'], offered, choosable, source: 'en' }), 'hi', 'chosen by hand, it is read');
+  assert.equal(resolveLanguage({ choice: 'hi', deviceLanguages: ['hi-IN'], offered, choosable, source: 'en' }), 'hi');
+  assert.equal(readChoice('hi', choosable), 'hi', 'and kept');
+  // Once it is approved, the same phone reads in it with nothing chosen.
+  assert.equal(resolveLanguage({ choice: null, deviceLanguages: ['hi-IN'], offered: ['en', 'hi', 'bn'], choosable, source: 'en' }), 'hi');
+  // Left out, choosable is what's offered, so a caller that knows nothing of previews behaves as before.
+  assert.equal(resolveLanguage({ choice: 'hi', deviceLanguages: ['hi-IN'], offered, source: 'en' }), 'en');
+});
+
 test('a stored choice reads back as an offered tag or as no choice', () => {
   assert.equal(readChoice('hi', ['en', 'hi']), 'hi');
   for (const value of [null, undefined, '', 'bn', 'HI', 7, {}]) assert.equal(readChoice(value, ['en', 'hi']), null, JSON.stringify(value));

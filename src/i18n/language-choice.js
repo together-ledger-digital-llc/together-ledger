@@ -61,18 +61,23 @@ export function matchDeviceLanguages(deviceLanguages, offered) {
 
 /**
  * The language to read in. A choice the product no longer offers is treated as no choice, so
- * nobody is ever shown a language that isn't approved.
+ * nobody is ever shown a language that isn't approved or in preview.
  *
- * @param {{ choice: string | null | undefined, deviceLanguages: readonly string[], offered: string[], source: string }} input
+ * offered are the languages a device's own may be matched to (approved ones); choosable are the
+ * ones a person may pick by hand (approved ones and previews), and default to offered. A preview
+ * is reached only by choosing it: a browser or phone set to it reads in the next match, or in the
+ * source, until the language is approved (owner, Oct 12, 2026, decision 145).
+ *
+ * @param {{ choice: string | null | undefined, deviceLanguages: readonly string[], offered: string[], choosable?: string[], source: string }} input
  */
-export function resolveLanguage({ choice, deviceLanguages, offered, source }) {
-  if (choice && offered.includes(choice)) return choice;
+export function resolveLanguage({ choice, deviceLanguages, offered, choosable = offered, source }) {
+  if (choice && choosable.includes(choice)) return choice;
   return matchDeviceLanguages(deviceLanguages, offered) || source;
 }
 
-/** A stored choice, read back: an offered tag, or null for "Follow my device". */
-export function readChoice(value, offered) {
-  return typeof value === 'string' && offered.includes(value) ? value : null;
+/** A stored choice, read back: a tag that may be chosen, or null for "Follow my device". */
+export function readChoice(value, choosable) {
+  return typeof value === 'string' && choosable.includes(value) ? value : null;
 }
 
 /**

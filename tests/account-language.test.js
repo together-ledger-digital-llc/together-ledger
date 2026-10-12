@@ -142,6 +142,25 @@ test('only a language the manifest marks approved can be chosen', async (t) => {
   assert.equal((await choose(app, { browser }, { language: 'en' })).json().data.user.language, 'en');
 });
 
+// A preview (decision 145) is offered to be chosen by hand, so a hand-made choice of one is kept on
+// the account; a language still in draft or in review is refused as before.
+test('a language in preview can be chosen and kept; one in draft or in review cannot', async (t) => {
+  const statuses = { hi: 'preview', bn: 'in-review' };
+  const languages = { ...realManifest, languages: realManifest.languages.map((language) => (statuses[language.tag] ? { ...language, status: statuses[language.tag] } : language)) };
+  const { app, pool } = await setup({ languages });
+  t.after(async () => { await app.close(); await pool.end(); });
+  await register(app, 'asha@example.test');
+  const browser = await browserSignIn(app, 'asha@example.test');
+  assert.equal((await choose(app, { browser }, { language: 'hi' })).json().data.user.language, 'hi');
+  assert.equal(await languageOf(app, { browser }), 'hi', 'kept on the account');
+  for (const language of ['bn', 'es-419', 'hi-Latn']) {
+    const response = await choose(app, { browser }, { language });
+    assert.equal(response.statusCode, 400, language);
+    assert.deepEqual(response.json(), NOT_OFFERED, language);
+  }
+  assert.equal(await languageOf(app, { browser }), 'hi');
+});
+
 test('a choice made before signing in carries into an account that has none, and never over one it has', async (t) => {
   const { app, pool } = await setup({ languages: approving('hi', 'bn') });
   t.after(async () => { await app.close(); await pool.end(); });
