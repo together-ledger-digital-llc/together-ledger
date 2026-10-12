@@ -9,7 +9,8 @@ import { fonts, useTheme } from '../src/theme';
 /**
  * Where the app opens. Someone who has begun their ledger goes straight to it; everyone else
  * meets the welcome first (the web's showWelcomeSurface / showLedgerSurface). The words are the
- * web's welcome (index.html).
+ * web's welcome (index.html). One Settings door (owner, Oct 12, 2026; #399): the account is
+ * inside it, as Account settings, not a second button beside it.
  */
 export default function WelcomeScreen() {
   const shell = useShell();
@@ -28,7 +29,6 @@ export default function WelcomeScreen() {
       }} />
       {/* Someone who installed the app to join a journey: the iPhone carries no link through the store (#266). */}
       <Button kind="quiet" label={INVITATION_WORDS.haveOne} onPress={() => router.push('/invite')} />
-      <Button kind="quiet" label="Account" onPress={() => router.push('/account')} />
       <Button kind="quiet" label="Settings" onPress={() => router.push('/settings')} />
     </Screen>
   );

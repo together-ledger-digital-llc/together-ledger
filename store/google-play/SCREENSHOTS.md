@@ -26,8 +26,9 @@ for the app in use rather than title art or a sign-in screen.
   **Sam (sample)**, **Alex (sample)** and **Sample journey: Sam and Alex**.
   The sample accounts' email addresses must not appear: keep the Account
   screen and Journey sharing's **Invitation history** (it reads "Invitation
-  sent to" Alex's address) out of every shot. The two company addresses under
-  Settings → Privacy and help are public (`PRIVACY.md` publishes them) and
+  sent to" Alex's address) out of every shot, and Settings' **Account
+  settings** row, which shows Sam's name and email. The two company addresses
+  under Settings → Help are public (`PRIVACY.md` publishes them) and
   may show.
 - **Theme per shot,** as listed below. Change it in Settings → Appearance and
   pick the theme by name, never "Match this phone", so a shot doesn't change
@@ -113,7 +114,8 @@ for the app in use rather than title art or a sign-in screen.
 ### 5. Journey sharing
 
 - **Screen:** Journey sharing.
-- **How to reach it:** Settings → This journey → **Journey sharing**. Stay at
+- **How to reach it:** Settings → under **Journey settings · Sample
+  journey: Sam and Alex**, **Sharing**. Stay at
   the top.
 - **On screen:** the line under the title ("2 people are here. … Each person
   signs in separately."), then the **Journey record**: **Created by Sam
@@ -129,8 +131,8 @@ for the app in use rather than title art or a sign-in screen.
 ### 6. History and conversations
 
 - **Screen:** "Sample journey: Sam and Alex history".
-- **How to reach it:** Settings → This journey → **History and
-  conversations**.
+- **How to reach it:** Settings → under **Journey settings · Sample
+  journey: Sam and Alex**, **History and conversations**.
 - **On screen:** **Return-to conversations** with **How we split the
   weekends** (Open) and **Dishes left overnight** (Resolved), and the start of
   **Recorded changes** below them, rows showing "#… · …" with who made each
@@ -144,12 +146,13 @@ for the app in use rather than title art or a sign-in screen.
 
 - **Screen:** Settings.
 - **How to reach it:** tap **Settings** in the ledger's header, choose
-  Green under Appearance, then scroll to the bottom.
-- **On screen:** **Privacy and help** with the **Privacy policy** button and
-  the line naming ledger-support@together-ledger.com and
-  legal@together-ledger.com. Above it, **Account** with **Delete account**,
-  and as much of **This journey** (Journey sharing, History and
-  conversations) as fits.
+  Green under Appearance, tap **Help** at the foot, then scroll to the bottom.
+- **On screen:** the **Privacy policy**, **Terms of use** and **Help** links,
+  and the line naming ledger-support@together-ledger.com and
+  legal@together-ledger.com. Above them, **Restore purchases** and **Delete
+  account** under Account settings.
+- **Keep out:** the first row under **Account settings**. It shows Sam's
+  email address. Scroll until it is above the frame.
 - **Theme:** Green.
 - **Caption:** The privacy policy is in the app, and your account is yours to delete.
 
@@ -159,7 +162,8 @@ Caption: No ads, no analytics trackers, and nothing sold.
 
 ## Keep out of every shot
 
-- **Email addresses of the sample accounts**: the Account screen,
+- **Email addresses of the sample accounts**: the Account settings screen
+  and the row that opens it in Settings,
   Invitation history, and "Who was asked, and when" under a proposal.
 - **Any sign-in, registration or recovery screen.** It shows an address
   being typed, and neither store wants a login screen as a screenshot.

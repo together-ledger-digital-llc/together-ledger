@@ -142,7 +142,7 @@ test('opening the app with the network failing says offline, not signed out', as
   assert.ok(ledger.indexOf("if (state.phase === 'offline') return <LedgerWhileOffline reason={state.reason}") < ledger.indexOf("if (state.phase === 'signed-out'"), 'the ledger says offline before it ever offers Sign in');
   assert.match(ledger, /function LedgerWhileOffline[\s\S]*?<Body>\{LEDGER_WHILE_OFFLINE\[reason\]\}<\/Body>/);
   assert.match(await read('app/account.tsx'), /if \(session\.status === 'offline'\) \{[\s\S]*?ACCOUNT_WHILE_OFFLINE\[session\.reason\]/);
-  assert.match(await read('app/settings.tsx'), /session\.status === 'offline' \? \(\s*<Body>\{STILL_SIGNED_IN\[session\.reason\]\}<\/Body>/);
+  assert.match(await read('app/settings.tsx'), /'still-signed-in': session\.status === 'offline' \? <SettingsRow key="still-signed-in" label="Account settings" detail=\{STILL_SIGNED_IN\[session\.reason\]\}/);
   for (const words of [...Object.values(LEDGER_WHILE_OFFLINE), ...Object.values(ACCOUNT_WHILE_OFFLINE), ...Object.values(STILL_SIGNED_IN)]) {
     assert.match(words, /still signed in/, 'every offline screen says the person is still signed in');
     assert.doesNotMatch(words, /\bwait/, 'and promises nothing waits');

@@ -190,8 +190,8 @@ date. This PR leaves it alone; these notes are the written version.
 | Claim | Where it's true |
 |---|---|
 | Sam and Alex, a sample journey with content from both; Sam's private moment not visible to Alex | `server/review-journey.js`; `docs/APP_REVIEW.md` |
-| First screen → Account → sign in; Settings → Account → Sign out | `apps/mobile/app/index.tsx`, `apps/mobile/app/account.tsx` |
-| Settings → Journey sharing, History and conversations, Delete account | `apps/mobile/app/settings.tsx` |
+| First screen → Settings → Sign in or create an account; Settings → Sam's name under Account settings → Sign out | `apps/mobile/app/index.tsx`, `apps/mobile/app/settings.tsx`, `apps/mobile/app/account.tsx` |
+| Settings → Sharing and History and conversations (under Journey settings · *the journey's name*), Delete account | `apps/mobile/app/settings.tsx` |
 | Room for more people, only for the journey's owner | `RoomForMorePeople` in `apps/mobile/src/components/store-offers.tsx` |
 | Subscriptions while the store account holds none; passes once it holds one for another journey | `roomOfferFor` in `store-products.ts` |
 | Restore purchases in Settings and under the offers | `apps/mobile/app/settings.tsx`; `RoomForMorePeople` |

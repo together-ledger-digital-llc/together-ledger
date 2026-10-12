@@ -20,6 +20,7 @@ import {
   type StoreProductId,
 } from '../billing/store-products';
 import { fonts, useTheme } from '../theme';
+import { SettingsRow } from './settings-rows';
 import { Body, Button } from './ui';
 
 /**
@@ -105,11 +106,15 @@ export function MomentExtras({ journeyId, momentId, offered }: { journeyId: stri
   );
 }
 
-/** Restore purchases (#275): what this store account bought, honoured again on this phone. */
-export function RestorePurchases() {
+/**
+ * Restore purchases (#275): what this store account bought, honoured again on this phone. A
+ * button beside the offers; a row in Settings' Account settings group (#399).
+ */
+export function RestorePurchases({ row = false }: { row?: boolean }) {
   const store = useStore();
   if (!store.platform) return null;
-  return <Button kind="quiet" label="Restore purchases" pendingLabel="Checking with the store…" pending={store.restoring} disabled={!store.ready || store.buying !== null} onPress={store.restore} />;
+  const restore = { label: 'Restore purchases', pendingLabel: 'Checking with the store…', pending: store.restoring, disabled: !store.ready || store.buying !== null, onPress: store.restore };
+  return row ? <SettingsRow {...restore} /> : <Button kind="quiet" {...restore} />;
 }
 
 function Offer({ productId, current = false, onBuy }: { productId: StoreProductId; current?: boolean; onBuy: () => void }) {
