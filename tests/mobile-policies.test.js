@@ -116,3 +116,10 @@ test('the phone\'s Privacy screen says what a new account is called, in the sign
   assert.equal(signIn.length, 1);
   assert.ok(signIn[0].includes('only if you allow it. A new account starts with your first name as the name people in your journeys see, or your full name if no first name is shared. You can change it in Account settings. If you use'));
 });
+
+test('the phone\'s Privacy screen says where Apple\'s answer goes on Android, in the owner\'s words (#400)', async () => {
+  const privacy = JSON.parse(await readFile(MOBILE_PRIVACY_PATH, 'utf8'));
+  const signIn = privacy.blocks.filter((block) => block.kind === 'paragraph').map((block) => words(block.spans)).filter((text) => text.startsWith('If you choose to sign in with Apple or Google'));
+  assert.equal(signIn.length, 1);
+  assert.ok(signIn[0].includes('On an Android phone, Apple sends its answer to our server, not to the app. We keep it encrypted until the app collects it, then delete it. If the app never collects it, we delete it after ten minutes.'));
+});

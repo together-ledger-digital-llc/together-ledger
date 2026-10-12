@@ -141,7 +141,10 @@ is, so they are honest today and say which answer changes if a fix lands.
   phone collects it with a secret only it holds, then signs in exactly as the iPhone does
   (`apps/mobile/src/auth/apple-browser.ts`, `server/platform.js`, `docs/API.md`). Offered once
   the owner registers that Return URL with Apple and sets `APPLE_ANDROID_REDIRECT_URI`
-  (`docs/APP_LINKS.md`); until then, Google alone, as before.
+  (`docs/APP_LINKS.md`); until then, Google alone, as before. **Before the public release:** the
+  Android button carries Apple's words and colours but not yet Apple's logo
+  (`apps/mobile/src/components/apple-button.tsx`). Decided by the owner, Oct 12, 2026: words only
+  for internal testing, and a later change adds Apple's official logo artwork before release.
 - **Decision (owner, Oct 9, 2026, #217): no Google SDK in the iPhone app.** Google's iOS SDK,
   `GoogleSignIn` 9.0, ships its own privacy manifest declaring data it collects, some of it for
   Analytics. So the iPhone uses the browser-based sign-in above, and Google's library is kept out

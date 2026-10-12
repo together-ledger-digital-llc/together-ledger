@@ -651,7 +651,9 @@ test('end to end: an Android phone signs in with Apple through the browser, into
   // Collected once: the same secrets get nothing the second time.
   await assert.rejects(android.collectAppleReturn({ verifier, nonce }), (error) => error.code === 'apple_not_returned');
   assert.deepEqual(exchanged.map((form) => form.client_id), ['com.togetherledger.ledger'], 'a returning account is not exchanged again');
+});
 
+// ---------------------------------------------------------------------------------------------
 // What a new account is called (#399)
 
 const NEW_ACCOUNT_NAME = 'A new account starts with your first name. You can change it in Account settings.';

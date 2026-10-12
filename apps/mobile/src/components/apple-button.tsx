@@ -8,7 +8,8 @@ import { Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'rea
  *
  * Apple's logo is not drawn yet. It must be Apple's own artwork, unaltered (Apple's "Sign in with
  * Apple" logo files, developer.apple.com/design/resources), which could not be fetched where this
- * was built; until it is added beside the words, the button carries the words alone.
+ * was built. Decided by the owner, Oct 12, 2026 (#400): the words alone ship for internal testing,
+ * and a later change adds Apple's official logo before the public release.
  */
 const APPLE_COLOURS = {
   light: { fill: '#000000', text: '#FFFFFF' },
