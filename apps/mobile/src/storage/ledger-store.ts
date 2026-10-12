@@ -17,13 +17,17 @@ export type PhoneStorage = {
 /** The web's key for a chosen theme (src/themes.js), so a choice reads the same everywhere. */
 export const THEME_KEY = 'theme';
 
-/** How the ledger draws its moments: every card in full (the default), or one short row each. */
+/** How the ledger draws its moments: every card in full, or one short row each (the default). */
 export type MomentView = 'full' | 'compact';
 
 /** The phone's own key for that choice. The web has no such choice yet, so nothing shares it. */
 export const MOMENT_VIEW_KEY = 'moment-view';
 
-export const DEFAULT_MOMENT_VIEW: MomentView = 'full';
+/**
+ * What a phone that has never chosen shows (Oct 12): one short row each, so a new person meets
+ * the whole journey at a glance. A phone that already chose keeps its choice, In full included.
+ */
+export const DEFAULT_MOMENT_VIEW: MomentView = 'compact';
 
 /**
  * The web's key for a language chosen by hand (src/i18n/web.js), so a choice reads the same
@@ -65,12 +69,14 @@ export function createPhoneStore(storage: PhoneStorage) {
     },
 
     /**
-     * The saved way of showing moments. Anything but a saved 'compact', including a store that
-     * cannot be read, gives the cards in full, as the ledger has always drawn them.
+     * The saved way of showing moments. A saved 'full' or 'compact' is read back as it was, so a
+     * phone that chose In full before Compact became the default keeps it. Nothing saved,
+     * anything else, or a store that cannot be read gives the default.
      */
     async loadMomentView(): Promise<MomentView> {
       try {
-        return (await storage.getItem(MOMENT_VIEW_KEY)) === 'compact' ? 'compact' : DEFAULT_MOMENT_VIEW;
+        const saved = await storage.getItem(MOMENT_VIEW_KEY);
+        return saved === 'full' || saved === 'compact' ? saved : DEFAULT_MOMENT_VIEW;
       } catch {
         return DEFAULT_MOMENT_VIEW;
       }
