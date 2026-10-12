@@ -42,6 +42,15 @@ async function browserLanguages(page, languages) {
   }, languages);
 }
 
+// Begins a ledger and closes the moment form it opens. The form opens on the next animation frame,
+// so Escape waits for it, as tests/browser-language.spec.js does.
+async function beginLedger(page) {
+  await page.locator('[data-begin-ledger]').filter({ visible: true }).first().click();
+  await expect(page.locator('#moment-dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#moment-dialog')).toBeHidden();
+}
+
 const optionsOf = (select) => select.locator('option').evaluateAll((elements) => elements.map((option) => ({ value: option.value, text: option.textContent, lang: option.getAttribute('lang') })));
 
 test('while English is the only language that may be chosen, the welcome page has no language choice', async ({ page }) => {
@@ -69,8 +78,7 @@ test('the welcome page offers approved languages plainly and previews marked Pre
   await expect(select).toHaveValue('');
 
   // Settings' Language row lists exactly the same.
-  await page.getByRole('button', { name: /Begin your ledger/ }).first().click();
-  await page.keyboard.press('Escape');
+  await beginLedger(page);
   await page.getByRole('button', { name: 'Journey settings' }).click();
   expect(await optionsOf(page.locator('#language-select'))).toEqual(await optionsOf(page.locator('#welcome-language-select')));
 });
@@ -105,8 +113,7 @@ test('a preview chosen by hand on the welcome page switches the page, is kept, a
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('lang', 'hi');
   await expect(page.locator('#welcome-language-select')).toHaveValue('hi');
-  await page.getByRole('button', { name: /Begin your ledger/ }).first().click();
-  await page.keyboard.press('Escape');
+  await beginLedger(page);
   await page.getByRole('button', { name: 'Journey settings' }).click();
   await expect(page.locator('#language-select')).toHaveValue('hi');
 
@@ -136,8 +143,7 @@ for (const [label, width, query] of [['320px, English', 320, ''], ['320px, the p
   test(`at ${label}, the × that closes Settings is 44px wide and 44px high`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`/${query}`);
-    await page.locator('[data-begin-ledger]').filter({ visible: true }).first().click();
-    await page.keyboard.press('Escape');
+    await beginLedger(page);
     await page.locator('#settings-button').click();
     const close = page.locator('#settings-dialog [data-close-settings]');
     await expect(close).toBeVisible();
