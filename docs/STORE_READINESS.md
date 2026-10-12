@@ -275,8 +275,9 @@ on a server with both providers configured, Google's and Apple's sign-in scripts
 only our API (`src/api.js:50`, `:117`, `:133`). Its favicon, touch icon and share card come from
 its own address, `app.together-ledger.com` (`index.html`, and the policy pages'
 `scripts/render-privacy-page.mjs`). Until Oct 10 they pointed at `together-ledger.com`, the
-company site, which has none of those files and answered 404 for each. No font or stylesheet comes
-from anywhere else. **Verified in code** (`tests/outbound-declarations.test.js`), and by the
+company site, which has none of those files and answered 404 for each. Its sentences,
+`locales/en.json` and `locales/languages.json`, come from its own address too, shipped in the same
+release (`docs/TRANSLATION.md`). No font or stylesheet comes from anywhere else. **Verified in code** (`tests/outbound-declarations.test.js`), and by the
 captured traffic in `docs/OUTBOUND_CAPTURE.md`.
 
 The tables below name every dependency in both manifests. `tests/store-readiness.test.js` reads
@@ -291,6 +292,9 @@ row for one that is gone.
 | `@expo/metro-runtime` | Development only | Talks to the Metro dev server in development builds |
 | `@react-native-community/datetimepicker` | No | The system date picker |
 | `@react-native-community/netinfo` | No | Says whether the phone is connected, for the offline notice (#300). Its own check that the internet can be reached would ask `clients3.google.com` on iOS; it is switched off (`apps/mobile/src/shell/use-connection.ts`), so the library makes no request. On Android it declares `ACCESS_NETWORK_STATE`, already granted (2.4), and `ACCESS_WIFI_STATE`, which is blocked (`apps/mobile/app.json`): only connected or not is read, never the Wi-Fi network's name |
+| `@formatjs/intl-locale` | No | Adds `Intl.Locale`, which Hermes lacks and the plural rules below need, only where the engine has none (`apps/mobile/src/i18n/intl-polyfills.ts`, `docs/TRANSLATION.md`). Its data is bundled |
+| `@formatjs/intl-pluralrules` | No | Adds `Intl.PluralRules`, which Hermes lacks, only where the engine has none, with the plural rules of English, Hindi, Bengali and Spanish bundled (same file) |
+| `intl-messageformat` | No | Writes the app's sentences (ICU MessageFormat) from the translation files bundled into the app, `locales/*.json` (`apps/mobile/src/i18n/index.ts`, `docs/TRANSLATION.md`). Nothing is fetched |
 | `expo` | No (not verified by traffic) | Core runtime. No update, analytics or notification module is installed |
 | `expo-apple-authentication` | Yes, to Apple, as the system | Sign in with Apple on the iPhone (#217): Apple's own sheet, run by iOS. The ID token and one-time code it returns go to our API only (`apps/mobile/src/components/social-sign-in.tsx`). Nothing on Android, which uses Apple's page instead (#400, `expo-web-browser` below) |
 | `@react-native-google-signin/google-signin` | Yes, to Google | Continue with Google on Android only (#217), through Google's own SDK, `play-services-auth` 21.4.0, which declares no Android permission. The ID token goes to our API only. Not in the iPhone app (`expo.autolinking.ios.exclude`, 1.5) |
@@ -331,7 +335,11 @@ row for one that is gone.
 | `pg` | Yes, from the server | Our own database |
 | `stripe` | Yes, from the server | Stripe's API (2.4) |
 | `zod` | No | Config validation |
+| `intl-messageformat` | No | The web's sentences: bundled into `src/vendor/intl-messageformat.js` by `scripts/vendor-intl-messageformat.mjs` and served from the app's own address, with the translation files it formats (`docs/TRANSLATION.md`); and tests |
 | `@axe-core/playwright` | No | Tests only |
+| `@formatjs/intl-locale` | No | Tests only: the phone's polyfills, run on an Intl cut down to Hermes's (`tests/i18n-hermes.test.js`) |
+| `@formatjs/intl-pluralrules` | No | Tests only, as above |
+| `esbuild` | No | Development only: makes the web's copy of `intl-messageformat`, and bundles the Intl probe (`scripts/probe-hermes-intl.mjs`) |
 | `@playwright/test` | No | Tests only |
 | `pg-mem` | No | Tests only |
 | `smtp-server` | No | Tests only: a local SMTP server |

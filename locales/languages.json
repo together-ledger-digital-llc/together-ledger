@@ -1,0 +1,61 @@
+{
+  "source": "en",
+  "about": "Every language the product is written in, and how far each has come. Only an approved language may be offered to people. A language moves draft → in-review → approved; approving one records who reviewed it and the day they approved it. Every language falls back to the source, English, for any sentence it lacks. formatting.locale is the locale its dates, numbers and money are written in; regionalDates keeps the person's own region in dates; numberingSystem is the digits it uses, or null for that locale's own. See docs/TRANSLATION.md.",
+  "languages": [
+    {
+      "tag": "en",
+      "name": "English",
+      "nativeName": "English",
+      "status": "approved",
+      "reviewer": null,
+      "approvedOn": null,
+      "fallback": null,
+      "formatting": { "locale": "en-US", "regionalDates": true, "numberingSystem": "latn" },
+      "note": "The source language. Its sentences are the product's own words, written first; there is nothing for it to be approved against."
+    },
+    {
+      "tag": "hi",
+      "name": "Hindi",
+      "nativeName": "हिन्दी",
+      "status": "draft",
+      "reviewer": null,
+      "approvedOn": null,
+      "fallback": "en",
+      "formatting": { "locale": "hi-IN", "regionalDates": true, "numberingSystem": "latn" },
+      "note": "Devanagari script. Latin digits, as most Hindi in India is printed (CLDR's default for Hindi); Devanagari digits are the alternative. Sentences about a person use select on their gender, because Hindi verbs agree with it."
+    },
+    {
+      "tag": "bn",
+      "name": "Bengali",
+      "nativeName": "বাংলা",
+      "status": "draft",
+      "reviewer": null,
+      "approvedOn": null,
+      "fallback": "en",
+      "formatting": { "locale": "bn", "regionalDates": true, "numberingSystem": null },
+      "note": "One Bengali for Bangladesh and India alike: no region, so dates keep the person's own (bn-BD or bn-IN). Digits are undecided: Bengali (beng) or Latin (latn) is the owner's call in 106. Until then, null leaves Bengali's own default, Bengali digits."
+    },
+    {
+      "tag": "es-419",
+      "name": "Spanish (Latin America)",
+      "nativeName": "Español (Latinoamérica)",
+      "status": "draft",
+      "reviewer": null,
+      "approvedOn": null,
+      "fallback": "en",
+      "formatting": { "locale": "es-419", "regionalDates": true, "numberingSystem": "latn" },
+      "note": "Latin American Spanish. A phone set to es-MX or es-AR keeps its own date order."
+    },
+    {
+      "tag": "hi-Latn",
+      "name": "Hinglish",
+      "nativeName": "Hinglish",
+      "status": "draft",
+      "reviewer": null,
+      "approvedOn": null,
+      "fallback": "en",
+      "formatting": { "locale": "en-IN", "regionalDates": true, "numberingSystem": "latn" },
+      "note": "Hindi written in Latin script. It falls back to English, never to Hindi: a reader of Latin script may not read Devanagari. Dates and numbers are written as Indian English writes them, in Latin script, because Hindi's own month names are Devanagari. Plural rules are Hindi's."
+    }
+  ]
+}

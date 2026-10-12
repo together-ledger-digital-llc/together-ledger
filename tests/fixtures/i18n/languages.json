@@ -1,0 +1,9 @@
+{
+  "source": "en",
+  "languages": [
+    { "tag": "en", "name": "English", "nativeName": "English", "status": "approved", "reviewer": null, "approvedOn": null, "fallback": null, "formatting": { "locale": "en-US", "regionalDates": true, "numberingSystem": "latn" } },
+    { "tag": "hi", "name": "Hindi", "nativeName": "हिन्दी", "status": "approved", "reviewer": "Fixture reviewer", "approvedOn": "2026-10-12", "fallback": "en", "formatting": { "locale": "hi-IN", "regionalDates": true, "numberingSystem": "latn" } },
+    { "tag": "bn", "name": "Bengali", "nativeName": "বাংলা", "status": "in-review", "reviewer": null, "approvedOn": null, "fallback": "en", "formatting": { "locale": "bn", "regionalDates": true, "numberingSystem": null } },
+    { "tag": "hi-Latn", "name": "Hinglish", "nativeName": "Hinglish", "status": "draft", "reviewer": null, "approvedOn": null, "fallback": "en", "formatting": { "locale": "en-IN", "regionalDates": true, "numberingSystem": "latn" } }
+  ]
+}
