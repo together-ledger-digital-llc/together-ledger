@@ -2,6 +2,22 @@ import { z } from 'zod';
 import { parseRootCertificates } from './store-apple.js';
 import { parseServiceAccount } from './store-google.js';
 
+// Where Apple posts its answer for an Android phone (#400, server/app.js).
+export const APPLE_RETURN_ROUTE = '/api/v1/auth/apple/return';
+
+// APPLE_ANDROID_REDIRECT_URI as it may be used, or '' (Apple stays off Android). Apple posts to it,
+// so it must be this server's own return route, with nothing after it, and https once deployed. A
+// value that isn't is not used, and server/start.js says so, rather than stopping the server: a
+// wrong setting must not take email, Google or the iPhone's Apple sign-in down with it.
+export function appleAndroidReturnUrl(value, nodeEnv) {
+  if (!value) return '';
+  let url;
+  try { url = new URL(value); } catch { return ''; }
+  if (url.pathname !== APPLE_RETURN_ROUTE || url.search || url.hash || url.username || url.password) return '';
+  if (url.protocol !== 'https:' && (nodeEnv === 'production' || url.protocol !== 'http:')) return '';
+  return url.href;
+}
+
 const ConfigSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   HOST: z.string().default('127.0.0.1'),
@@ -66,6 +82,10 @@ const ConfigSchema = z.object({
   // web asked for is exchanged with both; a code from the phone with neither.
   APPLE_SERVICES_ID: z.string().default('com.togetherledger.ledger.web'),
   APPLE_WEB_REDIRECT_URI: z.string().default('https://app.together-ledger.com/'),
+  // Sign in with Apple on Android (#400): the Services ID's second Return URL, where Apple posts
+  // its answer for the phone to collect (POST /api/v1/auth/apple/return). Empty keeps Apple off
+  // Android. The owner sets it once the same URL is registered on the Services ID with Apple.
+  APPLE_ANDROID_REDIRECT_URI: z.string().default(''),
   // Store purchases, checked on this server (#272, docs/STORE_PURCHASES.md). Each store is off
   // until its trust is configured, and a purchase from it is then refused as unavailable rather
   // than believed. APPLE_ROOT_CERTIFICATES is Apple Root CA - G3 as base64 DER or PEM, downloaded
@@ -174,6 +194,7 @@ export function loadConfig(overrides = {}) {
     appOrigins,
     googleClientIds: listOf([config.GOOGLE_CLIENT_IDS, config.GOOGLE_WEB_CLIENT_ID].join(',')),
     appleClientIds: listOf(config.APPLE_CLIENT_IDS),
+    appleAndroidRedirectUri: appleAndroidReturnUrl(config.APPLE_ANDROID_REDIRECT_URI, config.NODE_ENV),
     databaseSsl: config.DATABASE_SSL === 'true',
     cookieSecure: config.COOKIE_SECURE === 'true',
     trustProxy: config.TRUST_PROXY === 'true',

@@ -8,6 +8,7 @@ import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import rawBody from 'fastify-raw-body';
 import { DisabledBillingService } from './billing.js';
+import { APPLE_RETURN_ROUTE } from './config.js';
 import { INVITATION_PATH } from './mailer.js';
 import { PlatformError } from './platform.js';
 import { bearerTokenFrom } from './security.js';
@@ -15,6 +16,10 @@ import { bearerTokenFrom } from './security.js';
 const rootDirectory = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SESSION_COOKIE = 'tl_session';
 const APP_CLIENT_HEADER = 'x-together-client';
+// The page on the website an Android phone's browser tab is sent to once Apple has answered
+// (#400). The app claims it as a verified App Link (apps/mobile/app.json), so the tab hands back
+// to the app; where it doesn't, the page says to close the tab, which hands back as well.
+export const APPLE_RETURN_PAGE = '/apple-sign-in';
 
 export async function buildApp({ platform, config, billing = new DisabledBillingService(), store = null, logger = false }) {
   const app = Fastify({ logger, trustProxy: config.trustProxy, bodyLimit: 64 * 1024 });
@@ -247,6 +252,35 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
     });
     if (!accepted) throw new PlatformError(400, 'invalid_token', 'The notification could not be verified.');
     return reply.code(200).send({ data: { accepted: true } });
+  });
+
+  // Sign in with Apple on Android (#400). Apple's page, in the phone's browser tab, posts its answer
+  // here as a form, because the name and email scopes require Apple's form_post. Nothing here is
+  // trusted for being here: the answer is kept, sealed, under its state for the phone to collect,
+  // and the tab is sent back to the app whatever happened, so the answer to a forged post tells
+  // its sender nothing. The form parser exists for this route alone; every other route still
+  // refuses a form, which a page on another site can send without asking.
+  await app.register(async (scope) => {
+    scope.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string', bodyLimit: 16 * 1024 }, (_request, body, done) => {
+      done(null, Object.fromEntries(new URLSearchParams(body)));
+    });
+    scope.post(APPLE_RETURN_ROUTE, { config: { rateLimit: { max: 30, timeWindow: '15 minutes' } } }, async (request, reply) => {
+      try {
+        await platform.receiveAppleReturn(request.body && typeof request.body === 'object' ? request.body : {});
+      } catch (error) {
+        request.log.error({ err: { name: error?.name || 'Error' } }, 'apple answer for android not kept');
+      }
+      reply.header('Cache-Control', 'no-store');
+      return reply.redirect(`${config.ACCOUNT_ORIGIN || config.PUBLIC_ORIGIN}${APPLE_RETURN_PAGE}`, 303);
+    });
+  });
+
+  // The phone collects that answer (#400) with the secret whose SHA-256 it sent as the state, and
+  // the nonce it asked Apple to sign into the ID token. The secret is the credential, as a refresh
+  // token is at /auth/refresh, and it is spent here.
+  app.post('/api/v1/auth/apple/returned', { config: { rateLimit: { max: 30, timeWindow: '15 minutes' } } }, async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    return { data: await platform.collectAppleReturn(request.body || {}) };
   });
 
   // Rotation, not renewal: the refresh token presented here is spent, and the reply carries a

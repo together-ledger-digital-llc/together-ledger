@@ -47,6 +47,18 @@ const appleRetry = setInterval(() => {
 }, 10 * 60 * 1000);
 appleRetry.unref();
 
+// Apple's answers for Android phones that no phone collected go after ten minutes (#400). Each new
+// answer clears the old ones too; this is for the quiet hours when none comes.
+const appleReturns = setInterval(() => {
+  platform.purgeAppleReturns()
+    .catch((error) => app.log.error({ err: { name: error?.name } }, 'apple answers for android not cleared'));
+}, 10 * 60 * 1000);
+appleReturns.unref();
+// A Return URL that isn't this server's own route is not used, so Android isn't offered Apple.
+if (config.APPLE_ANDROID_REDIRECT_URI && !config.appleAndroidRedirectUri) {
+  app.log.error('APPLE_ANDROID_REDIRECT_URI is not this server\'s /api/v1/auth/apple/return over https, so Android is not offered Sign in with Apple');
+}
+
 // Google refunds a purchase nobody acknowledged within three days (#272). One that could not be
 // acknowledged when it was granted is tried again here every ten minutes, with backoff.
 const googleAcknowledgements = store ? setInterval(() => {
@@ -58,6 +70,7 @@ googleAcknowledgements?.unref();
 
 async function shutdown(signal) {
   clearInterval(appleRetry);
+  clearInterval(appleReturns);
   if (googleAcknowledgements) clearInterval(googleAcknowledgements);
   app.log.info({ signal }, 'shutting down');
   await app.close();

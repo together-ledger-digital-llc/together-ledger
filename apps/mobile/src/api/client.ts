@@ -36,15 +36,25 @@ export type AccountUser = {
   hasPassword?: boolean;
 };
 
-/** What `GET /auth/providers` says this phone can offer (#217): public client identifiers only. */
+/**
+ * What `GET /auth/providers` says this phone can offer (#217): public client identifiers only. On
+ * Android, Apple's carries the Return URL Apple's page answers to (#400).
+ */
 export type SignInProviders = {
   google: { clientId: string } | null;
-  apple: { clientId: string } | null;
+  apple: { clientId: string; redirectUri?: string } | null;
 };
 
 /** What Google or Apple handed the phone, as the server's sign-in and link routes take it. */
 export type GoogleSignInBody = { idToken: string };
-export type AppleSignInBody = { idToken: string; authorizationCode: string; displayName?: string };
+export type AppleSignInBody = { idToken: string; authorizationCode: string; displayName?: string; returnedTo?: 'android' };
+
+/**
+ * What the server kept from Apple's answer on Android (#400), collected with `POST /auth/apple/returned`:
+ * the same things the iPhone's sheet gives. `user` is Apple's id for the person; `displayName` is
+ * the first name, and comes only on a first sign-in.
+ */
+export type AppleReturn = { user: string; idToken: string; authorizationCode: string; displayName?: string };
 
 /**
  * What the phone may know about an invitation before it is answered (#266), from
@@ -209,7 +219,15 @@ export function createAccountClient({ base, fetch, tokens, build }: {
     async providers(platform: 'ios' | 'android', googleClientId: string | null): Promise<SignInProviders> {
       const query = `platform=${platform}${googleClientId ? `&googleClientId=${encodeURIComponent(googleClientId)}` : ''}`;
       const answer = await request<Partial<SignInProviders> | null>(`/auth/providers?${query}`);
-      return { google: answer?.google?.clientId ? { clientId: answer.google.clientId } : null, apple: answer?.apple?.clientId ? { clientId: answer.apple.clientId } : null };
+      const apple = answer?.apple?.clientId ? { clientId: answer.apple.clientId, ...(answer.apple.redirectUri ? { redirectUri: answer.apple.redirectUri } : {}) } : null;
+      return { google: answer?.google?.clientId ? { clientId: answer.google.clientId } : null, apple };
+    },
+    /**
+     * Apple's answer for this phone, from the server it was posted to (#400), with the two secrets
+     * that prove this phone asked for it. Answers what the iPhone's sheet would have given.
+     */
+    async collectAppleReturn(secrets: { verifier: string; nonce: string }) {
+      return request<AppleReturn>('/auth/apple/returned', { method: 'POST', body: secrets });
     },
     /**
      * Google's or Apple's ID token, for the same token pair a password sign-in gets (#217). For
@@ -226,7 +244,9 @@ export function createAccountClient({ base, fetch, tokens, build }: {
     async linkIdentity(provider: 'google' | 'apple', body: GoogleSignInBody | AppleSignInBody, password: string) {
       const { idToken } = body;
       const authorizationCode = 'authorizationCode' in body ? body.authorizationCode : undefined;
-      const sent = authorizationCode ? { provider, idToken, authorizationCode, password } : { provider, idToken, password };
+      // A code collected on Android is exchanged with Android's Return URL (#400).
+      const returnedTo = 'returnedTo' in body ? body.returnedTo : undefined;
+      const sent = authorizationCode ? { provider, idToken, authorizationCode, password, ...(returnedTo ? { returnedTo } : {}) } : { provider, idToken, password };
       return (await keep(await request<{ user: AccountUser } & Tokens>('/auth/link', { method: 'POST', body: sent }))).user;
     },
     async session() {

@@ -82,9 +82,14 @@ test('the guard reads beyond the app: the shared files the phone imports are in 
   assert.ok(names.includes('src/model.js'));
 });
 
+// One file may open a page (#400): Sign in with Apple on Android, which opens Apple's sign-in page in
+// the browser tab and nothing else. The last test below holds it to that.
+const APPLE_BROWSER = 'apps/mobile/src/auth/apple-browser.ts';
+
 test('nothing the phone can reach names Stripe, a checkout, the portal, a web page to pay on, or a price (#268)', () => {
   for (const [file, source] of files) {
     for (const [pattern, reason] of FORBIDDEN) {
+      if (relative(root, file) === APPLE_BROWSER && reason.startsWith('opens a web page')) continue;
       const match = pattern.exec(source);
       assert.equal(match, null, `${relative(root, file)} ${reason}: "${match?.[0]}". The phone app sells nothing outside the store (#268).`);
     }
@@ -103,16 +108,30 @@ test('the phone depends on no payment SDK and no in-app browser of its own', asy
   for (const name of Object.keys({ ...pkg.dependencies, ...pkg.devDependencies })) {
     // One exception (#217): Continue with Google on the iPhone is Google's own page in the
     // system's sign-in sheet, which expo-auth-session opens through expo-web-browser (owner, Oct 9,
-    // 2026). It is there for that alone: the app's own code never imports it or opens a page
-    // (the walk above refuses expo-web-browser, openBrowserAsync and openAuthSessionAsync in every
-    // file the bundle reaches), and the one page expo-auth-session is given is Google's sign-in.
+    // 2026). Since #400 Sign in with Apple on Android opens Apple's own page in it too. It is there
+    // for those alone: the walk above refuses expo-web-browser, openBrowserAsync and
+    // openAuthSessionAsync in every file the bundle reaches but the one Apple's sign-in is in, and
+    // the tests below hold each to its one sign-in page.
     if (name === 'expo-web-browser' && pkg.dependencies['expo-auth-session']) continue;
     assert.doesNotMatch(name, /stripe|web-browser|inappbrowser|webview/i, name);
   }
   assert.doesNotMatch(app, /stripe|merchantIdentifier/i);
 });
 
-test('the only page the phone opens is Google\'s sign-in, and only from the iPhone\'s Google sign-in', async () => {
+test('Sign in with Apple on Android opens Apple\'s sign-in page and nothing else (#400)', async () => {
+  const browser = await readFile(join(root, APPLE_BROWSER), 'utf8');
+  assert.deepEqual([...browser.matchAll(/WebBrowser\.(\w+)/g)].map((match) => match[1]), ['openAuthSessionAsync']);
+  assert.match(browser, /const url = appleAuthorizationUrl\(/);
+  assert.match(browser, /WebBrowser\.openAuthSessionAsync\(url, APPLE_RETURN_LINK,/);
+  const rules = await readFile(join(mobile, 'src/auth/social-sign-in.ts'), 'utf8');
+  assert.match(rules, /export const APPLE_AUTHORIZATION_ENDPOINT = 'https:\/\/appleid\.apple\.com\/auth\/authorize';/);
+  assert.match(rules, /return `\$\{APPLE_AUTHORIZATION_ENDPOINT\}\?\$\{params/);
+  // Nothing else the phone reaches imports the browser.
+  const importing = [...files].filter(([, source]) => /from 'expo-web-browser'/.test(source)).map(([file]) => relative(root, file));
+  assert.deepEqual(importing, [APPLE_BROWSER]);
+});
+
+test('the only page expo-auth-session opens is Google\'s sign-in, and only from the iPhone\'s Google sign-in', async () => {
   const files = await walk(mobile);
   const importing = [];
   for (const file of files) {

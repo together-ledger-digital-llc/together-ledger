@@ -79,11 +79,12 @@ export class AppleSignIn {
   // { ok: true, refreshToken, idToken } or { ok: false, reason }. `invalid_grant` means the code
   // expired (five minutes), was used, or isn't this person's; `unavailable` means Apple couldn't
   // be reached; `misconfigured` means our key, secret, client ID or return URL was refused.
-  async exchangeCode({ code, clientId, webFlow = false }) {
+  async exchangeCode({ code, clientId, webFlow = false, redirectUri = webFlow ? this.redirectUri : '' }) {
     const form = { client_id: clientId, client_secret: this.clientSecret(clientId), code: String(code || ''), grant_type: 'authorization_code' };
-    // Only a code from Sign in with Apple JS was requested with a return URL, so only its exchange
-    // repeats one. A native code's exchange must not send it.
-    if (webFlow && this.redirectUri) form.redirect_uri = this.redirectUri;
+    // Only a code asked for in a browser was requested with a return URL, so only its exchange
+    // repeats one: the web's (Sign in with Apple JS), or Android's (#400), whichever it was sent
+    // to. A native code's exchange must not send one.
+    if (redirectUri) form.redirect_uri = redirectUri;
     let response;
     try {
       response = await this.post('/auth/token', form);

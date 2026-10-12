@@ -33,7 +33,7 @@ test('real PostgreSQL enforces migrations, event immutability, and deletion purg
   assert.deepEqual((await runMigrations(pool)).applied, []);
 
   const migrations = await pool.query('SELECT name FROM schema_migrations ORDER BY name');
-  assert.deepEqual(migrations.rows.map((row) => row.name), ['001_platform.sql', '002_append_only_events.sql', '003_private_usernames.sql', '004_shared_moments.sql', '005_make-shared-journeys-more-humane.sql', '006_expand-shared-moment-vocabulary.sql', '007_person_specific_moment_visibility.sql', '008_stripe_web_billing.sql', '009_reserve-group-places.sql', '010_stripe_reconciliation_runs.sql', '011_hold-one-image-with-each-moment.sql', '012_bill-additional-moment-images.sql', '013_name-moment-image-attachments.sql', '014_hold-places-with-shared-moments.sql', '015_bill-additional-moment-places.sql', '016_make-extra-image-payments-one-time.sql', '017_keep-one-removed-photo-per-moment.sql', '018_allow-ninety-nine-paid-journey-places.sql', '019_let-moments-carry-their-own-atmosphere.sql', '020_let-entitlements-hold-ninety-nine-places.sql', '021_let-unpaid-capacity-rest-without-losing-history.sql', '022_agree-together-before-adding-someone.sql', '023_let-a-phone-carry-its-own-key.sql', '024_let-google-and-apple-open-an-account.sql', '025_revoke-sign-in-with-apple-when-an-account-is-deleted.sql', '026_remember-a-refused-apple-deletion.sql', '027_tie-every-store-purchase-to-an-account.sql', '028_turn-a-store-purchase-into-capacity.sql', '029_rest-read-only-and-let-the-payer-ask-for-time.sql', '030_ask-for-six-weeks-a-year.sql', '031_let-a-lost-renewal-reply-be-asked-again.sql', '032_let-an-invitation-last-fourteen-days.sql', '033_let-a-moment-held-offline-arrive-once.sql', '034_hear-refunds-and-renewals-from-the-stores.sql', '035_hear-reversed-refunds-and-refunded-extras.sql', '036_let-names-hold-any-language-symbol-and-emoji.sql']);
+  assert.deepEqual(migrations.rows.map((row) => row.name), ['001_platform.sql', '002_append_only_events.sql', '003_private_usernames.sql', '004_shared_moments.sql', '005_make-shared-journeys-more-humane.sql', '006_expand-shared-moment-vocabulary.sql', '007_person_specific_moment_visibility.sql', '008_stripe_web_billing.sql', '009_reserve-group-places.sql', '010_stripe_reconciliation_runs.sql', '011_hold-one-image-with-each-moment.sql', '012_bill-additional-moment-images.sql', '013_name-moment-image-attachments.sql', '014_hold-places-with-shared-moments.sql', '015_bill-additional-moment-places.sql', '016_make-extra-image-payments-one-time.sql', '017_keep-one-removed-photo-per-moment.sql', '018_allow-ninety-nine-paid-journey-places.sql', '019_let-moments-carry-their-own-atmosphere.sql', '020_let-entitlements-hold-ninety-nine-places.sql', '021_let-unpaid-capacity-rest-without-losing-history.sql', '022_agree-together-before-adding-someone.sql', '023_let-a-phone-carry-its-own-key.sql', '024_let-google-and-apple-open-an-account.sql', '025_revoke-sign-in-with-apple-when-an-account-is-deleted.sql', '026_remember-a-refused-apple-deletion.sql', '027_tie-every-store-purchase-to-an-account.sql', '028_turn-a-store-purchase-into-capacity.sql', '029_rest-read-only-and-let-the-payer-ask-for-time.sql', '030_ask-for-six-weeks-a-year.sql', '031_let-a-lost-renewal-reply-be-asked-again.sql', '032_let-an-invitation-last-fourteen-days.sql', '033_let-a-moment-held-offline-arrive-once.sql', '034_hear-refunds-and-renewals-from-the-stores.sql', '035_hear-reversed-refunds-and-refunded-extras.sql', '036_let-names-hold-any-language-symbol-and-emoji.sql', '037_let-apple-answer-an-android-phone.sql']);
 
   const firstLockClient = await pool.connect();
   const secondLockClient = await pool.connect();
@@ -871,4 +871,34 @@ test('real PostgreSQL holds a name in any language, symbol or emoji, and History
   // The database's own check is a backstop on size: ten code points for each character allowed.
   await assert.rejects(pool.query("UPDATE users SET display_name=repeat('x', 801) WHERE id=$1", [user.id]), { code: '23514', constraint: 'users_display_name_check' });
   await assert.rejects(pool.query("UPDATE journey_moments SET title=repeat('x', 1201) WHERE journey_id=$1", [journeyId]), { code: '23514', constraint: 'journey_moments_title_check' });
+});
+
+// Sign in with Apple on Android (#400): Apple's answer waits in apple_returns for the phone. On real
+// PostgreSQL, the first answer for a state is the only one kept, and however many collects of it
+// arrive together, exactly one gets it.
+test('real PostgreSQL keeps Apple\'s first answer for an Android phone and hands it out once, however many collects arrive together', { skip: !databaseUrl }, async (t) => {
+  const { createHash, randomBytes } = await import('node:crypto');
+  const { AppleSignIn } = await import('../server/apple.js');
+  const config = loadConfig({ NODE_ENV: 'development', PUBLIC_ORIGIN: 'http://127.0.0.1:4174', DATABASE_URL: databaseUrl, SESSION_SECRET: 's'.repeat(32), AUDIT_HMAC_KEY: 'a'.repeat(32), APPLE_ANDROID_REDIRECT_URI: 'https://api.together-ledger.com/api/v1/auth/apple/return' });
+  const pool = createPool(config);
+  await runMigrations(pool);
+  t.after(async () => pool.end());
+  const digest = (value) => createHash('sha256').update(value).digest('base64url');
+  const verifier = randomBytes(32).toString('base64url');
+  const nonce = randomBytes(32).toString('base64url');
+  // Apple's signature is proven in tests/social-sign-in.test.js; here the token's claims stand in for it.
+  const identity = { accepts: () => true, verifiedClaims: async (_provider, token) => JSON.parse(token) };
+  const apple = new AppleSignIn({ teamId: 't', keyId: 'k', privateKey: 'p', encryptionKey: randomBytes(32).toString('base64') });
+  const platform = new PlatformService({ pool, config, mailer: new MemoryMailer(), identity, apple });
+  const answer = (sub) => ({ state: digest(verifier), code: `code-${sub}`, id_token: JSON.stringify({ sub, nonce: digest(nonce) }) });
+
+  await Promise.all([platform.receiveAppleReturn(answer('first')), platform.receiveAppleReturn(answer('second'))].map((work) => work.catch((error) => error)));
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM apple_returns WHERE state=$1', [digest(verifier)])).rows[0].n, 1);
+
+  const collects = await Promise.allSettled(Array.from({ length: 6 }, () => platform.collectAppleReturn({ verifier, nonce })));
+  const given = collects.filter((outcome) => outcome.status === 'fulfilled');
+  assert.equal(given.length, 1, 'collected once');
+  assert.ok(['first', 'second'].includes(given[0].value.user));
+  assert.ok(collects.filter((outcome) => outcome.status === 'rejected').every((outcome) => outcome.reason.code === 'apple_not_returned'));
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM apple_returns WHERE state=$1', [digest(verifier)])).rows[0].n, 0);
 });

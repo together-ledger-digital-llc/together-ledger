@@ -117,14 +117,23 @@ test('the assembled site carries both link files as written', () => {
   }
 });
 
-test('the phone claims the same one link: Associated Domains on iOS, a verified App Link on Android', () => {
+test('the phone claims the invitation link everywhere, and Apple\'s hand-back on Android: Associated Domains on iOS, verified App Links on Android', () => {
   assert.deepEqual(app.ios.associatedDomains, ['applinks:app.together-ledger.com']);
+  // Android also claims the page the browser tab is sent to once Apple has answered (#400). It is the
+  // same host, so the same assetlinks.json verifies it, and the page carries nothing: the app
+  // collects Apple's answer from the server. The iPhone has Apple's sheet and claims nothing more.
   assert.deepEqual(app.android.intentFilters, [{
     action: 'VIEW',
     autoVerify: true,
-    data: [{ scheme: 'https', host: 'app.together-ledger.com', path: '/invite' }],
+    data: [
+      { scheme: 'https', host: 'app.together-ledger.com', path: '/invite' },
+      { scheme: 'https', host: 'app.together-ledger.com', path: '/apple-sign-in' },
+    ],
     category: ['BROWSABLE', 'DEFAULT'],
   }]);
+  assert.match(readFileSync(join(root, 'apps/mobile/src/auth/social-sign-in.ts'), 'utf8'), /export const APPLE_RETURN_PATH = '\/apple-sign-in';/);
+  assert.match(readFileSync(join(root, 'server/app.js'), 'utf8'), /export const APPLE_RETURN_PAGE = '\/apple-sign-in';/);
+  assert.ok(existsSync(join(root, 'public/apple-sign-in.html')), 'the page the tab lands on when the link stays in the browser');
   // Its own scheme is unchanged, and no other web address is claimed.
   assert.equal(app.scheme, 'togetherledger');
   assert.doesNotMatch(JSON.stringify(app), /pathPrefix|pathPattern|applinks:(?!app\.together-ledger\.com)|webcredentials/);

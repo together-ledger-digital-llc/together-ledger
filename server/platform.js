@@ -1,4 +1,4 @@
-import { createHmac, randomUUID } from 'node:crypto';
+import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { paidEnvironments } from './billing-environments.js';
 import { withTransaction } from './db.js';
 import { identityVerifierFor } from './identity.js';
@@ -94,6 +94,31 @@ function cleanOptionalName(value, max) {
 
 function cleanEmail(value) {
   try { return normalizeEmail(value); } catch { throw new PlatformError(400, 'invalid_input', 'Enter a valid email address.'); }
+}
+
+// Apple's answer on Android waits for the phone this long (#400): longer than Apple's one-time code
+// lasts (five minutes), so a phone is told the code ran out rather than that nothing came.
+const APPLE_RETURN_MS = 10 * 60 * 1000;
+// The phone's secrets for that answer, and their SHA-256s: 32 random bytes, base64url.
+const RETURN_SECRET = /^[A-Za-z0-9_-]{43}$/;
+
+function base64urlSha256(value) {
+  return createHash('sha256').update(String(value)).digest('base64url');
+}
+
+function sameSecret(a, b) {
+  const left = Buffer.from(String(a ?? ''));
+  const right = Buffer.from(String(b ?? ''));
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
+// The name in Apple's `user` field, which Apple posts on the first authorization only, as JSON.
+function appleFirstName(user) {
+  if (typeof user !== 'string' || user.length > 4096) return '';
+  let name;
+  try { name = JSON.parse(user)?.name; } catch { return ''; }
+  const [first, last] = [name?.firstName, name?.lastName].map((part) => (typeof part === 'string' ? part.trim() : ''));
+  return first || last;
 }
 
 function cleanUsername(value) {
@@ -676,14 +701,84 @@ export class PlatformService {
   // client on an iPhone, and on Android the web client Google's library asks its token for. Apple
   // on an iPhone is the native sheet, whose token is issued to the bundle ID, and needs the same
   // key and encryption key the web's does, since without them no Apple account can open. Android
-  // has no Apple sheet, and the web flow can't finish there without a Return URL of its own, so
-  // Apple is never offered to it until there is one.
+  // has no Apple sheet: it opens Apple's page for the Services ID in the browser, with Android's
+  // own Return URL (#400), and is offered Apple only once that is set too.
   phoneSignInProviders(phone, googleClientId) {
     if (phone !== 'ios' && phone !== 'android') throw new PlatformError(400, 'invalid_input', 'Choose iOS or Android.');
     const google = typeof googleClientId === 'string' && this.identity.accepts('google', googleClientId) ? { clientId: googleClientId } : null;
+    if (phone === 'android') {
+      const apple = this.androidAppleReady() ? { clientId: this.config.APPLE_SERVICES_ID, redirectUri: this.config.appleAndroidRedirectUri } : null;
+      return { google, apple };
+    }
     const bundleId = this.config.APPLE_BUNDLE_ID;
-    const apple = phone === 'ios' && this.identity.accepts('apple', bundleId) && this.apple.configured() ? { clientId: bundleId } : null;
+    const apple = this.identity.accepts('apple', bundleId) && this.apple.configured() ? { clientId: bundleId } : null;
     return { google, apple };
+  }
+
+  // Apple on Android (#400) needs what the web's Apple needs, with Android's Return URL in place of
+  // the web's: the Services ID among the audiences, and the key and encryption key, which also
+  // seal Apple's answer while it waits for the phone.
+  androidAppleReady() {
+    return Boolean(this.config.appleAndroidRedirectUri && this.identity.accepts('apple', this.config.APPLE_SERVICES_ID) && this.apple.configured());
+  }
+
+  // Apple's answer for an Android phone (#400), posted by Apple's page to APPLE_ANDROID_REDIRECT_URI
+  // in the phone's browser tab. It is kept, sealed, under the state the phone sent: the SHA-256 of
+  // a secret only that phone holds, so nobody else can collect it. Nothing about it is answered to
+  // the browser; whatever happens, the route sends the tab back to the app. Choosing Cancel on
+  // Apple's page leaves nothing, so the phone says nothing; any other failure is kept as a refusal,
+  // so the phone is told rather than left waiting. The first answer for a state is the only one.
+  async receiveAppleReturn(form = {}) {
+    const state = typeof form.state === 'string' ? form.state : '';
+    if (!this.androidAppleReady() || !RETURN_SECRET.test(state)) return;
+    await this.purgeAppleReturns();
+    if (form.error === 'user_cancelled_authorize') return;
+    const answer = form.error ? null : await this.acceptedAppleAnswer(form);
+    await this.pool.query(
+      'INSERT INTO apple_returns (state,answer,created_at) VALUES ($1,$2,$3) ON CONFLICT (state) DO NOTHING',
+      [state, answer ? this.apple.sealSecret(JSON.stringify(answer)) : null, this.now()],
+    );
+  }
+
+  // Only an ID token Apple signed for the Services ID, carrying a nonce, with a code beside it, is
+  // kept. The name comes in Apple's `user` field on the first authorization only: the first name,
+  // or the family name when there is no first name (#399, decided Oct 12, 2026).
+  async acceptedAppleAnswer(form) {
+    const idToken = typeof form.id_token === 'string' && form.id_token.length <= 8192 ? form.id_token : '';
+    const authorizationCode = typeof form.code === 'string' && form.code.length <= 1024 ? form.code : '';
+    if (!idToken || !authorizationCode) return null;
+    const claims = await this.identity.verifiedClaims('apple', idToken, [this.config.APPLE_SERVICES_ID]).catch(() => null);
+    if (!claims || typeof claims.sub !== 'string' || !claims.sub || typeof claims.nonce !== 'string') return null;
+    const displayName = appleFirstName(form.user);
+    return displayName ? { idToken, authorizationCode, displayName } : { idToken, authorizationCode };
+  }
+
+  // The phone collects Apple's answer with the secret whose SHA-256 it sent as the state, and the
+  // nonce whose SHA-256 it asked Apple to sign into the ID token. The row is deleted as it is read,
+  // so an answer is collected once; one older than ten minutes is gone. A nonce that doesn't match
+  // means the answer isn't the one this phone asked for, and it is refused. What comes back is what
+  // the iPhone's sheet gives it, and goes to POST /auth/apple (or /auth/link) the same way.
+  async collectAppleReturn({ verifier, nonce } = {}) {
+    if (!this.androidAppleReady()) throw new PlatformError(404, 'sign_in_unavailable', 'This way of signing in is not available yet.');
+    if (!RETURN_SECRET.test(String(verifier || '')) || !RETURN_SECRET.test(String(nonce || ''))) {
+      throw new PlatformError(400, 'invalid_input', 'Sign in with Apple again to continue.');
+    }
+    const taken = await this.pool.query('DELETE FROM apple_returns WHERE state=$1 RETURNING *', [base64urlSha256(verifier)]);
+    const row = taken.rows[0];
+    if (!row || this.now().getTime() - new Date(row.created_at).getTime() > APPLE_RETURN_MS) {
+      throw new PlatformError(404, 'apple_not_returned', 'Apple has not answered this sign-in.');
+    }
+    let answer = null;
+    try { answer = row.answer ? JSON.parse(this.apple.openSecret(row.answer)) : null; } catch { answer = null; }
+    const claims = answer ? await this.identity.verifiedClaims('apple', answer.idToken, [this.config.APPLE_SERVICES_ID]).catch(() => null) : null;
+    if (!claims || !sameSecret(claims.nonce, base64urlSha256(nonce))) throw new PlatformError(401, 'invalid_token', 'Sign in again to continue.');
+    return { user: claims.sub, ...answer };
+  }
+
+  // Answers nobody collected go after ten minutes: on every new answer, and on the server's timer.
+  async purgeAppleReturns() {
+    const purged = await this.pool.query('DELETE FROM apple_returns WHERE created_at < $1', [new Date(this.now().getTime() - APPLE_RETURN_MS)]);
+    return purged.rowCount || 0;
   }
 
   async userForIdentity(client, identity) {
@@ -697,17 +792,20 @@ export class PlatformService {
 
   // Trades an Apple sign-in's one-time code for a refresh token and seals it (#218). The code is
   // exchanged with the client it was issued to, the ID token's `aud`, and bound to the person:
-  // the ID token Apple returns must carry the same `sub` as the one already checked.
-  async sealedAppleToken(identity, authorizationCode) {
+  // the ID token Apple returns must carry the same `sub` as the one already checked. A code for
+  // the Services ID is exchanged with the Return URL it was sent to: Android's when the phone says
+  // it collected it there (#400), the web's otherwise. Saying so wrongly only makes Apple refuse it.
+  async sealedAppleToken(identity, authorizationCode, returnedTo = null) {
     if (!this.apple.configured()) {
       throw new PlatformError(503, 'sign_in_unavailable', 'Signing in with Apple is not working right now. Try again soon.');
     }
     if (!authorizationCode) throw new PlatformError(400, 'invalid_input', 'Sign in with Apple again to continue.');
     const clientId = identity.audience;
     const webFlow = clientId === this.config.APPLE_SERVICES_ID;
+    const android = webFlow && returnedTo === 'android' ? { redirectUri: this.config.appleAndroidRedirectUri } : {};
     // A key that is set but malformed throws while signing the client secret. That is our
     // configuration, not the person's, so it answers like any other unavailable Apple.
-    const exchanged = await this.apple.exchangeCode({ code: authorizationCode, clientId, webFlow })
+    const exchanged = await this.apple.exchangeCode({ code: authorizationCode, clientId, webFlow, ...android })
       .catch(() => ({ ok: false, reason: 'misconfigured', error: 'client_secret_unsigned' }));
     if (!exchanged.ok) {
       if (exchanged.reason === 'invalid_grant') throw new PlatformError(401, 'invalid_token', 'Sign in again to continue.');
@@ -726,7 +824,7 @@ export class PlatformService {
     );
   }
 
-  async socialSignIn(provider, { idToken, displayName, authorizationCode } = {}, { issueSession = true } = {}) {
+  async socialSignIn(provider, { idToken, displayName, authorizationCode, returnedTo } = {}, { issueSession = true } = {}) {
     const identity = await this.verifiedIdentity(provider, idToken);
     let known = await this.userForIdentity(this.pool, identity);
     if (known) {
@@ -743,7 +841,7 @@ export class PlatformService {
       // in. Failing that never stops the sign-in.
       if (provider === 'apple' && authorizationCode && !known.apple_refresh_token) {
         try {
-          const token = await this.sealedAppleToken(identity, authorizationCode);
+          const token = await this.sealedAppleToken(identity, authorizationCode, returnedTo);
           await this.pool.query(
             `UPDATE user_identities SET apple_client_id=$1, apple_refresh_token=$2 WHERE provider='apple' AND subject=$3`,
             [token.clientId, token.sealed, identity.subject],
@@ -769,7 +867,7 @@ export class PlatformService {
     // A new Apple account is opened only once its code has exchanged (#218): an account whose
     // Apple tokens can't be revoked at deletion is one App Review would refuse. The exchange runs
     // after every refusal above, so Apple never holds a grant for an account that wasn't opened.
-    const appleToken = provider === 'apple' ? await this.sealedAppleToken(identity, authorizationCode) : null;
+    const appleToken = provider === 'apple' ? await this.sealedAppleToken(identity, authorizationCode, returnedTo) : null;
 
     return withTransaction(this.pool, async (client) => {
       // Apple leaves the email out after the first sign-in, and a relay address could in principle
@@ -801,7 +899,7 @@ export class PlatformService {
   // there is a real hash to compare, and the same single `invalid_credentials` for every miss.
   // For Apple, the same one-time code comes back too, and is exchanged only once the password
   // has been accepted.
-  async linkIdentity(provider, { idToken, password, authorizationCode } = {}, { issueSession = true } = {}) {
+  async linkIdentity(provider, { idToken, password, authorizationCode, returnedTo } = {}, { issueSession = true } = {}) {
     const identity = await this.verifiedIdentity(provider, idToken);
     let email = null;
     if (identity.email && !identity.isPrivateEmail) {
@@ -818,7 +916,7 @@ export class PlatformService {
     const user = found.rows[0];
     const known = await this.userForIdentity(this.pool, identity);
     if (known && known.id !== user.id) throw new PlatformError(409, 'identity_in_use', 'That sign-in already belongs to another account.');
-    const appleToken = !known && provider === 'apple' ? await this.sealedAppleToken(identity, authorizationCode) : null;
+    const appleToken = !known && provider === 'apple' ? await this.sealedAppleToken(identity, authorizationCode, returnedTo) : null;
     return withTransaction(this.pool, async (client) => {
       if (!known) await this.insertIdentity(client, identity, user.id, appleToken);
       return { user: publicUser(user), session: issueSession ? await this.createSession(client, user.id) : null };
