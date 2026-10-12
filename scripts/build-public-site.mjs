@@ -14,6 +14,11 @@ const publicFiles = [
   'src/api.js',
   'src/app.js',
   'src/display-text.js',
+  // The serif, Gelasio, in Regular, Italic and Bold, Latin only, and its licence.
+  'src/fonts/OFL-Gelasio.txt',
+  'src/fonts/gelasio-bold-latin.woff2',
+  'src/fonts/gelasio-italic-latin.woff2',
+  'src/fonts/gelasio-latin.woff2',
   // The Hindi and Bengali serif, fetched by src/styles.css only for those scripts, and its licence.
   'src/fonts/OFL-Tiro.txt',
   'src/fonts/tiro-bangla-bengali.woff2',

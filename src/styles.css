@@ -1,8 +1,49 @@
-/* The serif for Hindi and Bengali (docs/2026-10-12-devanagari-bangla-font-decision.md). Georgia
-   draws no Devanagari or Bangla, so these sit after it in every serif stack. Each file is only
-   the script, self-hosted, and its unicode-range means a page with no Devanagari or Bangla in a
-   serif element never downloads it. One weight, 400: a heading asking for 500 gets 400, as it
-   always has from Georgia, and font-synthesis: none never fakes a bold or an italic. */
+/* The serif: Gelasio (docs/2026-09-21-tl-m-02-font-decision.md), self-hosted, its licence beside
+   it in src/fonts/OFL-Gelasio.txt. Three files, Latin only (Basic Latin, Latin-1, Latin Extended-A,
+   the punctuation and the rupee sign): Regular, the Italic that h1 em asks for, and the Bold that
+   strong and .dialog-signature ask for. Every serif rule is weight 400 or 700, and font-synthesis:
+   none on :root keeps the browser from faking any other. Georgia stays behind it in every stack,
+   drawing the page until the file arrives (swap). Gelasio has Georgia's advance widths, so the swap
+   moves no line break; the ascent and descent overrides give it Georgia's line box too, so it moves
+   no baseline either. */
+@font-face {
+  ascent-override: 91.7%;
+  descent-override: 21.92%;
+  font-display: swap;
+  font-family: Gelasio;
+  font-style: normal;
+  font-weight: 400;
+  line-gap-override: 0%;
+  src: url("./fonts/gelasio-latin.woff2") format("woff2");
+  unicode-range: U+0000-017F, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+20B9, U+2122, U+2190-2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  ascent-override: 91.7%;
+  descent-override: 21.92%;
+  font-display: swap;
+  font-family: Gelasio;
+  font-style: italic;
+  font-weight: 400;
+  line-gap-override: 0%;
+  src: url("./fonts/gelasio-italic-latin.woff2") format("woff2");
+  unicode-range: U+0000-017F, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+20B9, U+2122, U+2190-2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  ascent-override: 91.7%;
+  descent-override: 21.92%;
+  font-display: swap;
+  font-family: Gelasio;
+  font-style: normal;
+  font-weight: 700;
+  line-gap-override: 0%;
+  src: url("./fonts/gelasio-bold-latin.woff2") format("woff2");
+  unicode-range: U+0000-017F, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+20B9, U+2122, U+2190-2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* The serif for Hindi and Bengali (docs/2026-10-12-devanagari-bangla-font-decision.md). Gelasio
+   and Georgia draw no Devanagari or Bangla, so these sit after them in every serif stack. Each
+   file is only the script, self-hosted, and its unicode-range means a page with no Devanagari or
+   Bangla in a serif element never downloads it. One weight, 400: a heading asking for 700 gets
+   400, and font-synthesis: none never fakes a bold or an italic. */
 @font-face {
   font-display: swap;
   font-family: "Tiro Devanagari Hindi";
@@ -44,7 +85,7 @@
   --radius-l: 18px;
   --radius-xl: 24px;
   --radius-pill: 999px;
-  /* Three voices: Georgia carries headings, titles and the brand lockup; this stack carries
+  /* Three voices: the serif, Gelasio, carries headings, titles and the brand lockup; this stack carries
      interface text; factual metadata stays in the interface voice, never the editorial one. */
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-synthesis: none;
@@ -164,7 +205,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .mark-source { height: 0; position: absolute; width: 0; }
 .brand-mark, .mini-mark { color: var(--accent); display: inline-block; height: 38px; width: 38px; }
 .brand strong, .brand small { display: block; }
-.brand strong { font-family: Georgia, var(--serif-scripts), serif; font-size: 22px; line-height: 1; }
+.brand strong { font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 22px; line-height: 1; }
 .brand small { color: var(--muted); font-size: 14px; margin-top: 5px; }
 .header-actions { align-items: center; display: flex; gap: 8px; }
 .welcome-nav { align-items: center; display: flex; gap: 8px; }
@@ -203,7 +244,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .welcome-eyebrow { align-items: center; color: var(--accent); display: flex; font-size: 12px; font-weight: 900; gap: 11px; letter-spacing: .17em; margin: 0 0 22px; text-transform: uppercase; }
 .welcome-eyebrow::before { background: currentColor; content: ""; height: 1px; width: 24px; }
 .welcome h1 { color: var(--ink); font-size: clamp(62px, 7.2vw, 106px); line-height: .98; max-width: 660px; }
-.welcome h1 em, .welcome h2 em { color: var(--accent); font-weight: 500; }
+.welcome h1 em, .welcome h2 em { color: var(--accent); font-weight: 400; }
 .welcome-intro { color: var(--muted); font-size: clamp(18px, 1.7vw, 22px); line-height: 1.65; margin: 31px 0 0; max-width: 590px; }
 .welcome-actions { display: flex; flex-wrap: wrap; gap: 11px; margin-top: 34px; }
 .welcome-actions .button { min-width: 180px; }
@@ -228,7 +269,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .preview-body time { align-items: center; background: var(--soft); border: 1px solid var(--line); border-radius: 50%; color: var(--muted); display: flex; flex-direction: column; font-size: 12px; height: 54px; justify-content: center; text-transform: uppercase; width: 54px; }
 .preview-body time strong { color: var(--accent); font-size: 17px; font-weight: 500; line-height: 1; }
 .preview-body li > div { border: 1px solid var(--line); border-radius: var(--radius-l); display: grid; padding: 15px 17px; }
-.preview-body li > div > strong { font-family: Georgia, var(--serif-scripts), serif; font-size: 18px; font-weight: 500; }
+.preview-body li > div > strong { font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 18px; font-weight: 400; }
 .preview-body li span { color: var(--muted); font-size: 14px; margin-top: 3px; }
 .preview-body li small { color: var(--accent); font-size: 12px; font-weight: 900; margin-top: 8px; text-transform: uppercase; }
 .welcome-statement, .welcome-possibilities, .welcome-privacy, .welcome-closing { padding: clamp(76px, 10vw, 145px) clamp(24px, 7vw, 104px); }
@@ -239,8 +280,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .welcome-statement > p:not(.welcome-eyebrow) { color: var(--muted); font-size: 19px; margin: 25px auto 0; max-width: 720px; }
 .welcome-steps, .possibility-grid { display: grid; gap: 18px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 70px auto 0; max-width: 1180px; text-align: left; }
 .welcome-steps article, .possibility-grid article { border-top: 1px solid var(--line); padding: 28px 4px 0; }
-.welcome-steps article > span { color: var(--accent); font-family: Georgia, var(--serif-scripts), serif; font-size: 29px; }
-.welcome h3 { font-family: Georgia, var(--serif-scripts), serif; font-size: 26px; font-weight: 500; line-height: 1.2; margin: 17px 0 8px; }
+.welcome-steps article > span { color: var(--accent); font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 29px; }
+.welcome h3 { font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 26px; font-weight: 400; line-height: 1.2; margin: 17px 0 8px; }
 .welcome-steps p, .possibility-grid p { color: var(--muted); margin: 0; }
 .welcome-possibilities { background: var(--soft); }
 .welcome-possibilities > div:first-child { margin: 0 auto; max-width: 1180px; }
@@ -252,7 +293,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .welcome-privacy > div > p:not(.welcome-eyebrow) { opacity: .8; }
 .welcome-privacy dl { display: grid; gap: 1px; margin: 0; }
 .welcome-privacy dl > div { border-top: 1px solid color-mix(in srgb, var(--on-accent) 32%, transparent); padding: 22px 0; }
-.welcome-privacy dt { font-family: Georgia, var(--serif-scripts), serif; font-size: 27px; }
+.welcome-privacy dt { font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 27px; }
 .welcome-privacy dd { margin: 6px 0 0; opacity: .8; }
 .welcome-closing { background: var(--card); text-align: center; }
 .welcome-closing p:not(.welcome-eyebrow) { color: var(--muted); font-size: 19px; }
@@ -274,9 +315,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
    accent rather than the one colour reserved for what cannot be undone. */
 .eyebrow { color: var(--accent); font-size: 12px; font-weight: 900; letter-spacing: 0.16em; margin: 0 0 10px; text-transform: uppercase; }
 .hero .eyebrow { color: var(--on-accent); opacity: .78; }
-h1, h2 { font-family: Georgia, var(--serif-scripts), "Times New Roman", serif; font-weight: 500; letter-spacing: -0.035em; line-height: 1.03; }
+h1, h2 { font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-weight: 400; letter-spacing: -0.035em; line-height: 1.03; }
 h1 { font-size: clamp(49px, 7.2vw, 96px); margin: 0; max-width: 1050px; }
-h1 em { color: var(--on-accent); font-weight: 500; opacity: .82; }
+h1 em { color: var(--on-accent); font-weight: 400; opacity: .82; }
 /* Hindi and Bengali, once <html lang> names them. A line of Devanagari or Bangla hangs from a
    headline that joins its letters, so it is never tracked: -0.035em (tuned to Georgia) jams the
    letters together, and the eyebrows' .1–.18em breaks the headline apart. Marks above and below
@@ -300,7 +341,7 @@ h1 em { color: var(--on-accent); font-weight: 500; opacity: .82; }
 .trip-bar { --trip-bar-inline: clamp(18px, 5vw, 72px); align-items: center; background: var(--card); border-bottom: 1px solid var(--line); display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr) auto; padding: 20px var(--trip-bar-inline); }
 .trip-bar small, .trip-bar strong, .trip-bar span { display: block; }
 .trip-bar small { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
-.trip-bar strong { font-family: Georgia, var(--serif-scripts), serif; font-size: 27px; }
+.trip-bar strong { font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 27px; }
 .trip-bar span { color: var(--muted); font-size: 14px; }
 .trip-record-links { --record-links-row-gap: 5px; --record-links-column-gap: 12px; align-items: center; display: flex; flex-wrap: wrap; gap: var(--record-links-row-gap) var(--record-links-column-gap); isolation: isolate; margin-top: 7px; }
 .trip-record-links button { background: transparent; border: 0; color: var(--spruce); font-size: 14px; font-weight: 900; padding: 0; position: relative; text-decoration: underline; text-underline-offset: 3px; z-index: -1; }
@@ -346,7 +387,7 @@ h1 em { color: var(--on-accent); font-weight: 500; opacity: .82; }
 .summary-grid { display: grid; gap: 14px; grid-template-columns: repeat(4, 1fr); }
 .summary { min-height: 155px; padding: 24px; }
 .summary span { color: var(--muted); display: block; font-size: 13px; font-weight: 800; text-transform: uppercase; }
-.summary strong { display: block; font-family: Georgia, var(--serif-scripts), serif; font-size: clamp(31px, 3vw, 45px); font-weight: 500; line-height: 1.1; margin-top: 13px; }
+.summary strong { display: block; font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: clamp(31px, 3vw, 45px); font-weight: 400; line-height: 1.1; margin-top: 13px; }
 .summary small { color: var(--muted); display: block; margin-top: 8px; }
 .summary.alert { background: color-mix(in srgb, var(--accent) 10%, var(--card)); border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
 
@@ -359,7 +400,7 @@ h1 em { color: var(--on-accent); font-weight: 500; opacity: .82; }
 .milestone-list span { color: var(--on-accent); font-size: 14px; }
 .guided-prompt { align-self: stretch; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-xl); display: flex; flex-direction: column; justify-content: center; min-height: 190px; padding: clamp(22px, 3vw, 34px); }
 .guided-prompt > span { color: var(--muted); font-size: 12px; font-weight: 900; letter-spacing: .11em; text-transform: uppercase; }
-.guided-prompt > p { color: var(--ink); font-family: Georgia, var(--serif-scripts), serif; font-size: clamp(23px, 2.5vw, 34px); line-height: 1.15; margin: 17px 0 26px; opacity: 1; }
+.guided-prompt > p { color: var(--ink); font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: clamp(23px, 2.5vw, 34px); line-height: 1.15; margin: 17px 0 26px; opacity: 1; }
 .guidance-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .guidance-actions .button { border-color: var(--line); color: var(--ink); }
 .guidance-actions .button.primary { background: var(--spruce); color: var(--on-accent); }
@@ -393,7 +434,7 @@ details { margin-top: 24px; overflow: hidden; }
 summary { align-items: center; cursor: pointer; display: flex; justify-content: space-between; list-style: none; padding: 25px 28px; }
 summary::-webkit-details-marker { display: none; }
 summary strong, summary small { display: block; }
-summary strong { font-family: Georgia, var(--serif-scripts), serif; font-size: 34px; font-weight: 500; line-height: 1.1; }
+summary strong { font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 34px; font-weight: 400; line-height: 1.1; }
 summary small { color: var(--muted); margin-top: 5px; }
 .expando { align-items: center; background: var(--soft); border-radius: 50%; display: flex; font-size: 24px; height: 48px; justify-content: center; transition: transform .2s; width: 48px; }
 details[open] .expando { transform: rotate(45deg); }
@@ -412,7 +453,7 @@ details[open] .expando { transform: rotate(45deg); }
 .entry-actions { display: flex; gap: 6px; }
 .entry-actions button { background: transparent; border: 1px solid var(--line); border-radius: var(--radius-pill); font-size: 14px; font-weight: 800; min-height: 40px; padding: 7px 11px; }
 .empty { color: var(--muted); padding: 45px 25px; text-align: center; }
-.empty strong { color: var(--fg); display: block; font-family: Georgia, var(--serif-scripts), serif; font-size: 19px; font-weight: 500; }
+.empty strong { color: var(--fg); display: block; font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 19px; font-weight: 400; }
 .empty p { margin: 6px 0 0; }
 
 /* A problem stays until it is read. It sits above the work rather than over it, so nothing
@@ -446,7 +487,7 @@ dialog > .status-banner { margin: 0 0 16px; }
 .day-button.selected .day-label { color: var(--ink); font-weight: 900; }
 .timeline-detail { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius-l); margin-top: 20px; overflow: hidden; }
 .detail-head { align-items: start; display: flex; justify-content: space-between; padding: 19px; }
-.detail-head h3 { font-family: Georgia, var(--serif-scripts), serif; font-size: 28px; margin: 0; }
+.detail-head h3 { font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 28px; margin: 0; }
 .detail-head p { color: var(--muted); margin: 4px 0 0; }
 .icon-button { background: transparent; border: 1px solid var(--line); border-radius: 50%; color: inherit; font-size: 25px; height: 44px; width: 44px; }
 .category-button { align-items: center; background: var(--card); border: 0; border-top: 1px solid var(--line); color: var(--ink); display: flex; justify-content: space-between; padding: 16px 19px; text-align: left; width: 100%; }
@@ -457,7 +498,7 @@ dialog > .status-banner { margin: 0 0 16px; }
 .back-button { background: transparent; border: 0; color: var(--spruce); font-weight: 900; padding: 0 19px 17px; }
 
 dialog { background: var(--card); border: 0; border-radius: var(--radius-xl); box-shadow: var(--shadow); color: var(--ink); max-height: 92vh; max-width: 720px; overflow-y: auto; padding: 28px; width: calc(100% - 28px); }
-.dialog-signature { align-items: center; color: var(--muted); display: flex; font-family: Georgia, var(--serif-scripts), serif; font-size: 14px; font-weight: 700; gap: 6px; margin-bottom: 14px; }
+.dialog-signature { align-items: center; color: var(--muted); display: flex; font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 14px; font-weight: 700; gap: 6px; margin-bottom: 14px; }
 .dialog-signature .mini-mark { height: 22px; width: 22px; }
 .wide-dialog { max-width: 960px; }
 dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
@@ -505,7 +546,7 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
    phone's Delete moment: its own box, its border, its button. Nothing else in settings takes it. */
 .settings-grid .danger-zone { grid-column: 1 / -1; border-color: var(--destructive); background: var(--surface); }
 .danger-zone form { display: grid; gap: 10px; margin-top: 12px; }
-.settings-grid h3 { font-family: Georgia, var(--serif-scripts), serif; font-size: 25px; font-weight: 500; margin: 0 0 8px; }
+.settings-grid h3 { font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 25px; font-weight: 400; margin: 0 0 8px; }
 .settings-grid p { color: var(--muted); font-size: 14px; }
 .account-grid { display: grid; gap: 18px; grid-template-columns: 1fr 1fr; padding-top: 20px; }
 .account-boundary { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius-m); color: var(--muted); grid-column: 1 / -1; margin: 0; padding: 15px 17px; }
@@ -609,7 +650,7 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .invitation-status.lapsed { border-color: var(--line); color: var(--private); }
 .settings-actions { display: flex; flex-wrap: wrap; gap: 7px; }
 .concern-manager { align-items: center; background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius-l); display: flex; justify-content: space-between; margin-top: 22px; padding: 17px; }
-.concern-manager h3, .event-list-section > h3, .history-guide > h3 { font-family: Georgia, var(--serif-scripts), serif; font-size: 27px; font-weight: 500; margin: 0; }
+.concern-manager h3, .event-list-section > h3, .history-guide > h3 { font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 27px; font-weight: 400; margin: 0; }
 .concern-manager p { color: var(--muted); font-size: 14px; margin: 4px 14px 0 0; }
 .concern-row { align-items: start; border-bottom: 1px solid var(--line); display: flex; gap: 15px; justify-content: space-between; padding: 17px 5px; }
 .concern-row strong, .concern-row small { display: block; }
@@ -653,7 +694,7 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .ledger-sections { display: none; }
 
 .section-heading { align-items: start; display: flex; gap: 20px; justify-content: space-between; padding: 28px 28px 10px; }
-.section-heading h2, .privacy-boundary h2 { font-family: Georgia, var(--serif-scripts), serif; font-size: clamp(32px, 4vw, 46px); font-weight: 500; line-height: 1.05; margin: 0; }
+.section-heading h2, .privacy-boundary h2 { font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: clamp(32px, 4vw, 46px); font-weight: 400; line-height: 1.05; margin: 0; }
 .section-heading p, .privacy-boundary p:not(.eyebrow) { color: var(--muted); margin: 9px 0 0; max-width: 650px; }
 .moments-section, .threads-section, .privacy-boundary { overflow: hidden; }
 .moment-timeline { display: grid; gap: 12px; padding: 18px 28px 28px; }
@@ -678,7 +719,7 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .visibility-chip.shared-now { color: var(--shared-now); }
 .visibility-chip.share-later { color: var(--share-later); }
 .visibility-glyph { font-size: 12px; margin-right: 5px; }
-.moment-card > strong { display: block; font-family: Georgia, var(--serif-scripts), serif; font-size: 25px; font-weight: 500; }
+.moment-card > strong { display: block; font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 25px; font-weight: 400; }
 .moment-card > p { color: var(--muted); line-height: 1.55; margin: 8px 0 0; white-space: pre-wrap; }
 .moment-actions { display: flex; gap: 7px; justify-content: end; margin-top: 13px; }
 .moment-author { align-items: center; align-self: center; color: var(--muted); display: flex; flex-wrap: wrap; font-size: 14px; font-weight: 800; gap: 8px; margin-right: auto; }
@@ -716,7 +757,7 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 footer { background: var(--spruce); color: var(--on-accent); padding: 42px clamp(20px, 5vw, 70px); }
 .footer-brand { align-items: center; display: flex; gap: 10px; }
 .footer-brand .brand-mark { color: var(--on-accent); }
-footer strong { font-family: Georgia, var(--serif-scripts), serif; font-size: 25px; }
+footer strong { font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 25px; }
 footer p { color: var(--on-accent); margin-bottom: 0; opacity: .8; }
 
 /* /privacy — PRIVACY.md rendered as a page (scripts/render-privacy-page.mjs). A reading column,
