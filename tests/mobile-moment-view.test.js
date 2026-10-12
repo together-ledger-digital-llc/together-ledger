@@ -35,11 +35,11 @@ function phoneStorage(seed = {}, { failReads = false, failWrites = false } = {})
 
 const moment = (overrides = {}) => ({ id: 'm1', journeyId: 'j', kind: 'repair', occurredOn: '2026-10-09', updatedAt: '2026-10-09T00:00:00.000Z', title: 'We talked it through on the long walk home', visibility: 'share-later', images: [], removedImages: [], ...overrides });
 
-test('the choice above the list, in the words for the owner to approve, opens on the cards in full', async () => {
+test('the choice above the list, in the words for the owner to approve, opens on Compact', async () => {
   assert.equal(view.MOMENT_VIEW_LABEL, 'Show moments');
-  assert.deepEqual(view.MOMENT_VIEWS, [['full', 'In full'], ['compact', 'Compact']]);
-  assert.equal(DEFAULT_MOMENT_VIEW, 'full', 'nothing changes for anyone who never chooses');
-  assert.equal(view.MOMENT_VIEWS[0][0], DEFAULT_MOMENT_VIEW, 'and the default comes first');
+  assert.deepEqual(view.MOMENT_VIEWS, [['full', 'In full'], ['compact', 'Compact']], 'the order stays In full, then Compact');
+  assert.equal(DEFAULT_MOMENT_VIEW, 'compact', 'a phone that has never chosen shows one short row each (Oct 12)');
+  assert.equal(view.MOMENT_VIEWS[1][0], DEFAULT_MOMENT_VIEW, 'only which one starts selected changed: the default is the second button');
 
   const ledger = await read('app/ledger.tsx');
   assert.match(ledger, /<Choices label=\{MOMENT_VIEW_LABEL\} options=\{MOMENT_VIEWS\} selected=\{momentView\.view\} onSelect=/, 'the existing Choices, so the chosen one is marked by shape as well as colour');
@@ -109,17 +109,23 @@ test('tapping a row opens that one moment as its full card, with its actions; ta
   assert.deepEqual([...opened], ['b'], 'a second tap folds it back');
 });
 
-test('the choice is remembered on this phone between launches, and a store that cannot be read gives the cards in full', async () => {
+test('the choice is remembered on this phone between launches, and a phone that never chose shows Compact', async () => {
   const phone = phoneStorage();
-  assert.equal(await createPhoneStore(phone).loadMomentView(), 'full', 'nothing saved');
-  await createPhoneStore(phone).saveMomentView('compact');
-  assert.equal(phone.values.get(MOMENT_VIEW_KEY), 'compact');
-  assert.equal(await createPhoneStore(phone).loadMomentView(), 'compact', 'a fresh launch reads it back');
+  assert.equal(await createPhoneStore(phone).loadMomentView(), 'compact', 'a fresh phone: nothing saved');
   await createPhoneStore(phone).saveMomentView('full');
-  assert.equal(await createPhoneStore(phone).loadMomentView(), 'full');
+  assert.equal(phone.values.get(MOMENT_VIEW_KEY), 'full');
+  assert.equal(await createPhoneStore(phone).loadMomentView(), 'full', 'a fresh launch reads In full back');
+  await createPhoneStore(phone).saveMomentView('compact');
+  assert.equal(await createPhoneStore(phone).loadMomentView(), 'compact');
 
-  assert.equal(await createPhoneStore(phoneStorage({ [MOMENT_VIEW_KEY]: 'compact' }, { failReads: true })).loadMomentView(), 'full', 'a blocked store still renders, as it always has');
-  assert.equal(await createPhoneStore(phoneStorage({ [MOMENT_VIEW_KEY]: 'tiny' })).loadMomentView(), 'full', 'anything unknown is the default');
+  // A phone that chose before the default changed keeps what it chose, In full included.
+  assert.equal(await createPhoneStore(phoneStorage({ [MOMENT_VIEW_KEY]: 'full' })).loadMomentView(), 'full', 'a saved In full is not turned into Compact');
+  assert.equal(await createPhoneStore(phoneStorage({ [MOMENT_VIEW_KEY]: 'compact' })).loadMomentView(), 'compact', 'a saved Compact stays Compact');
+
+  assert.equal(await createPhoneStore(phoneStorage({ [MOMENT_VIEW_KEY]: 'full' }, { failReads: true })).loadMomentView(), 'compact', 'a blocked store still renders, on the default');
+  for (const unknown of ['tiny', '', 'Full', 'COMPACT', ' full']) {
+    assert.equal(await createPhoneStore(phoneStorage({ [MOMENT_VIEW_KEY]: unknown })).loadMomentView(), 'compact', `anything unknown is the default: ${JSON.stringify(unknown)}`);
+  }
   assert.notEqual(MOMENT_VIEW_KEY, 'theme');
 
   const prefs = await read('src/storage/use-stored-preferences.ts');
@@ -235,7 +241,7 @@ test('the heading reads "All moments" in Compact only; In full keeps "Recent mom
   assert.doesNotMatch(ledger, />Recent moments</, 'never written in place, so the two cannot drift apart');
 });
 
-test('the full card is unchanged and still the default', async () => {
+test('the full card is unchanged, in In full and when a compact row opens', async () => {
   const card = await read('src/components/moment-card.tsx');
   assert.match(card, /card: \{ borderWidth: 1, borderLeftWidth: 5, padding: 18 \}/);
   // 31 in Latin; leading() gives Hindi and Bengali room for their marks (scripts.ts).
