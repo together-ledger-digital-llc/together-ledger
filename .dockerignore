@@ -6,3 +6,6 @@ tests
 docs
 scripts
 *.md
+# The pseudo-language is for testing layouts on a development server, never for production
+# (docs/TRANSLATION.md).
+src/i18n/pseudo.js

@@ -27,6 +27,16 @@ const active = manifest.source;
 const language = languageOf(manifest, active);
 const catalogs = { [manifest.source]: messagesOf(source) };
 
+// The pseudo-language, for testing layouts (docs/TRANSLATION.md): add ?pseudo to the address of a
+// local development server. Never a setting, a language or a page of its own, and the production
+// build doesn't carry src/i18n/pseudo.js at all, so nowhere else can it be switched on.
+const pseudo = development && new URLSearchParams(globalThis.location.search).has('pseudo');
+if (pseudo) {
+  const { pseudoMessages, PSEUDO_LOCALE } = await import('./pseudo.js');
+  catalogs[active] = pseudoMessages(catalogs[active]);
+  console.info(`[i18n] Showing the pseudo-language (${PSEUDO_LOCALE}), for testing layouts only.`);
+}
+
 export const format = createFormatter(language.formatting);
 
 export const t = createTranslator({

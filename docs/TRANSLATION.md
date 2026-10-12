@@ -12,12 +12,15 @@ Hinglish, Hindi in Latin script (`hi-Latn`). Only English exists so far. The res
 | `src/i18n/format.js` | Dates, numbers and money for the active language, with that language's digits | Copy as is |
 | `src/i18n/catalog.js` | Reads translation files; the checks; the manifest rules; the glossary's TBX export | Copy as is |
 | `src/i18n/dom.js` | `t()` on a web page: `data-i18n` attributes and `<bdi>` | Copy as is (web only) |
+| `src/i18n/pseudo.js` | The pseudo-language, for testing layouts only; never shipped | Copy as is |
 | `src/i18n/web.js` | This web app's wiring: loads `locales/` from its own origin | Rewrite per app |
 | `apps/mobile/src/i18n/` | This phone app's wiring, and the Intl polyfills | Rewrite `index.ts`; copy the polyfills |
 | `src/vendor/intl-messageformat.js` | FormatJS's IntlMessageFormat for the web, made by `scripts/vendor-intl-messageformat.mjs` | Regenerate |
 | `locales/en.json` | Every English sentence, with a note for translators | The format travels; the words don't |
 | `locales/languages.json` | The languages manifest: status, reviewer, approval date, fallback, formatting | The shape travels |
 | `locales/glossary.json` | The product's careful words | The shape travels |
+| `scripts/i18n-moved-areas.json` | Every area already moved to `t()` | The shape travels |
+| `scripts/check-hardcoded-sentences.mjs` | Fails `npm run check` on a sentence written straight into a moved area | Copy as is |
 
 The core files import nothing and name nothing about Together Ledger. The web and the phone run
 the same `translator.js` and `format.js` and read the same `locales/en.json`. There is never a
@@ -77,6 +80,98 @@ Rules:
 - **Apostrophes:** write ’ (U+2019), as the product already does. In ICU an ASCII `'` before `{`, `}`
   or `#` starts a quotation.
 - **No markup in sentences.** Messages are parsed with `ignoreTag`, so `<b>` is just text.
+
+## The pseudo-language
+
+A test language, never offered to people. Every sentence comes out about 30% longer than English,
+with its letters accented and the whole of it in brackets:
+
+```
+Backup and restore             →  [Bááçķúp ááñď ŕééšťóóŕé]
+{journey} history              →  [{journey} ĥííšťóóŕý]
+{status, select, open {Open} other {Resolved}}  →  [{status, select, open {Óópéñ} other {Ŕééšóóľvéď}}]
+```
+
+It shows three things before any translation exists: a sentence cut off (its closing bracket is
+missing), a sentence that overflows or wraps where English didn't (Hindi, Bengali and Spanish run
+about 30% longer), and a sentence still written straight into a screen (the one without accents).
+The accents also sit above the capitals, so a line height that clips them shows. Only the words
+change. Placeholders, plurals, selects, `#`, ICU's quoting apostrophes and HTML tags stay exactly
+as they are, so every sentence formats with the same values, and a person's own text (a name, a journey)
+comes through unaccented.
+
+**Switching it on.** It's a development-only switch, never a setting, and it has no screen or
+route of its own:
+
+- **Web:** `npm run dev`, then open `http://127.0.0.1:4173/?pseudo`. It works only when the page
+  is served from `localhost` or `127.0.0.1`. `src/i18n/web.js` imports `pseudo.js` only then, and
+  only dynamically. The website's build (`scripts/build-public-site.mjs`) doesn't list the file,
+  and `.dockerignore` keeps it out of the server image, so in production there is nothing to load.
+- **Phone:** `EXPO_PUBLIC_I18N_PSEUDO=1 npx expo start`, with a development build. The switch is
+  `if (__DEV__ && process.env.EXPO_PUBLIC_I18N_PSEUDO === '1')` in `apps/mobile/src/i18n/index.ts`.
+  A release build compiles `__DEV__` to `false`, and Metro drops the branch and the file it requires.
+  This was checked: an `npx expo export` for Android, with the variable set, has no trace of it;
+  the same export with `--dev` has.
+
+Its tag is `en-XA`, the pseudo-locale Android and Chromium use. It formats with English's plural
+rules, dates and numbers. It isn't in `locales/languages.json` and has no translation file, so
+`offeredLanguages()` can never return it. `tests/i18n-pseudo.test.js` holds all of that.
+
+**The check on it.** `pseudoProblems()` runs every key in `locales/en.json` through the
+pseudo-language and fails if any placeholder, plural, select or `#` is lost, added, renamed or moved,
+if any HTML tag in a sentence changes, if a sentence doesn't parse, or if one comes out no longer,
+unaccented or unbracketed. It compares each sentence's whole structure without its words, so a
+renamed branch (`one` → `few`) or a changed number skeleton fails too. The same test runs each
+result through the gate an approved translation passes. A new key is covered automatically.
+
+### What it found, at 101C
+
+The web's Settings and the phone's History, at 320px and desktop width, Light and Dark. The
+phone's were mockups, not a real phone. Nothing is cut off. Nothing overlaps, and nothing scrolls
+sideways. For 102 and 103 to fix:
+
+- **Web, the × that closes Settings** is 31px wide at 320px (in English too). At desktop width
+  the longer title squeezes it to 38px. Its height is 44px throughout.
+- **Web, Export all journeys** wraps onto two lines at 320px. So do the Journey settings and
+  Backup and restore headings, and the reset question takes three lines.
+- **Phone, a Button that wraps** (Start a return-to conversation, at 320pt, in English too) has no
+  padding above or below, so two lines fill it from edge to edge.
+- **Still in English inside a moved area:** the theme names (`src/themes.js`), Journey sharing,
+  the reset question's eyebrow and Keep things as they are, and History's How to read your history.
+
+## Moved areas, and the guard
+
+`scripts/i18n-moved-areas.json` lists every area whose sentences have moved to `t()`. It's the one
+place to list them. `scripts/check-hardcoded-sentences.mjs`, run by `npm run check`, fails when a
+sentence is written straight into one of them:
+
+```
+A sentence is written straight into an area that has moved to t(). Add it to locales/en.json and use its key (docs/TRANSLATION.md):
+  apps/mobile/app/history.tsx:73  The phone's History: "Recorded changes"
+```
+
+An area is a file, with how much of it has moved:
+
+- `"kind": "html"` with `element`: that element and everything in it (`<dialog id="settings-dialog">`).
+  `except` lists elements inside it that haven't moved yet, each with the prompt that moves them.
+  It flags any text between tags with a letter in it, and any `aria-label`, `placeholder`, `title`
+  or `alt` with one. A moved element stays empty and names its key in `data-i18n`.
+- `"kind": "script"`: the whole file, or with `statements` only the statements that begin with
+  those words (in `src/app.js`, Settings is a few statements among many). It flags text between
+  JSX tags, a string with a letter in it given to something people read (`label`, `title`, `lead`,
+  `textContent`, a toast, a status...), and any other string that reads as words: a capital and then
+  a space, or a word and then a full stop, question mark or colon. Keys, paths, style values and
+  select values (`'yes'`, `'open'`) are none of these.
+- `allow`, on any area: exact text that is never translated.
+
+An element or statement that can't be found fails too, so the list never silently checks nothing.
+
+**When 102 and 103 move an area,** add it to the list in the same change. When they move what an
+area left out, take it out of `except`. `tests/i18n-hardcoded-sentences.test.js` plants a sentence
+in each kind of area, in memory, and proves the guard fails on it and passes without it.
+
+The guard reads; it doesn't parse. A regular-expression literal with a quote in it can confuse it.
+None of the moved areas has one.
 
 ## Keys
 
@@ -250,11 +345,11 @@ Bangla (`docs/2026-10-12-devanagari-bangla-font-decision.md`). Interface text st
 Both are Expo phone apps with a Cloudflare Workers and Hono server. Copy, never share a package:
 the company's apps copy structure and don't import from each other.
 
-**Copy as is:** `src/i18n/translator.js`, `format.js`, `catalog.js` (and `dom.js` for a web
-client), `apps/mobile/src/i18n/intl-polyfills.ts` and `intl-native.ts`,
+**Copy as is:** `src/i18n/translator.js`, `format.js`, `catalog.js`, `pseudo.js` (and `dom.js` for a web
+client), `scripts/check-hardcoded-sentences.mjs` with its own `i18n-moved-areas.json`, `apps/mobile/src/i18n/intl-polyfills.ts` and `intl-native.ts`,
 `scripts/vendor-intl-messageformat.mjs` (for a web client), `scripts/export-glossary.mjs`,
 `scripts/probe-hermes-intl.mjs` and `scripts/intl-probe.entry.js`, and the tests
-`tests/i18n-core.test.js`, `tests/i18n-hermes.test.js` and the checks in
+`tests/i18n-core.test.js`, `tests/i18n-hermes.test.js`, `tests/i18n-pseudo.test.js` and the checks in
 `tests/i18n-catalog.test.js`, with `tests/fixtures/i18n/`.
 
 **Each app changes:**

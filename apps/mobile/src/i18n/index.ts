@@ -26,6 +26,16 @@ export const language = active;
 const formatting = (languageOf(manifest, active) as { formatting: Formatting }).formatting;
 const catalogs: Record<string, Record<string, string>> = { [manifest.source]: messagesOf(source) };
 
+// The pseudo-language, for testing layouts (docs/TRANSLATION.md): start a development server with
+// EXPO_PUBLIC_I18N_PSEUDO=1 npx expo start. Never a setting, a language or a screen of its own. A
+// release build compiles __DEV__ to false, so Metro drops this branch and the file it requires.
+if (__DEV__ && process.env.EXPO_PUBLIC_I18N_PSEUDO === '1') {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { pseudoMessages, PSEUDO_LOCALE } = require('../../../../src/i18n/pseudo.js') as typeof import('../../../../src/i18n/pseudo.js');
+  catalogs[active] = pseudoMessages(catalogs[active]);
+  console.info(`[i18n] Showing the pseudo-language (${PSEUDO_LOCALE}), for testing layouts only.`);
+}
+
 export const format = createFormatter(formatting);
 
 const translate = createTranslator({

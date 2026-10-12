@@ -1,0 +1,36 @@
+{
+  "about": "Every area whose sentences have moved to t(), so none may be written straight into it again: scripts/check-hardcoded-sentences.mjs fails npm run check on one. When a prompt moves an area, add it here; when it moves what an area left out, take that out of except. See docs/TRANSLATION.md.",
+  "areas": [
+    {
+      "name": "The web's Settings",
+      "movedIn": "101A",
+      "file": "index.html",
+      "kind": "html",
+      "element": "<dialog id=\"settings-dialog\">",
+      "except": [
+        { "element": "<section id=\"sharing-settings\"", "until": "102" },
+        { "element": "<section id=\"leave-journey\"", "until": "102" }
+      ]
+    },
+    {
+      "name": "The web's Settings, what its code writes",
+      "movedIn": "101A",
+      "file": "src/app.js",
+      "kind": "script",
+      "statements": [
+        "$('#settings-storage-copy').textContent =",
+        "$('#theme-copy').textContent =",
+        "$('#export-button').addEventListener(",
+        "$('#import-button').addEventListener(",
+        "$('#import-file').addEventListener(",
+        "$('#reset-button').addEventListener("
+      ]
+    },
+    {
+      "name": "The phone's History",
+      "movedIn": "101A",
+      "file": "apps/mobile/app/history.tsx",
+      "kind": "script"
+    }
+  ]
+}
