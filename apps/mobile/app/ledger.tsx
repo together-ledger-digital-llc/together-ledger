@@ -7,12 +7,13 @@ import { LEDGER_WHILE_OFFLINE, type OfflineReason } from '../src/auth/session-st
 import { Choices } from '../src/components/choices';
 import { EmptyState } from '../src/components/empty-state';
 import { GraceBanner } from '../src/components/grace-banner';
+import { JourneyRow } from '../src/components/journey-row';
 import { CardAction, MomentCard, momentColors } from '../src/components/moment-card';
 import { MomentRow } from '../src/components/moment-row';
 import { ScreenStatusRegion } from '../src/components/status-region';
 import { Body, Button, Screen } from '../src/components/ui';
 import { INVITATION_WORDS } from '../src/invitations/invitation-words';
-import { journeyPeriod, momentFilters, momentListHeading, momentListing, MOMENT_TYPES, MOMENT_VIEW_LABEL, MOMENT_VIEWS, openThreads, recentMoments, seeAllLabel, type Concern, type Journey } from '../src/journey/journey-view';
+import { journeyPeriod, momentFilters, momentListHeading, momentListing, MOMENT_TYPES, MOMENT_VIEW_LABEL, MOMENT_VIEWS, openThreads, recentMoments, seeAllLabel, type Concern } from '../src/journey/journey-view';
 import { useMomentActions } from '../src/journey/moment-actions';
 import type { EditableMoment } from '../src/journey/moment-draft';
 import { JOURNEYS_NOT_LOADED, nextJourneyWords } from '../src/journey/journey-state';
@@ -21,6 +22,10 @@ import { useMomentView } from '../src/journey/use-moment-view';
 import { WaitingMoments } from '../src/components/waiting-moments';
 import type { MomentView } from '../src/storage/ledger-store';
 import { fonts, useTheme } from '../src/theme';
+import { showsJourneyRow } from '../../../src/journey-row.js';
+
+// The list's own padding; the journey row runs on past it to the screen's edge (#404).
+const LIST_INSET = 24;
 
 /**
  * The ledger surface: the open journey and its moments (TL-M-07, #182), ported from the web's
@@ -101,10 +106,11 @@ export default function LedgerScreen() {
               <Text style={[styles.body, { color: colors.muted }]}>{journeyPeriod(snapshot.journey)}</Text>
             </View>
             <GraceBanner journeyId={snapshot.journey.id} grace={snapshot.capacity?.grace} peopleHere={snapshot.capacity?.peopleHere ?? 0} />
-            {journeys.length > 1 ? <JourneyPicker journeys={journeys} activeId={activeId} onSelect={(id) => { setExpanded(false); setFilter('all'); setOpened(new Set()); journey.select(id); }} /> : null}
+            {/* One row that scrolls sideways, and New journey on its own line directly below it (#404). */}
+            {showsJourneyRow(journeys) ? <JourneyRow label="Journey" journeys={journeys} activeId={activeId} inset={LIST_INSET} onSelect={(id) => { setExpanded(false); setFilter('all'); setOpened(new Set()); journey.select(id); }} /> : null}
+            <Button kind="quiet" label="＋ New journey" onPress={() => router.push('/new-journey')} />
             {/* The open journey stays while another is asked for; offline, it opens once the connection is back (#352). */}
             {next && nextName ? <Text accessibilityLiveRegion="polite" style={[styles.body, { color: colors.muted }]}>{nextJourneyWords(nextName, next.when)}</Text> : null}
-            <Button kind="quiet" label="＋ New journey" onPress={() => router.push('/new-journey')} />
             <View style={styles.section}>
               <Text style={[styles.eyebrow, { color: colors.accent }]}>Our shared journey</Text>
               <Text accessibilityRole="header" style={[styles.sectionTitle, fonts.serif, { color: colors.fg }]}>{momentListHeading(compact)}</Text>
@@ -143,11 +149,6 @@ function LedgerWhileOffline({ reason, onRetry }: { reason: OfflineReason; onRetr
       <Button kind="quiet" label="Try again" onPress={onRetry} />
     </Screen>
   );
-}
-
-/** The web's journey select, as a row of choices a thumb can reach. */
-function JourneyPicker({ journeys, activeId, onSelect }: { journeys: Journey[]; activeId: string; onSelect: (id: string) => void }) {
-  return <Choices label="Journey" options={journeys.map((item) => [item.id, item.name])} selected={activeId} onSelect={onSelect} />;
 }
 
 function Threads({ threads }: { threads: Concern[] }) {
@@ -206,7 +207,7 @@ function EmptyStart({ signedIn }: { signedIn: boolean }) {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  list: { padding: 24, gap: 0 },
+  list: { padding: LIST_INSET, gap: 0 },
   gap: { height: 14 },
   rowGap: { height: 8 },
   viewChoice: { gap: 8 },

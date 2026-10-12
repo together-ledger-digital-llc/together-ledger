@@ -73,7 +73,7 @@ test('the ledger never blanks: offline it shows its words, what waits with Try s
   const ledger = await read('app/ledger.tsx');
   assert.match(ledger, /if \(state\.phase === 'offline'\) return <LedgerWhileOffline reason=\{state\.reason\} onRetry=\{session\.refresh\} \/>;/);
   assert.match(ledger, /if \(state\.phase === 'failed'\) \{\s*if \(state\.reason\) return <LedgerWhileOffline reason=\{state\.reason\} onRetry=\{journey\.retry\} \/>;/, 'a load the connection stopped is drawn as the offline phase');
-  const whileOffline = ledger.slice(ledger.indexOf('function LedgerWhileOffline'), ledger.indexOf('function JourneyPicker'));
+  const whileOffline = ledger.slice(ledger.indexOf('function LedgerWhileOffline'), ledger.indexOf('function Threads'));
   assert.match(whileOffline, /<Body>\{LEDGER_WHILE_OFFLINE\[reason\]\}<\/Body>/);
   assert.match(whileOffline, /<WaitingMoments activeJourneyId=\{null\} \/>/);
   assert.match(whileOffline, /<Button kind="quiet" label="Try again" onPress=\{onRetry\} \/>/);
