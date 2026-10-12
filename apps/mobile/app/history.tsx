@@ -11,7 +11,7 @@ import { CONSEQUENCES, concernsByRecency, historyEvents, valueLabel, type Concer
 import { useJourney, useReloadWhenShown } from '../src/journey/use-journey';
 import { format, t } from '../src/i18n';
 import { useShell } from '../src/shell/shell-provider';
-import { targetSize, useTheme } from '../src/theme';
+import { targetSize, tracking, useTheme } from '../src/theme';
 
 /**
  * The web's event manager (renderEventManager): conversations to return to, then the journey's
@@ -118,7 +118,7 @@ function when(value: string | null | undefined) {
 const styles = StyleSheet.create({
   section: { fontSize: 18, fontWeight: '700', marginTop: 8 },
   card: { borderWidth: 1, padding: 14, gap: 4 },
-  chip: { fontSize: 12, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
+  chip: { fontSize: 12, fontWeight: '900', letterSpacing: tracking(1), textTransform: 'uppercase' },
   title: { fontSize: 16, fontWeight: '700' },
   body: { fontSize: 15, lineHeight: 22 },
   meta: { fontSize: 13, lineHeight: 18 },

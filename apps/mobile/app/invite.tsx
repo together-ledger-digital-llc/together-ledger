@@ -11,7 +11,7 @@ import { closedInvitationMessage, invitationDate, INVITATION_WORDS as WORDS, isS
 import { usePendingInvitation } from '../src/invitations/use-pending-invitation';
 import { useJourney } from '../src/journey/use-journey';
 import { useShell } from '../src/shell/shell-provider';
-import { fonts, useTheme } from '../src/theme';
+import { fonts, leading, tracking, useTheme } from '../src/theme';
 
 type Read = { code: string; answer: InvitationPreview };
 
@@ -234,6 +234,6 @@ export default function InviteScreen() {
 }
 
 const styles = StyleSheet.create({
-  eyebrow: { fontSize: 12, fontWeight: '900', letterSpacing: 1.9, textTransform: 'uppercase' },
-  headline: { fontSize: 28, lineHeight: 34 },
+  eyebrow: { fontSize: 12, fontWeight: '900', letterSpacing: tracking(1.9), textTransform: 'uppercase' },
+  headline: { fontSize: 28, lineHeight: leading(28, 34) },
 });

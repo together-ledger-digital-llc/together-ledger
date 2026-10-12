@@ -227,6 +227,23 @@ Hermes's `NumberFormat` is a stub, so real numbers are only shown by a phone. In
 the app prints `intlReport()` when it first loads its translations: what is native, what is polyfilled, and what each language
 writes. Read it from a real iPhone and a real Android phone on build day.
 
+## Scripts and fonts
+
+Hindi is Devanagari and Bengali is Bangla; English, Spanish and Hinglish are Latin. Gelasio and Georgia
+draw only Latin, so headings and moment titles in Hindi and Bengali use Tiro Devanagari Hindi and Tiro
+Bangla (`docs/2026-10-12-devanagari-bangla-font-decision.md`). Interface text stays in the system sans.
+
+- **The web** keys on `<html lang>`: the Language preference must set it to the active language's tag.
+  Each face is one self-hosted file, fetched only when its script is on the page.
+- **The phone** chooses its faces once, at start, from the active language (`script` in
+  `apps/mobile/src/theme/fonts.ts`), and loads a Tiro face only in Hindi or Bengali.
+- **Never track Devanagari or Bangla**, and give their marks room: a serif line height of at least 1.35
+  (Hindi) or 1.3 (Bengali). On the phone, a serif style's `lineHeight` goes through `leading()` and any
+  `letterSpacing` through `tracking()`; on the web, `src/styles.css` does both under `:lang(hi)` and
+  `:lang(bn)`.
+- `tests/browser-script-fonts.spec.js` sets the screens in sample Hindi and Bengali and checks the layout
+  at 320px. Rerun it with the real translations.
+
 ## Copying this into I'm Home or Green Light
 
 Both are Expo phone apps with a Cloudflare Workers and Hono server. Copy, never share a package:

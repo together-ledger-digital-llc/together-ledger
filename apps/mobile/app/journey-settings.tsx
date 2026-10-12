@@ -66,7 +66,7 @@ import { useWaitingMoments } from '../src/journey/use-waiting-moments';
 import { unsentWhenLeaving } from '../src/journey/waiting-moments';
 import { useShell } from '../src/shell/shell-provider';
 import { targetSize } from '../src/theme/metrics';
-import { fonts, useTheme } from '../src/theme';
+import { fonts, leading, useTheme } from '../src/theme';
 
 /**
  * Journey sharing (TL-M-09, #184): who is here, proposing someone, the questions being decided,
@@ -486,6 +486,6 @@ const styles = StyleSheet.create({
   foldBody: { gap: 10 },
   body: { fontSize: 16, lineHeight: 23 },
   dangerZone: { gap: 10, marginTop: 40, borderWidth: 1, padding: 16 },
-  dangerTitle: { fontSize: 20, lineHeight: 26 },
+  dangerTitle: { fontSize: 20, lineHeight: leading(20, 26) },
   help: { fontSize: 14, lineHeight: 20 },
 });

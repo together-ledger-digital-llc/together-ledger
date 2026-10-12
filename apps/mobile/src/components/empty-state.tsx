@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { fonts, useTheme } from '../theme';
+import { fonts, leading, useTheme } from '../theme';
 
 /**
  * The web's emptyState(): an empty surface still says what it is and why it is empty, rather
@@ -18,6 +18,6 @@ export function EmptyState({ title, body, compact = false }: { title: string; bo
 const styles = StyleSheet.create({
   empty: { paddingVertical: 45, paddingHorizontal: 25 },
   compact: { paddingVertical: 25, paddingHorizontal: 10 },
-  title: { fontSize: 19, lineHeight: 25, textAlign: 'center' },
+  title: { fontSize: 19, lineHeight: leading(19, 25), textAlign: 'center' },
   body: { fontSize: 16, lineHeight: 23, marginTop: 6, textAlign: 'center' },
 });

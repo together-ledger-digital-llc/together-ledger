@@ -21,7 +21,7 @@ import { useJourney } from '../src/journey/use-journey';
 import { useMomentView } from '../src/journey/use-moment-view';
 import { WaitingMoments } from '../src/components/waiting-moments';
 import type { MomentView } from '../src/storage/ledger-store';
-import { fonts, useTheme } from '../src/theme';
+import { fonts, leading, tracking, useTheme } from '../src/theme';
 import { showsJourneyRow } from '../../../src/journey-row.js';
 
 // The list's own padding; the journey row runs on past it to the screen's edge (#404).
@@ -209,14 +209,14 @@ const styles = StyleSheet.create({
   viewChoice: { gap: 8 },
   header: { gap: 16, marginBottom: 16 },
   small: { fontSize: 13, fontWeight: '700' },
-  journeyName: { fontSize: 32, lineHeight: 38 },
+  journeyName: { fontSize: 32, lineHeight: leading(32, 38) },
   body: { fontSize: 16, lineHeight: 23 },
   section: { gap: 6, marginTop: 8 },
-  eyebrow: { fontSize: 12, fontWeight: '900', letterSpacing: 1.9, textTransform: 'uppercase' },
-  sectionTitle: { fontSize: 28, lineHeight: 34 },
+  eyebrow: { fontSize: 12, fontWeight: '900', letterSpacing: tracking(1.9), textTransform: 'uppercase' },
+  sectionTitle: { fontSize: 28, lineHeight: leading(28, 34) },
   threads: { borderWidth: 1, padding: 20, gap: 6, marginTop: 24 },
   thread: { borderTopWidth: 1, paddingVertical: 17, gap: 6 },
-  openChip: { alignSelf: 'flex-start', borderWidth: 1, fontSize: 12, fontWeight: '900', letterSpacing: 1, paddingHorizontal: 8, paddingVertical: 4, textTransform: 'uppercase', overflow: 'hidden' },
+  openChip: { alignSelf: 'flex-start', borderWidth: 1, fontSize: 12, fontWeight: '900', letterSpacing: tracking(1), paddingHorizontal: 8, paddingVertical: 4, textTransform: 'uppercase', overflow: 'hidden' },
   threadTitle: { fontSize: 17, fontWeight: '700' },
   types: { borderWidth: 1, padding: 22, gap: 16 },
   kinds: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

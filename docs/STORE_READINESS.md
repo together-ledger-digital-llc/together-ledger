@@ -277,7 +277,7 @@ its own address, `app.together-ledger.com` (`index.html`, and the policy pages'
 `scripts/render-privacy-page.mjs`). Until Oct 10 they pointed at `together-ledger.com`, the
 company site, which has none of those files and answered 404 for each. Its sentences,
 `locales/en.json` and `locales/languages.json`, come from its own address too, shipped in the same
-release (`docs/TRANSLATION.md`). No font or stylesheet comes from anywhere else. **Verified in code** (`tests/outbound-declarations.test.js`), and by the
+release (`docs/TRANSLATION.md`). Its only font files, the Hindi and Bengali serif, come from its own address too, and only on a page with those scripts (`docs/2026-10-12-devanagari-bangla-font-decision.md`). No font or stylesheet comes from anywhere else. **Verified in code** (`tests/outbound-declarations.test.js`), and by the
 captured traffic in `docs/OUTBOUND_CAPTURE.md`.
 
 The tables below name every dependency in both manifests. `tests/store-readiness.test.js` reads
@@ -289,6 +289,8 @@ row for one that is gone.
 | Package | Makes a network request? | Notes |
 |---|---|---|
 | `@expo-google-fonts/gelasio` | No | Font files bundled into the app, imported per weight (`apps/mobile/src/theme/fonts.ts:1-5`) |
+| `@expo-google-fonts/tiro-bangla` | No | The Bengali serif: one font file bundled into the app, loaded only in Bengali (`apps/mobile/src/theme/fonts.ts`) |
+| `@expo-google-fonts/tiro-devanagari-hindi` | No | The Hindi serif: one font file bundled into the app, loaded only in Hindi (`apps/mobile/src/theme/fonts.ts`) |
 | `@expo/metro-runtime` | Development only | Talks to the Metro dev server in development builds |
 | `@react-native-community/datetimepicker` | No | The system date picker |
 | `@react-native-community/netinfo` | No | Says whether the phone is connected, for the offline notice (#300). Its own check that the internet can be reached would ask `clients3.google.com` on iOS; it is switched off (`apps/mobile/src/shell/use-connection.ts`), so the library makes no request. On Android it declares `ACCESS_NETWORK_STATE`, already granted (2.4), and `ACCESS_WIFI_STATE`, which is blocked (`apps/mobile/app.json`): only connected or not is read, never the Wi-Fi network's name |

@@ -5,7 +5,7 @@ import { INVITATION_WORDS } from '../src/invitations/invitation-words';
 import { useShell } from '../src/shell/shell-provider';
 import { SETTINGS_GLYPH } from '../src/shell/screens';
 import { openingSurface } from '../src/shell/surface';
-import { fonts, useTheme } from '../src/theme';
+import { fonts, leading, tracking, useTheme } from '../src/theme';
 
 /**
  * Where the app opens. Someone who has begun their ledger goes straight to it; everyone else
@@ -37,6 +37,6 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  eyebrow: { fontSize: 12, fontWeight: '900', letterSpacing: 1.9, textTransform: 'uppercase' },
-  headline: { fontSize: 40, lineHeight: 44 },
+  eyebrow: { fontSize: 12, fontWeight: '900', letterSpacing: tracking(1.9), textTransform: 'uppercase' },
+  headline: { fontSize: 40, lineHeight: leading(40, 44) },
 });

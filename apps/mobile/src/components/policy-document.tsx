@@ -1,5 +1,5 @@
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import { fonts, useTheme } from '../theme';
+import { fonts, leading, useTheme } from '../theme';
 
 type Span = { text: string; bold?: boolean; code?: boolean };
 type Block = { kind: string; level?: number; spans?: Span[]; items?: Span[][] };
@@ -43,8 +43,8 @@ export function PolicyDocument({ blocks }: { blocks: Block[] }) {
 }
 
 const styles = StyleSheet.create({
-  heading: { fontSize: 22, lineHeight: 28, marginTop: 8 },
-  subheading: { fontSize: 18, lineHeight: 24 },
+  heading: { fontSize: 22, lineHeight: leading(22, 28), marginTop: 8 },
+  subheading: { fontSize: 18, lineHeight: leading(18, 24) },
   text: { fontSize: 16, lineHeight: 23 },
   bold: { fontWeight: '700' },
   code: { fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }) },

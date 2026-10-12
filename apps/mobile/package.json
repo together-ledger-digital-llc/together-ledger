@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@expo-google-fonts/gelasio": "0.4.1",
+    "@expo-google-fonts/tiro-bangla": "0.4.1",
+    "@expo-google-fonts/tiro-devanagari-hindi": "0.4.1",
     "@expo/metro-runtime": "57.0.16",
     "@formatjs/intl-locale": "5.3.12",
     "@formatjs/intl-pluralrules": "6.3.15",

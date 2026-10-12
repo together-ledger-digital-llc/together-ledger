@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { compactRowLabel, dateLabel, momentLabel, normalizeMomentTheme, visibilityCue, visibilityRole, type ShownMoment } from '../journey/journey-view';
-import { fonts, getTheme, targetSize, useTheme } from '../theme';
+import { fonts, getTheme, leading, targetSize, tracking, useTheme } from '../theme';
 import { MomentCard } from './moment-card';
 
 /**
@@ -50,10 +50,10 @@ const styles = StyleSheet.create({
   wrap: { gap: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderLeftWidth: 5, paddingVertical: 9, paddingLeft: 12, paddingRight: 10 },
   copy: { flex: 1, minWidth: 0, gap: 2 },
-  title: { fontSize: 18, lineHeight: 23 },
+  title: { fontSize: 18, lineHeight: leading(18, 23) },
   meta: { fontSize: 12, lineHeight: 16, fontWeight: '800', textTransform: 'uppercase' },
   chip: { borderWidth: 1, paddingHorizontal: 7, paddingVertical: 3, flexShrink: 0 },
-  chipText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' },
+  chipText: { fontSize: 12, fontWeight: '800', letterSpacing: tracking(0.6), textTransform: 'uppercase' },
   glyph: { fontSize: 11 },
   fold: { fontSize: 18, fontWeight: '700', width: 14, textAlign: 'center' },
 });

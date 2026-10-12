@@ -30,7 +30,8 @@
 // The database is migrated and written to. Use one made for this, never a real one.
 // The method, what is stood in for, and the by-hand phone capture are in docs/OUTBOUND_CAPTURE.md.
 // It exits 1 if any check fails: a host nobody declared, cleartext http, a secret in a URL or a
-// Referer, a font request, or Stripe's script on a page with no purchase.
+// Referer, a font request (other than the Hindi and Bengali serif from our own /src/fonts/), or Stripe's
+// script on a page with no purchase.
 
 import { execFileSync } from 'node:child_process';
 import { createSign, generateKeyPairSync, randomBytes, randomUUID } from 'node:crypto';
@@ -857,7 +858,10 @@ function checks() {
   add('Every host the browser reached is ours or a known provider stand-in', browserRequests.filter((entry) => !known(entry)).map((entry) => `${entry.step}: ${entry.method} ${entry.host}${entry.path}`), 'No other host was asked for.');
   add('Every host the server reached is a known processor', serverRequests.filter((entry) => !known(entry)).map((entry) => `${entry.step}: ${entry.method} ${entry.host}${entry.path}`), 'Stripe, Apple, Google and the email sender only.');
   add('No cleartext http', browserRequests.filter((entry) => entry.scheme !== 'https' && entry.scheme !== 'wss').map((entry) => `${entry.step}: ${entry.scheme}://${entry.host}${entry.path}`), 'Every request the browser made was https.');
-  add('No font requests', browserRequests.filter((entry) => entry.type === 'font' || FONT_HOSTS.test(entry.host)).map((entry) => `${entry.step}: ${entry.host}${entry.path}`), 'No font file, and no font host, was requested.');
+  // The only fonts the web may ask for are its own Hindi and Bengali serif files, from its own address,
+  // and only for those scripts (docs/2026-10-12-devanagari-bangla-font-decision.md).
+  const ownFont = (entry) => entry.host === APP && /^\/src\/fonts\/[\w-]+\.woff2$/.test(entry.path);
+  add('No font requests', browserRequests.filter((entry) => (entry.type === 'font' && !ownFont(entry)) || FONT_HOSTS.test(entry.host)).map((entry) => `${entry.step}: ${entry.host}${entry.path}`), 'No font file but our own, and no font host, was requested.');
   const stripeScripts = browserRequests.filter((entry) => /(^|\.)stripe\.(com|network)$/.test(entry.host) && entry.host !== 'checkout.stripe.com');
   add("Stripe's script never loads on our pages", stripeScripts.map((entry) => `${entry.step}: ${entry.host}${entry.path}`), 'No js.stripe.com or other Stripe asset was requested by our pages; only the checkout navigation reached Stripe.');
 
