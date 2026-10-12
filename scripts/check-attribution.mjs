@@ -30,7 +30,9 @@
 //
 // Honest limits: the squash commit is written at merge time, after this has run, so merge with an
 // explicit message (the PR title as the subject, a clean body). The push check on main catches a
-// slip afterwards; it cannot prevent one. Issue and PR comments are not history and are not read.
+// slip afterwards; it cannot prevent one. Issue and PR comments are not history and are not read;
+// the Strip tool footers workflow (.github/workflows/strip-tool-footers.yml) removes the tooling's
+// footer from them, and leaves PR bodies on PR events to `--strip-pr-body` here.
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
