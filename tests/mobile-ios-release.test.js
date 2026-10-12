@@ -180,6 +180,7 @@ test('the libraries that bring their own manifest still declare only what was re
     'expo-application/ios/PrivacyInfo.xcprivacy': ['NSPrivacyAccessedAPICategoryFileTimestamp'],
     'expo-constants/ios/PrivacyInfo.xcprivacy': ['NSPrivacyAccessedAPICategoryUserDefaults'],
     'expo-file-system/ios/PrivacyInfo.xcprivacy': ['NSPrivacyAccessedAPICategoryFileTimestamp', 'NSPrivacyAccessedAPICategoryDiskSpace'],
+    'expo-localization/ios/PrivacyInfo.xcprivacy': ['NSPrivacyAccessedAPICategoryUserDefaults'],
     'react-native/React/Resources/PrivacyInfo.xcprivacy': ['NSPrivacyAccessedAPICategoryFileTimestamp', 'NSPrivacyAccessedAPICategoryUserDefaults'],
     'react-native/ReactCommon/react/timing/PrivacyInfo.xcprivacy': ['NSPrivacyAccessedAPICategorySystemBootTime'],
   };

@@ -3,6 +3,7 @@ import { router, Stack } from 'expo-router';
 import { useCallback, useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, Text } from 'react-native';
 import { SessionProvider, useSession } from '../src/auth/session';
+import { LanguageProvider } from '../src/i18n/language-provider';
 import { StoreProvider } from '../src/billing/store-provider';
 import { ShellOverlays } from '../src/components/dialogs';
 import { PendingInvitationProvider, PendingInvitationWatch } from '../src/invitations/use-pending-invitation';
@@ -155,11 +156,13 @@ export default function RootLayout() {
   // The serif ships inside the app (#177), so nothing is fetched at runtime.
   const [fontsLoaded] = useFonts(fontSources);
   // What the phone remembers (#185), read before the first screen so the saved theme is the first one drawn.
-  const { stored, failure, saveTheme, saveMomentView, completeOnboarding } = useStoredPreferences();
+  const { stored, failure, saveTheme, saveMomentView, saveLanguage, completeOnboarding } = useStoredPreferences();
   if (!fontsLoaded || !stored) return null;
   return (
     <ThemeProvider initialChoice={stored.theme} onChoiceChange={saveTheme}>
       <SessionProvider>
+        {/* The Language preference (101B): kept on this phone before signing in, on the account after. */}
+        <LanguageProvider initialChoice={stored.language} onChoiceChange={saveLanguage}>
         <ShellProvider initialOnboardingComplete={stored.onboardingComplete} onOnboardingComplete={completeOnboarding}>
           {/* An invitation tapped or pasted, kept on this phone until it is answered (#266). */}
           <PendingInvitationProvider>
@@ -182,6 +185,7 @@ export default function RootLayout() {
           <ShellOverlays />
           <SaveFailureNotice failure={failure} />
         </ShellProvider>
+        </LanguageProvider>
       </SessionProvider>
     </ThemeProvider>
   );

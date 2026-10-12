@@ -33,7 +33,7 @@ test('real PostgreSQL enforces migrations, event immutability, and deletion purg
   assert.deepEqual((await runMigrations(pool)).applied, []);
 
   const migrations = await pool.query('SELECT name FROM schema_migrations ORDER BY name');
-  assert.deepEqual(migrations.rows.map((row) => row.name), ['001_platform.sql', '002_append_only_events.sql', '003_private_usernames.sql', '004_shared_moments.sql', '005_make-shared-journeys-more-humane.sql', '006_expand-shared-moment-vocabulary.sql', '007_person_specific_moment_visibility.sql', '008_stripe_web_billing.sql', '009_reserve-group-places.sql', '010_stripe_reconciliation_runs.sql', '011_hold-one-image-with-each-moment.sql', '012_bill-additional-moment-images.sql', '013_name-moment-image-attachments.sql', '014_hold-places-with-shared-moments.sql', '015_bill-additional-moment-places.sql', '016_make-extra-image-payments-one-time.sql', '017_keep-one-removed-photo-per-moment.sql', '018_allow-ninety-nine-paid-journey-places.sql', '019_let-moments-carry-their-own-atmosphere.sql', '020_let-entitlements-hold-ninety-nine-places.sql', '021_let-unpaid-capacity-rest-without-losing-history.sql', '022_agree-together-before-adding-someone.sql', '023_let-a-phone-carry-its-own-key.sql', '024_let-google-and-apple-open-an-account.sql', '025_revoke-sign-in-with-apple-when-an-account-is-deleted.sql', '026_remember-a-refused-apple-deletion.sql', '027_tie-every-store-purchase-to-an-account.sql', '028_turn-a-store-purchase-into-capacity.sql', '029_rest-read-only-and-let-the-payer-ask-for-time.sql', '030_ask-for-six-weeks-a-year.sql', '031_let-a-lost-renewal-reply-be-asked-again.sql', '032_let-an-invitation-last-fourteen-days.sql', '033_let-a-moment-held-offline-arrive-once.sql', '034_hear-refunds-and-renewals-from-the-stores.sql', '035_hear-reversed-refunds-and-refunded-extras.sql', '036_let-names-hold-any-language-symbol-and-emoji.sql', '037_let-apple-answer-an-android-phone.sql']);
+  assert.deepEqual(migrations.rows.map((row) => row.name), ['001_platform.sql', '002_append_only_events.sql', '003_private_usernames.sql', '004_shared_moments.sql', '005_make-shared-journeys-more-humane.sql', '006_expand-shared-moment-vocabulary.sql', '007_person_specific_moment_visibility.sql', '008_stripe_web_billing.sql', '009_reserve-group-places.sql', '010_stripe_reconciliation_runs.sql', '011_hold-one-image-with-each-moment.sql', '012_bill-additional-moment-images.sql', '013_name-moment-image-attachments.sql', '014_hold-places-with-shared-moments.sql', '015_bill-additional-moment-places.sql', '016_make-extra-image-payments-one-time.sql', '017_keep-one-removed-photo-per-moment.sql', '018_allow-ninety-nine-paid-journey-places.sql', '019_let-moments-carry-their-own-atmosphere.sql', '020_let-entitlements-hold-ninety-nine-places.sql', '021_let-unpaid-capacity-rest-without-losing-history.sql', '022_agree-together-before-adding-someone.sql', '023_let-a-phone-carry-its-own-key.sql', '024_let-google-and-apple-open-an-account.sql', '025_revoke-sign-in-with-apple-when-an-account-is-deleted.sql', '026_remember-a-refused-apple-deletion.sql', '027_tie-every-store-purchase-to-an-account.sql', '028_turn-a-store-purchase-into-capacity.sql', '029_rest-read-only-and-let-the-payer-ask-for-time.sql', '030_ask-for-six-weeks-a-year.sql', '031_let-a-lost-renewal-reply-be-asked-again.sql', '032_let-an-invitation-last-fourteen-days.sql', '033_let-a-moment-held-offline-arrive-once.sql', '034_hear-refunds-and-renewals-from-the-stores.sql', '035_hear-reversed-refunds-and-refunded-extras.sql', '036_let-names-hold-any-language-symbol-and-emoji.sql', '037_let-apple-answer-an-android-phone.sql', '038_remember-the-language-a-person-chose.sql']);
 
   const firstLockClient = await pool.connect();
   const secondLockClient = await pool.connect();
@@ -588,12 +588,12 @@ test('real PostgreSQL keeps one waiting row for a Google refund not listed yet, 
 // #194: sign out everywhere and changing the password while signed in, through the routes, against
 // real PostgreSQL. Each ends exactly the sign-ins it should: browsers by their session rows, phones
 // by their token families, and nobody else's.
-async function signInsAgainstPostgres(t) {
+async function signInsAgainstPostgres(t, { languages } = {}) {
   const config = loadConfig({ NODE_ENV: 'development', PUBLIC_ORIGIN: 'http://127.0.0.1:4174', DATABASE_URL: databaseUrl, SESSION_SECRET: 's'.repeat(32), AUDIT_HMAC_KEY: 'a'.repeat(32) });
   const pool = createPool(config);
   await runMigrations(pool);
   const mailer = new MemoryMailer();
-  const platform = new PlatformService({ pool, config, mailer });
+  const platform = new PlatformService({ pool, config, mailer, ...(languages && { languages }) });
   const app = await buildApp({ platform, config });
   t.after(async () => { await app.close(); await pool.end(); });
   const origin = config.PUBLIC_ORIGIN;
@@ -901,4 +901,41 @@ test('real PostgreSQL keeps Apple\'s first answer for an Android phone and hands
   assert.ok(['first', 'second'].includes(given[0].value.user));
   assert.ok(collects.filter((outcome) => outcome.status === 'rejected').every((outcome) => outcome.reason.code === 'apple_not_returned'));
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM apple_returns WHERE state=$1', [digest(verifier)])).rows[0].n, 0);
+});
+
+// The Language preference (101B, migration 038), on real PostgreSQL: "Follow my device" is NULL
+// and not English, a choice is only ever the signed-in person's own, the column refuses what is
+// not a tag, and when two devices carry their own choices into an account that has none at the
+// same moment, exactly one wins and both are told which.
+test('real PostgreSQL keeps each person\'s own language, apart from following the device, and one carried choice wins', { skip: !databaseUrl }, async (t) => {
+  const manifest = JSON.parse(await readFile(new URL('../locales/languages.json', import.meta.url), 'utf8'));
+  const languages = { ...manifest, languages: manifest.languages.map((language) => (['hi', 'bn'].includes(language.tag) ? { ...language, status: 'approved', reviewer: 'A fluent reviewer', approvedOn: '2026-10-12' } : language)) };
+  const { pool, register, browser, phone, send } = await signInsAgainstPostgres(t, { languages });
+  const password = 'correct horse battery staple';
+  const asha = await register('language-asha', password);
+  const ben = await register('language-ben', password);
+  assert.equal(asha.language, null);
+  const [ashaWeb, ashaPhone, benWeb] = [await browser(asha, password), await phone(asha, password), await browser(ben, password)];
+  const languageOf = async (headers) => (await send('GET', '/api/v1/session', headers)).json().data.user.language;
+  const choose = (headers, payload) => send('PATCH', '/api/v1/account/language', headers, payload);
+
+  assert.equal((await choose(ashaWeb, { language: 'hi', userId: ben.id })).json().data.user.language, 'hi');
+  assert.equal(await languageOf(ashaPhone), 'hi');
+  assert.equal(await languageOf(benWeb), null, 'Ben\'s account was not touched, whatever the body said');
+  assert.equal((await choose(ashaPhone, { language: 'en' })).json().data.user.language, 'en');
+  assert.equal((await pool.query('SELECT language FROM users WHERE id=$1', [asha.id])).rows[0].language, 'en');
+  assert.equal((await choose(ashaPhone, { language: null })).json().data.user.language, null);
+  assert.equal((await pool.query('SELECT language FROM users WHERE id=$1', [asha.id])).rows[0].language, null, 'no choice is NULL, never English');
+  assert.equal((await choose(ashaWeb, { language: 'es-419' })).statusCode, 400, 'a draft can\'t be chosen');
+  await assert.rejects(pool.query("UPDATE users SET language='x' WHERE id=$1", [asha.id]), /users_language_check/);
+
+  const carried = await Promise.all([
+    choose(ashaWeb, { language: 'hi', unlessChosen: true }),
+    choose(ashaPhone, { language: 'bn', unlessChosen: true }),
+  ]);
+  const told = carried.map((response) => response.json().data.user.language);
+  assert.ok(['hi', 'bn'].includes(told[0]));
+  assert.deepEqual(told, [told[0], told[0]], 'both devices are told the one choice the account kept');
+  assert.equal(await languageOf(ashaWeb), told[0]);
+  assert.equal(await languageOf(benWeb), null);
 });

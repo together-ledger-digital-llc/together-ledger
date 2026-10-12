@@ -3,14 +3,14 @@ import { getTheme } from '../theme/themes';
 import { phoneStore } from './phone-storage';
 import { SAVE_FAILED_MESSAGE, type MomentView, type PhoneStore } from './ledger-store';
 
-export type StoredPreferences = { theme: string | null; onboardingComplete: boolean; momentView: MomentView };
+export type StoredPreferences = { theme: string | null; onboardingComplete: boolean; momentView: MomentView; language: string | null };
 
 /** One failed write; the id lets the same message be raised again for a second failure. */
 export type SaveFailure = { id: number; message: string } | null;
 
 /**
  * What the phone remembers between launches (TL-M-10, #185): the chosen theme, whether the
- * ledger has been begun, and how the ledger shows its moments (Oct 9). All are read once at launch; until then `stored` is null, so the first
+ * ledger has been begun, how the ledger shows its moments (Oct 9), and a language chosen by hand (101B). All are read once at launch; until then `stored` is null, so the first
  * screen is drawn with the saved theme rather than flashing the default.
  *
  * Nothing here throws. A store that cannot be read gives the defaults (a blocked store still
@@ -26,8 +26,9 @@ export function useStoredPreferences(store: PhoneStore = phoneStore) {
       store.loadTheme((id) => getTheme(id).id),
       store.loadState().then((state) => state.preferences.onboardingComplete === true, () => false),
       store.loadMomentView(),
-    ]).then(([theme, onboardingComplete, momentView]) => {
-      if (live) setStored({ theme, onboardingComplete, momentView });
+      store.loadLanguage(),
+    ]).then(([theme, onboardingComplete, momentView, language]) => {
+      if (live) setStored({ theme, onboardingComplete, momentView, language });
     });
     return () => { live = false; };
   }, [store]);
@@ -44,9 +45,13 @@ export function useStoredPreferences(store: PhoneStore = phoneStore) {
     store.saveMomentView(view).catch(failed);
   }, [store, failed]);
 
+  const saveLanguage = useCallback((language: string | null) => {
+    store.saveLanguage(language).catch(failed);
+  }, [store, failed]);
+
   const completeOnboarding = useCallback(() => {
     store.completeOnboarding().catch(failed);
   }, [store, failed]);
 
-  return { stored, failure, saveTheme, saveMomentView, completeOnboarding };
+  return { stored, failure, saveTheme, saveMomentView, saveLanguage, completeOnboarding };
 }

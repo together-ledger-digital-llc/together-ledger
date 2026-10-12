@@ -23,6 +23,7 @@ const MIGRATIONS = [
   '023_let-a-phone-carry-its-own-key', '024_let-google-and-apple-open-an-account', '025_revoke-sign-in-with-apple-when-an-account-is-deleted',
   '026_remember-a-refused-apple-deletion', '027_tie-every-store-purchase-to-an-account', '028_turn-a-store-purchase-into-capacity', '031_let-a-lost-renewal-reply-be-asked-again', '032_let-an-invitation-last-fourteen-days', '033_let-a-moment-held-offline-arrive-once', '034_hear-refunds-and-renewals-from-the-stores', '035_hear-reversed-refunds-and-refunded-extras',
   '036_let-names-hold-any-language-symbol-and-emoji',
+  '038_remember-the-language-a-person-chose',
 ];
 
 async function database() {

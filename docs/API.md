@@ -24,6 +24,7 @@ A request may authenticate in one of two ways. A browser sends the `tl_session` 
 | POST | `/recovery/request` | Queue a single-use recovery link without account enumeration. |
 | POST | `/recovery/confirm` | Consume the token, replace the password, and revoke every session and bearer token. |
 | POST | `/account/password` | Check the current password as login does, set a new one, and revoke every other session and bearer token family. The caller stays signed in. |
+| PATCH | `/account/language` | Choose the language the signed-in account reads in, or go back to following the device. Only ever the caller's own account. |
 | DELETE | `/account` | Reconfirm the password (an account opened with Google or Apple has none, so the typed `DELETE` is the whole confirmation) and permanently delete/pseudonymize the account. |
 
 ### Bearer tokens for a client without a browser
@@ -55,6 +56,19 @@ Both are signed-in mutations (#194): a browser sends its cookie, the allowed `Or
 - A wrong current password is answered exactly as a wrong password at `/auth/login`: `401 invalid_credentials`, `Username, email, or password is incorrect.`, after the same single Argon2id verification. An account opened with Google or Apple has no password (`hasPassword: false`) and is answered the same way, after verifying against the same padding hash login uses; the clients do not offer it the form.
 - On success the session or token family that asked is kept as it is: nothing is re-issued, so the cookie, its CSRF value, and the phone's access and refresh tokens all carry on, and a request already on its way from that device is not refused. Every other session is deleted and every other token family retired. An unused recovery link sent before the change stops working.
 - Once the change has committed, one plain-text email goes to the account's address saying the password was changed, that every other device was signed out, and, if it was not them, to use "I forgot my password" and write to ledger-support@together-ledger.com. It carries no link, no code, and nothing from any journey. A failed send does not undo the change and is logged by kind (`password-changed`), never by address.
+
+### The Language preference
+
+The account carries `language` (#413, prompt 101B, migration 038): the language its holder chose by hand, as a tag from `locales/languages.json` (`en`, `hi`, `bn`, `es-419`, `hi-Latn`), or `null` for "Follow my device". `null` is not English. Someone who chose English keeps English when their phone or browser changes language; someone who never chose keeps following it. Every reply that carries the account says it, `GET /session` included, so a new device opens in the right language.
+
+`PATCH /account/language` takes `{ "language": "hi" }`, or `{ "language": null }` to follow the device again, and answers `{ "data": { "user": … } }` with the account as it now stands. It is a signed-in mutation: a browser sends its cookie, the allowed `Origin` and `x-together-csrf`; a phone sends its bearer token. It has its own rate limit of 30 per 15 minutes per address.
+
+- Only a language the manifest marks `approved` is accepted (`offeredLanguages()` in `src/i18n/catalog.js`, read by the server from `locales/languages.json`). Anything else, a draft included, is `400 invalid_input`, `Choose one of the languages offered, or Follow my device.`, and nothing changes. While English is the only approved language, `en` and `null` are the only answers it accepts.
+- Nothing in the request says whose account it is. A `userId` or any other field in the body is ignored: the change is always the caller's own, and the reply only ever describes the caller's own account (`tests/account-language.test.js`, `tests/postgres-integration.test.js`).
+- `"unlessChosen": true` sets the language only while the account has none of its own. It is how a choice made on a device before signing in carries into the account without overwriting one the account already holds. It is decided in one statement, so when two devices carry different choices at once, exactly one is kept, and both are answered with it.
+- Deleting the account clears it.
+
+Server error messages and emails stay in English in v1. The preference is kept so they can follow it later.
 
 ### Signing in with Google or Apple
 

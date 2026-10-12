@@ -32,6 +32,7 @@ const MIGRATIONS = [
   '025_revoke-sign-in-with-apple-when-an-account-is-deleted.sql', '026_remember-a-refused-apple-deletion.sql',
   '027_tie-every-store-purchase-to-an-account.sql', '028_turn-a-store-purchase-into-capacity.sql',
   '029_rest-read-only-and-let-the-payer-ask-for-time.sql', '031_let-a-lost-renewal-reply-be-asked-again.sql',
+  '038_remember-the-language-a-person-chose.sql',
 ];
 
 // Here an ID token is just `provider:subject:email`, so a test can open a Google account in a line.

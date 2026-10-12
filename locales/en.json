@@ -18,6 +18,18 @@
   "@common.theme.note": {
     "description": "Under the theme menu. Reassures that a theme is personal: changing it never changes what the other people in the journey see. 'Journeyer' is one of the people sharing a journey; see the glossary."
   },
+  "common.language.title": "Language",
+  "@common.language.title": {
+    "description": "Heading over the menu that chooses the language this person reads the app in, on the web and on the phone. It stays this word in every language, so someone who chose a language by mistake can find the way back."
+  },
+  "common.language.followDevice": "Follow my device",
+  "@common.language.followDevice": {
+    "description": "The first choice in the Language menu: no language chosen by hand, so the app reads in the first of the phone's or browser's own languages it offers, and keeps following them if they change. The other choices are each language's own name in its own script, which are never translated."
+  },
+  "common.language.note": "Your language changes only your own view. Names, journeys and moments stay as each journeyer wrote them.",
+  "@common.language.note": {
+    "description": "Under the Language menu. Reassures that choosing a language never translates or changes what people wrote, and never changes what the other people in the journey read. 'Journeyer' is one of the people sharing a journey; see the glossary."
+  },
   "common.action.edit": "Edit",
   "@common.action.edit": {
     "description": "Button that opens something to change it. A short verb."

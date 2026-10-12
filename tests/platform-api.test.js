@@ -70,6 +70,7 @@ async function testPlatform({ mailer = new MemoryMailer(), configOverrides = {},
     await pool.query(`ALTER TABLE ${table} DROP CONSTRAINT ${check}`);
   }
   await pool.query(await readFile(new URL('../server/migrations/036_let-names-hold-any-language-symbol-and-emoji.sql', import.meta.url), 'utf8'));
+  await pool.query(await readFile(new URL('../server/migrations/038_remember-the-language-a-person-chose.sql', import.meta.url), 'utf8'));
   const config = loadConfig({
     NODE_ENV: 'test',
     PUBLIC_ORIGIN: origin,

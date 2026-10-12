@@ -413,6 +413,12 @@ export async function buildApp({ platform, config, billing = new DisabledBilling
     data: { user: await platform.changeDisplayName(request.auth.userId, request.body || {}) },
   }));
 
+  // The Language preference (101B). Like the name, only ever the signed-in person's own: nothing
+  // in the request says whose it is.
+  app.patch('/api/v1/account/language', { preHandler: protectMutation, config: { rateLimit: { max: 30, timeWindow: '15 minutes' } } }, async (request) => ({
+    data: { user: await platform.setLanguage(request.auth.userId, request.body || {}) },
+  }));
+
   // Limited because it checks the password (owner, Oct 10, 2026, #259).
   app.delete('/api/v1/account', { preHandler: protectMutation, config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } }, async (request, reply) => {
     if (request.body?.confirmation !== 'DELETE') throw new PlatformError(400, 'confirmation_required', 'Type DELETE to confirm account deletion.');

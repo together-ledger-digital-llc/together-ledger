@@ -45,6 +45,7 @@ const MIGRATIONS = [
   '034_hear-refunds-and-renewals-from-the-stores.sql',
   '035_hear-reversed-refunds-and-refunded-extras.sql',
   '037_let-apple-answer-an-android-phone.sql',
+  '038_remember-the-language-a-person-chose.sql',
 ];
 
 function provider(kid) {

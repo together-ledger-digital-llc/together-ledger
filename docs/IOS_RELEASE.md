@@ -333,6 +333,7 @@ this commit):
 | React Native core (`React-Core`, `React-cxxreact`, `React-timing`; the aggregation step adds these itself as well) | File timestamp; User defaults; System boot time | C617.1; CA92.1; 35F9.1 |
 | `expo-application` | File timestamp | C617.1 |
 | `expo-constants` | User defaults | CA92.1 |
+| `expo-localization` (since 101B: reads the phone's list of languages) | User defaults | CA92.1 |
 | `expo-file-system` (a dependency of `expo`) | File timestamp; Disk space | 0A2A.1, 3B52.1; E174.1, 85F4.1 |
 
 **What the app declares itself**, in `app.json`, because the library that needs it ships no

@@ -123,7 +123,7 @@ test('the choice is remembered on this phone between launches, and a store that 
   assert.notEqual(MOMENT_VIEW_KEY, 'theme');
 
   const prefs = await read('src/storage/use-stored-preferences.ts');
-  assert.match(prefs, /store\.loadMomentView\(\),\s*\]\)\.then\(\(\[theme, onboardingComplete, momentView\]\) => \{\s*if \(live\) setStored\(\{ theme, onboardingComplete, momentView \}\);/, 'read at launch with the theme, before the first screen');
+  assert.match(prefs, /store\.loadMomentView\(\),\s*store\.loadLanguage\(\),\s*\]\)\.then\(\(\[theme, onboardingComplete, momentView, language\]\) => \{\s*if \(live\) setStored\(\{ theme, onboardingComplete, momentView, language \}\);/, 'read at launch with the theme, before the first screen');
   const layout = await read('app/_layout.tsx');
   assert.match(layout, /<MomentViewProvider initialView=\{stored\.momentView\} onViewChange=\{saveMomentView\}>/);
   const provider = await read('src/journey/use-moment-view.tsx');

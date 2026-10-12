@@ -1,9 +1,11 @@
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { paidEnvironments } from './billing-environments.js';
 import { withTransaction } from './db.js';
 import { identityVerifierFor } from './identity.js';
 import { appleEventFrom, appleSignInFor } from './apple.js';
 import { cleanDisplayText, clipToLimit, fitsLimit } from '../src/display-text.js';
+import { offeredLanguages } from '../src/i18n/catalog.js';
 import { normalizeMomentTheme } from '../src/moment-themes.js';
 import { PhotoMetadataError, stripPhotoMetadata } from '../src/photo-metadata.js';
 import {
@@ -154,9 +156,15 @@ function publicUser(row) {
     // Whether deleting the account asks for a password. One opened with Google or Apple has none
     // (#214), and the web's Delete account asks only for the typed DELETE then (#216).
     hasPassword: row.has_password ?? Boolean(row.password_hash),
+    // The language chosen by hand, or null for "Follow my device" (101B, migration 038).
+    language: row.language ?? null,
     createdAt: dateTime(row.created_at),
   };
 }
+
+// The languages manifest the web and the phone read (docs/TRANSLATION.md). Only a language it
+// marks approved may be chosen, here as everywhere.
+const LANGUAGES = JSON.parse(readFileSync(new URL('../locales/languages.json', import.meta.url), 'utf8'));
 
 // A date the server accepts is a real day on the calendar (#367), not only one shaped like it:
 // 2026-02-30 used to reach the database, which refused it, and the person got a server error
@@ -454,8 +462,9 @@ function publicEvent(row) {
 export class PlatformService {
   // `checkPassword` is the one argon2 verification every password check goes through. Tests pass
   // a wrapper around the real one to see that each path does the same work, without a stopwatch.
-  constructor({ pool, config, mailer, now = () => new Date(), onDeliveryFailure = () => {}, identity = identityVerifierFor(config), apple = appleSignInFor(config), checkPassword = verifyPassword }) {
+  constructor({ pool, config, mailer, now = () => new Date(), onDeliveryFailure = () => {}, identity = identityVerifierFor(config), apple = appleSignInFor(config), checkPassword = verifyPassword, languages = LANGUAGES }) {
     this.pool = pool;
+    this.languages = languages;
     this.config = config;
     this.mailer = mailer;
     this.now = now;
@@ -528,7 +537,7 @@ export class PlatformService {
   async tokenHolder(rawToken) {
     if (!rawToken) return null;
     const found = await this.pool.query(
-      `SELECT t.id,t.user_id,t.family_id,t.used_at,u.email_normalized,u.username,u.display_name,u.email_verified_at,u.created_at,u.deleted_at,(u.password_hash IS NOT NULL) AS has_password
+      `SELECT t.id,t.user_id,t.family_id,t.used_at,u.email_normalized,u.username,u.display_name,u.email_verified_at,u.created_at,u.deleted_at,u.language,(u.password_hash IS NOT NULL) AS has_password
        FROM api_tokens t JOIN users u ON u.id=t.user_id
        WHERE t.token_hash=$1 AND t.purpose='access' AND t.revoked_at IS NULL AND t.expires_at>$2 AND u.deleted_at IS NULL`,
       [sha256(rawToken), this.now()],
@@ -1032,7 +1041,7 @@ export class PlatformService {
   async session(rawToken) {
     if (!rawToken) return null;
     const found = await this.pool.query(
-      `SELECT s.*,u.email_normalized,u.username,u.display_name,u.email_verified_at,u.created_at,u.deleted_at,(u.password_hash IS NOT NULL) AS has_password
+      `SELECT s.*,u.email_normalized,u.username,u.display_name,u.email_verified_at,u.created_at,u.deleted_at,u.language,(u.password_hash IS NOT NULL) AS has_password
        FROM sessions s JOIN users u ON u.id=s.user_id
        WHERE s.token_hash=$1 AND s.expires_at>$2 AND u.deleted_at IS NULL`,
       [sha256(rawToken), this.now()],
@@ -2415,6 +2424,29 @@ export class PlatformService {
     });
   }
 
+  // The Language preference (101B): a language chosen by hand, or null to follow the device again.
+  // Only ever the signed-in person's own, and only a language the manifest marks approved. With
+  // unlessChosen, it is set only while the account has no choice of its own: that is how a choice
+  // made on a device before signing in carries into the account without overwriting one the
+  // account already holds, decided in one statement so two devices signing in at once can't both
+  // win. Either way the answer is the account as it now stands, so the device can adopt it.
+  async setLanguage(userId, input) {
+    const offered = offeredLanguages(this.languages).map((language) => language.tag);
+    const language = input?.language;
+    if (language !== null && !(typeof language === 'string' && offered.includes(language))) {
+      throw new PlatformError(400, 'invalid_input', 'Choose one of the languages offered, or Follow my device.');
+    }
+    const unlessChosen = input?.unlessChosen === true;
+    const updated = await this.pool.query(
+      `UPDATE users SET language=$1 WHERE id=$2 AND deleted_at IS NULL${unlessChosen ? ' AND language IS NULL' : ''} RETURNING *`,
+      [language, userId],
+    );
+    if (updated.rowCount) return publicUser(updated.rows[0]);
+    const current = await this.pool.query('SELECT * FROM users WHERE id=$1 AND deleted_at IS NULL', [userId]);
+    if (!current.rowCount) throw new PlatformError(401, 'authentication_required', 'Sign in to continue.');
+    return publicUser(current.rows[0]);
+  }
+
   // The values a phone sends to Apple or Google when it starts a purchase, so the purchase comes
   // back tied to this account and this journey (#269, migration 027). The same person and journey
   // always get the same values, on any device, so asking twice is harmless and a restore on a new
@@ -2517,7 +2549,7 @@ export class PlatformService {
       await client.query('DELETE FROM invitations WHERE invited_by_user_id=$1', [userId]);
       await client.query('UPDATE invitations SET revoked_at=$1 WHERE email_normalized=$2 AND accepted_at IS NULL AND revoked_at IS NULL', [this.now(), user.rows[0].email_normalized]);
       await client.query(
-        'UPDATE users SET email_normalized=$1,username=$2,display_name=$3,password_hash=$4,deleted_at=$5 WHERE id=$6',
+        'UPDATE users SET email_normalized=$1,username=$2,display_name=$3,password_hash=$4,language=NULL,deleted_at=$5 WHERE id=$6',
         [`deleted-${userId}@invalid.local`, `deleted-${userId.slice(0, 8)}`, 'Deleted account', 'deleted', this.now(), userId],
       );
       return queued;

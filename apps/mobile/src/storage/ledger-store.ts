@@ -25,6 +25,12 @@ export const MOMENT_VIEW_KEY = 'moment-view';
 
 export const DEFAULT_MOMENT_VIEW: MomentView = 'full';
 
+/**
+ * The web's key for a language chosen by hand (src/i18n/web.js), so a choice reads the same
+ * everywhere. Nothing saved is "Follow my device" (101B).
+ */
+export const LANGUAGE_KEY = 'language';
+
 /** Said in the status region when a change could not be written; it is not a crash. */
 export const SAVE_FAILED_MESSAGE = 'This phone could not save that change. It shows for now, but may not be here the next time the app opens.';
 
@@ -73,6 +79,24 @@ export function createPhoneStore(storage: PhoneStorage) {
     /** Kept on this phone only: nothing about it is sent anywhere. */
     saveMomentView(view: MomentView): Promise<void> {
       return storage.setItem(MOMENT_VIEW_KEY, view);
+    },
+
+    /**
+     * The language chosen by hand on this phone, kept as it was saved; null when nothing is saved
+     * or the store cannot be read. Which languages may be chosen is decided where it is read
+     * (src/i18n/language-provider.tsx), so a language no longer offered reads as no choice.
+     */
+    async loadLanguage(): Promise<string | null> {
+      try {
+        return (await storage.getItem(LANGUAGE_KEY)) || null;
+      } catch {
+        return null;
+      }
+    },
+
+    /** Null goes back to following the phone. Before signing in, this is the only copy of the choice. */
+    saveLanguage(language: string | null): Promise<void> {
+      return language ? storage.setItem(LANGUAGE_KEY, language) : storage.removeItem(LANGUAGE_KEY);
     },
 
     /** Begin the ledger, as the web's showLedgerSurface({ persist: true }) does. */
