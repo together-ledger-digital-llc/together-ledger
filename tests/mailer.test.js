@@ -118,9 +118,9 @@ test('each account email uses its purpose-specific sender', async () => {
   const mailer = new SmtpMailer({
     transport,
     from: 'Together Ledger <no-reply@example.test>',
-    invitationFrom: 'Together Ledger - 010 Journey Invite <journey-invitation@example.test>',
-    verificationFrom: 'Together Ledger - 020 Email Verification <account-verification@example.test>',
-    recoveryFrom: 'Together Ledger - 030 Password Reset <account-recovery@example.test>',
+    invitationFrom: 'Together Ledger <journey-invitation@example.test>',
+    verificationFrom: 'Together Ledger <account-verification@example.test>',
+    recoveryFrom: 'Together Ledger <account-recovery@example.test>',
     accountOrigin: 'https://accounts.example.test',
   });
 
@@ -129,9 +129,9 @@ test('each account email uses its purpose-specific sender', async () => {
   await mailer.sendRecovery({ to: 'alex@example.test', token: 'recovery_token' });
 
   assert.deepEqual(messages.map((message) => message.from), [
-    'Together Ledger - 010 Journey Invite <journey-invitation@example.test>',
-    'Together Ledger - 020 Email Verification <account-verification@example.test>',
-    'Together Ledger - 030 Password Reset <account-recovery@example.test>',
+    'Together Ledger <journey-invitation@example.test>',
+    'Together Ledger <account-verification@example.test>',
+    'Together Ledger <account-recovery@example.test>',
   ]);
 });
 
@@ -171,7 +171,7 @@ test('the password-changed notice is one plain message that carries no link, cod
   const mailer = new SmtpMailer({
     transport,
     from: 'Together Ledger <no-reply@example.test>',
-    recoveryFrom: 'Together Ledger - 030 Password Reset <account-recovery@example.test>',
+    recoveryFrom: 'Together Ledger <account-recovery@example.test>',
     accountOrigin: 'https://accounts.example.test',
   });
 
@@ -182,7 +182,7 @@ test('the password-changed notice is one plain message that carries no link, cod
   assert.deepEqual(Object.keys(message).sort(), ['from', 'html', 'subject', 'text', 'to']);
   assert.equal(message.html, undefined, 'plain text only');
   assert.equal(message.to, 'alex@example.test');
-  assert.equal(message.from, 'Together Ledger - 030 Password Reset <account-recovery@example.test>', 'from the password sender, as recovery is');
+  assert.equal(message.from, 'Together Ledger <account-recovery@example.test>', 'from the password sender, as recovery is');
   assert.equal(message.subject, 'Your Together Ledger password was changed');
   assert.equal(message.text, PASSWORD_CHANGED_TEXT);
   assert.doesNotMatch(message.text, /https?:|www\.|#|accounts\.example\.test|never-sent|Never sent either/, 'no link, no code, nothing it was not given to say');
