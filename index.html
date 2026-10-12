@@ -32,6 +32,9 @@
     <script type="module" src="./src/app.js"></script>
     <link rel="preload" href="./locales/languages.json" as="fetch" crossorigin="anonymous" />
     <link rel="preload" href="./locales/en.json" as="fetch" crossorigin="anonymous" />
+    <!-- The serif's Regular, which every first screen draws its headings in, asked for with the stylesheet
+         rather than after it (docs/2026-09-21-tl-m-02-font-decision.md, "The web half"). -->
+    <link rel="preload" href="./src/fonts/gelasio-latin.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
   </head>
   <body>
     <svg class="mark-source" aria-hidden="true" focusable="false"><symbol id="knot-mark" viewBox="0 0 64 64" fill="none"><rect x="6.5" y="6.5" width="35" height="35" rx="10" stroke="currentColor" stroke-width="6.5"/><rect x="22.5" y="22.5" width="35" height="35" rx="10" stroke="currentColor" stroke-width="6.5"/></symbol></svg>

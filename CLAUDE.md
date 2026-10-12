@@ -151,19 +151,27 @@ Two rules that have each been broken already:
 
 Fonts are a serif (headings, moment titles, brand) plus the system sans stack. This is permanent.
 Georgia alone was not: it does not exist on Android, where it fell back to Roboto and took the brand with
-it. The serif is **Gelasio** (SIL OFL 1.1), bundled as a font file on web, iOS and Android alike, with
-Georgia kept in the CSS fallback chain. Decided on #177 — reasoning, licence, file sizes and the rendered
-comparison are in `docs/2026-09-21-tl-m-02-font-decision.md`.
+it. The serif is **Gelasio** (SIL OFL 1.1), bundled on web, iOS and Android alike. Decided on #177 —
+reasoning, licence, file sizes and the rendered comparison are in `docs/2026-09-21-tl-m-02-font-decision.md`.
+
+- **Phone:** three files from `@expo-google-fonts/gelasio` (Regular, Italic, Bold), loaded in
+  `apps/mobile/src/theme/fonts.ts`.
+- **Web:** three self-hosted WOFF2 files in `src/fonts/`, cut from those same phone files, Latin only
+  (Basic Latin, Latin-1, Latin Extended-A, the punctuation and ₹), with `OFL-Gelasio.txt` beside them.
+  Every serif stack is exactly `Gelasio, Georgia, var(--serif-scripts), serif`: Georgia stays as the
+  fallback that draws the page until the file arrives (`font-display: swap`), and Tiro after it still draws
+  Hindi and Bengali. The faces carry Georgia's ascent and descent, so swapping in Gelasio moves no line and
+  no box; keep the overrides. `index.html` preloads the Regular. A new language that needs more of Latin
+  needs those characters added to the files (the decision doc says how).
 
 Two things travel with that decision and are not optional:
 
-- **The serif renders at weight 400, not 500.** `font-weight: 500` appears fourteen times in
-  `src/styles.css`, ten of them on serif rules, and Georgia — having only Regular and Bold — has always
-  rounded those down. 400 is what the design was drawn against and what every committed screenshot shows.
-  Gelasio is variable and has a real 500, so carrying the 500 across would quietly restyle every heading
-  heavier than it has ever been. Set those rules to 400.
-- **`letter-spacing: -0.035em` on `h1, h2` was tuned to Georgia's proportions.** Re-check it against
-  Gelasio rather than carrying it over on faith.
+- **The serif renders at weight 400 or 700, never 500.** Georgia had only Regular and Bold and always drew
+  the old `font-weight: 500` serif rules at 400; 400 is what the design was drawn against. Every serif rule
+  on the web now says 400 (or 700, where it is bold), and the web ships no 500, so a 500 can't sneak back in
+  looking heavier. `font-synthesis: none` keeps the browser from faking any weight or italic.
+- **`letter-spacing: -0.035em` on `h1, h2` was re-checked against Gelasio and kept.** Gelasio has Georgia's
+  advance widths, so the same tracking gives the same line lengths, and it reads as Georgia did.
 
 Hindi and Bengali are not Latin, and neither Gelasio nor Georgia draws them. Their headings, moment titles
 and brand voice use **Tiro Devanagari Hindi** and **Tiro Bangla** (SIL OFL 1.1), bundled on the phone and

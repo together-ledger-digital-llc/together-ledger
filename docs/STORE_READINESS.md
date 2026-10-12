@@ -279,7 +279,7 @@ its own address, `app.together-ledger.com` (`index.html`, and the policy pages'
 `scripts/render-privacy-page.mjs`). Until Oct 10 they pointed at `together-ledger.com`, the
 company site, which has none of those files and answered 404 for each. Its sentences,
 `locales/en.json` and `locales/languages.json`, come from its own address too, shipped in the same
-release (`docs/TRANSLATION.md`). Its only font files, the Hindi and Bengali serif, come from its own address too, and only on a page with those scripts (`docs/2026-10-12-devanagari-bangla-font-decision.md`). No font or stylesheet comes from anywhere else. **Verified in code** (`tests/outbound-declarations.test.js`), and by the
+release (`docs/TRANSLATION.md`). Its font files come from its own address too: Gelasio, the serif, on every page (`docs/2026-09-21-tl-m-02-font-decision.md`), and the Hindi and Bengali serif only on a page with those scripts (`docs/2026-10-12-devanagari-bangla-font-decision.md`). No font or stylesheet comes from anywhere else. **Verified in code** (`tests/outbound-declarations.test.js`), and by the
 captured traffic in `docs/OUTBOUND_CAPTURE.md`.
 
 The tables below name every dependency in both manifests. `tests/store-readiness.test.js` reads
