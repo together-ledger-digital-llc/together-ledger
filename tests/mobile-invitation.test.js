@@ -109,6 +109,16 @@ test('a pending invitation is kept on the phone until it is used or refused, and
   assert.equal(await failing.read(), null);
 });
 
+test('the browser tab handing back from Sign in with Apple (#400) moves the router nowhere, unless the app had stopped', () => {
+  // The sign-in screen that opened the tab finishes the sign-in where it is.
+  assert.equal(intent.redirectSystemPath({ path: 'https://app.together-ledger.com/apple-sign-in', initial: false }), null);
+  // Android stopped the app while the tab was open: it starts on the account screen, which finishes it.
+  assert.equal(intent.redirectSystemPath({ path: 'https://app.together-ledger.com/apple-sign-in', initial: true }), '/account');
+  // Invitations and every other link go on as before.
+  assert.equal(intent.redirectSystemPath({ path: `https://app.together-ledger.com/invite#invite=${CODE}`, initial: false }), `/invite?code=${CODE}`);
+  assert.equal(intent.redirectSystemPath({ path: '/journey', initial: false }), '/journey');
+});
+
 test('it is kept in the keychain for this phone only, as the sign-in tokens are, and nowhere else', async () => {
   const provider = await read('src/invitations/use-pending-invitation.tsx');
   assert.match(provider, /keychainAccessible: SecureStore\.WHEN_UNLOCKED_THIS_DEVICE_ONLY/);

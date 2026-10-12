@@ -43,3 +43,10 @@ test('the sign-in paragraph says what a new account is called, right after what 
   assert.ok(policy.includes(`${shared} ${named} If you use Apple's Hide My Email`), 'PRIVACY.md');
   assert.ok(renderPrivacyPage(policy).includes(`${shared} ${named}`), 'the /privacy page');
 });
+
+test('the sign-in paragraph says where Apple\'s answer goes on Android, in the owner\'s words, after the token it keeps (#400)', () => {
+  const kept = 'With Apple, we also keep a token Apple gives us, encrypted, so we can tell Apple to end the link when you delete your account.';
+  const android = 'On an Android phone, Apple sends its answer to our server, not to the app. We keep it encrypted until the app collects it, then delete it. If the app never collects it, we delete it after ten minutes.';
+  assert.ok(policy.includes(`${kept} ${android} Apple or Google learns`), 'PRIVACY.md');
+  assert.ok(renderPrivacyPage(policy).includes(android), 'the /privacy page');
+});

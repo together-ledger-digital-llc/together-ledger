@@ -1,10 +1,11 @@
-import type { AppleSignInBody, SignInProviders } from '../api/client';
+import type { AppleReturn, AppleSignInBody, SignInProviders } from '../api/client';
 
 /**
  * Continue with Google and Apple on the phone (TL-S-04, #217): the rules, kept free of runtime
  * imports so they can be tested as they are (tests/mobile-social-sign-in.test.js). The buttons are
  * src/components/social-sign-in.tsx; Google's sign-in itself is src/auth/google-sheet.ts on an
- * iPhone and src/auth/google-sheet.android.ts on Android.
+ * iPhone and src/auth/google-sheet.android.ts on Android, and Apple's on Android is
+ * src/auth/apple-browser.ts (#400).
  */
 export type PhonePlatform = 'ios' | 'android';
 
@@ -27,13 +28,106 @@ export const NOTHING_OFFERED: Offer = Object.freeze({ google: false, apple: fals
  * Which buttons to show, from what the server says is ready for this phone. Nothing shows until
  * it has answered. On an iPhone it is both or neither: App Store guideline 4.8 asks for Sign in
  * with Apple wherever Google is offered, and Apple's sheet has to be there too. Android has no
- * Apple sheet, and the web flow has no Return URL that can finish on a phone yet, so Android
- * offers Google alone, and never Apple, whatever the server says.
+ * Apple sheet; it signs in with Apple through Apple's page in the browser (#400), so it offers
+ * Apple once the server names the Return URL that page answers to, and each of the two as the
+ * server has it ready.
  */
 export function offeredSignIns(platform: PhonePlatform, answer: SignInProviders | null, { appleSheet = false }: { appleSheet?: boolean } = {}): Offer {
+  if (platform === 'android') return { google: Boolean(answer?.google), apple: Boolean(answer?.apple?.redirectUri) };
   if (!answer?.google) return NOTHING_OFFERED;
-  if (platform === 'android') return { google: true, apple: false };
   return answer.apple && appleSheet ? { google: true, apple: true } : NOTHING_OFFERED;
+}
+
+/**
+ * Sign in with Apple on Android (#400). Apple's page opens in the system's browser tab, for the
+ * web's Services ID, and posts its answer to our server's Return URL (Apple's form_post, which the
+ * name and email scopes require). The server keeps it under the state this phone sent and sends
+ * the tab to APPLE_RETURN_LINK, which this app claims as a verified App Link (app.json), so the tab
+ * hands back to the app. The address carries nothing: the phone then collects Apple's answer from
+ * the server with the secret whose SHA-256 was the state, so a link that reached another app, or
+ * stayed in the browser, would give nothing away. Closing the tab hands back too, and the phone
+ * collects the same way.
+ *
+ * Two secrets, 32 random bytes each, never leave this phone except to our server when collecting:
+ * - the verifier, whose SHA-256 is the state Apple echoes. Only this phone can collect the answer
+ *   filed under it, and only once.
+ * - the nonce, whose SHA-256 Apple signs into the ID token. The server refuses an answer whose
+ *   token carries any other, so an answer posted under this phone's state by anyone else, with
+ *   their own Apple sign-in, is never this phone's.
+ */
+export const APPLE_AUTHORIZATION_ENDPOINT = 'https://appleid.apple.com/auth/authorize';
+export const APPLE_RETURN_HOST = 'app.together-ledger.com';
+export const APPLE_RETURN_PATH = '/apple-sign-in';
+export const APPLE_RETURN_LINK = `https://${APPLE_RETURN_HOST}${APPLE_RETURN_PATH}`;
+/** How long the server keeps Apple's answer (server/platform.js), and so how long one is worth collecting. */
+export const APPLE_RETURN_MS = 10 * 60 * 1000;
+
+const BASE64URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+
+/** Bytes as base64url without padding, the encoding the server compares in. */
+export function base64url(bytes: Uint8Array): string {
+  let text = '';
+  for (let at = 0; at < bytes.length; at += 3) {
+    const [a, b = 0, c = 0] = [bytes[at], bytes[at + 1], bytes[at + 2]];
+    const chunk = (a << 16) | (b << 8) | c;
+    const length = Math.min(3, bytes.length - at) + 1;
+    for (let index = 0; index < length; index += 1) text += BASE64URL[(chunk >> (18 - index * 6)) & 63];
+  }
+  return text;
+}
+
+/** Standard base64 (what expo-crypto digests in) as base64url without padding. */
+export function base64ToBase64url(base64: string): string {
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/** Apple's page, asking for the name and email, posted back to the server's Return URL. */
+export function appleAuthorizationUrl({ clientId, redirectUri, state, nonce }: { clientId: string; redirectUri: string; state: string; nonce: string }): string {
+  const params: [string, string][] = [
+    ['response_type', 'code id_token'],
+    ['response_mode', 'form_post'],
+    ['client_id', clientId],
+    ['redirect_uri', redirectUri],
+    ['scope', 'name email'],
+    ['state', state],
+    ['nonce', nonce],
+  ];
+  return `${APPLE_AUTHORIZATION_ENDPOINT}?${params.map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&')}`;
+}
+
+/** A sign-in this phone started in the browser, kept until it is collected (src/auth/apple-browser.ts). */
+export type PendingAppleSignIn = { verifier: string; nonce: string; startedAt: number };
+
+/** Whether a kept sign-in is still worth collecting: well formed, and inside the server's ten minutes. */
+export function stillCollectable(pending: unknown, now: number): pending is PendingAppleSignIn {
+  const kept = pending as Partial<PendingAppleSignIn> | null;
+  const secret = /^[A-Za-z0-9_-]{43}$/;
+  return Boolean(kept && typeof kept.verifier === 'string' && secret.test(kept.verifier) && typeof kept.nonce === 'string' && secret.test(kept.nonce)
+    && typeof kept.startedAt === 'number' && now - kept.startedAt >= 0 && now - kept.startedAt <= APPLE_RETURN_MS);
+}
+
+/**
+ * Whether a link the phone was opened with is the browser tab handing back from Apple
+ * (+native-intent.tsx). The router may hand over a whole URL or only its path.
+ */
+export function isAppleReturn(opened: string): boolean {
+  const match = /^(?:([a-z][a-z0-9+.-]*):\/\/([^/?#]*))?([^?#]*)/i.exec(opened.trim());
+  if (!match) return false;
+  const [, scheme, host = '', rawPath] = match;
+  if (scheme && !(scheme.toLowerCase() === 'https' && host.toLowerCase() === APPLE_RETURN_HOST)) return false;
+  const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
+  return path.replace(/\/+$/, '') === APPLE_RETURN_PATH;
+}
+
+/** What the server collected for this phone, as the iPhone's sheet would give it to appleSignInBody(). */
+export function appleCredentialFrom(returned: AppleReturn): AppleCredential {
+  return {
+    user: returned.user,
+    identityToken: returned.idToken,
+    authorizationCode: returned.authorizationCode,
+    fullName: returned.displayName ? { givenName: returned.displayName } : null,
+    email: null,
+  };
 }
 
 /**

@@ -93,10 +93,18 @@ test('no config plugin arrives unexamined, since a plugin can add permissions of
   assert.doesNotMatch(manifest, /uses-permission/);
   const gradle = google('android/build.gradle');
   assert.match(gradle, /play-services-auth:\$\{safeExtGet\('googlePlayServicesAuthVersion', '21\.4\.0'\)\}/, 'a new play-services-auth was not read for the permissions it declares');
-  // The iPhone's browser sheet, expo-web-browser, would add a Custom Tabs <queries> entry and an
-  // activity on Android; nothing there uses it, so it is not linked there at all.
+  // The browser tab, expo-web-browser, is linked on Android since Sign in with Apple opens Apple's
+  // page in it there (#400). It asks for no permission: what it adds is a Custom Tabs <queries>
+  // entry, so it can find a browser that offers tabs, and one activity nothing outside the app can
+  // start. A new expo-web-browser that adds anything else is read here first.
   const pkg = JSON.parse(readFileSync(new URL('package.json', mobile), 'utf8'));
-  assert.deepEqual(pkg.expo.autolinking.android, { exclude: ['expo-web-browser'] });
+  assert.equal(pkg.expo.autolinking.android, undefined);
+  const browser = readFileSync(installed('expo-web-browser/android/src/main/AndroidManifest.xml'), 'utf8');
+  assert.doesNotMatch(browser, /uses-permission/);
+  assert.deepEqual([...browser.matchAll(/android:name="([^"]+)"/g)].map((match) => match[1]), ['android.support.customtabs.action.CustomTabsService', '.BrowserProxyActivity']);
+  assert.match(browser, /android:exported="false"/);
+  // Its config plugin, which would add a launcher activity of its own, is not among the app's.
+  assert.equal(app.plugins.some((plugin) => [plugin].flat()[0] === 'expo-web-browser'), false);
 });
 
 test('sign-in tokens are kept out of Android cloud backup and device transfer, and nothing else is', async () => {

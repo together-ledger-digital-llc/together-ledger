@@ -48,11 +48,6 @@
         "exclude": [
           "@react-native-google-signin/google-signin"
         ]
-      },
-      "android": {
-        "exclude": [
-          "expo-web-browser"
-        ]
       }
     }
   }
