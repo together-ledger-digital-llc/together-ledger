@@ -238,7 +238,7 @@ test('closing Apple\'s window puts the person back where they were, with nothing
   expect(calls).toEqual([]);
 });
 
-test('Continue with Apple sends the token, the one-time code and the first sign-in\'s name', async ({ page, baseURL }) => {
+test('Continue with Apple sends the token, the one-time code and the first sign-in\'s first name', async ({ page, baseURL }) => {
   await signedOutPage(page, baseURL);
   let sent = null;
   await page.route(`${API}/auth/apple`, (route) => { sent = route.request().postDataJSON(); return json(route, { data: { user: USER, csrfToken: 'csrf-apple' } }); });
@@ -252,9 +252,35 @@ test('Continue with Apple sends the token, the one-time code and the first sign-
   });
   await appleButton(page).click();
   await expect(page.locator('#account-dialog')).toBeHidden();
-  expect(sent).toEqual({ idToken: 'apple-id-token', authorizationCode: 'apple-code', displayName: 'Asha Rao' });
+  // A new account starts with the first name only (#399, decided Oct 12, 2026).
+  expect(sent).toEqual({ idToken: 'apple-id-token', authorizationCode: 'apple-code', displayName: 'Asha' });
   await expect(page.locator('#account-button')).toHaveText('Account settings');
 });
+
+// With no first name from Apple, the full name, which is then the family name alone; with neither,
+// no name at all, and the server falls back to the private handle.
+for (const { label, name, displayName } of [
+  { label: 'no first name sends the family name', name: { lastName: 'Rao' }, displayName: 'Rao' },
+  { label: 'a first name of only spaces sends the family name', name: { firstName: '  ', lastName: ' Rao ' }, displayName: 'Rao' },
+  { label: 'no name sends none', name: undefined, displayName: undefined },
+]) {
+  test(`Continue with Apple: ${label}`, async ({ page, baseURL }) => {
+    await signedOutPage(page, baseURL);
+    let sent = null;
+    await page.route(`${API}/auth/apple`, (route) => { sent = route.request().postDataJSON(); return json(route, { data: { user: USER, csrfToken: 'csrf-apple' } }); });
+    await page.goto('/');
+    await openSignIn(page);
+    await page.evaluate((answerName) => {
+      window.__appleAnswer = (config) => Promise.resolve({
+        authorization: { state: config.state, code: 'apple-code', id_token: 'apple-id-token' },
+        ...(answerName ? { user: { name: answerName } } : {}),
+      });
+    }, name);
+    await appleButton(page).click();
+    await expect(page.locator('#account-dialog')).toBeHidden();
+    expect(sent).toEqual(displayName ? { idToken: 'apple-id-token', authorizationCode: 'apple-code', displayName } : { idToken: 'apple-id-token', authorizationCode: 'apple-code' });
+  });
+}
 
 test('an email that already has a password account asks for that password once, then links', async ({ page, baseURL }) => {
   await signedOutPage(page, baseURL);

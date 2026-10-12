@@ -113,18 +113,25 @@ export type KeptAppleNameStore = {
   clear(): Promise<void>;
 };
 
+/**
+ * The name a new account starts with: the first name alone, and the full name only when Apple gives
+ * no first name (#399, decided Oct 12, 2026). An empty string when Apple gives neither, and the
+ * server falls back to the account's private handle.
+ */
 export function appleDisplayName(fullName: AppleCredential['fullName']): string {
   // Sent whole: the server keeps the first 80 characters a person sees, and never half of one
   // (cleanOptionalName() in server/platform.js), where cutting it here by length could split an
   // emoji or an accent.
-  return [fullName?.givenName, fullName?.familyName].map((part) => part?.trim()).filter(Boolean).join(' ');
+  const [givenName, familyName] = [fullName?.givenName, fullName?.familyName].map((part) => part?.trim() ?? '');
+  // Without a first name, the full name is the family name alone.
+  return givenName || familyName;
 }
 
 /**
  * What goes to `POST /auth/apple`: the ID token, the one-time authorizationCode the server
  * exchanges so it can revoke the grant when the account is deleted (TL-S-05, #218), and the name
- * from the first authorization, whether it came now or was kept from an earlier try. Null when
- * Apple's answer is missing either credential.
+ * a new account starts with (appleDisplayName), whether it came now or was kept from an earlier
+ * try. Null when Apple's answer is missing either credential.
  */
 export async function appleSignInBody(credential: AppleCredential, kept: KeptAppleNameStore): Promise<AppleSignInBody | null> {
   const { identityToken: idToken, authorizationCode } = credential;

@@ -453,6 +453,55 @@ test('Apple\'s first-sign-in name is kept, and the journeyer- name is only a fal
   assert.equal(again.json().data.user.displayName, 'Sam');
 });
 
+// #399, decided Oct 12, 2026: a new account opened with Google or Apple starts with the person's
+// first name only. Google's comes from the token's given_name; Apple's is the one its client sends.
+test('a new Google account starts with given_name, then the full name, then the private handle', async () => {
+  const { app } = await setup();
+  const first = await post(app, '/api/v1/auth/google', { idToken: googleToken({ sub: 'g-first', email: 'first@example.com', name: 'Surojit Ojha', given_name: 'Surojit', family_name: 'Ojha' }) });
+  assert.equal(first.statusCode, 200, first.body);
+  assert.equal(first.json().data.user.displayName, 'Surojit');
+
+  // No first name from Google, or one that is only spaces: the full name.
+  const full = await post(app, '/api/v1/auth/google', { idToken: googleToken({ sub: 'g-full', email: 'full@example.com', name: 'Asha Rao' }) });
+  assert.equal(full.json().data.user.displayName, 'Asha Rao');
+  const blank = await post(app, '/api/v1/auth/google', { idToken: googleToken({ sub: 'g-blank', email: 'blank@example.com', name: 'Meera Rao', given_name: '   ' }) });
+  assert.equal(blank.json().data.user.displayName, 'Meera Rao');
+
+  // Neither: the private handle, as before.
+  const none = await post(app, '/api/v1/auth/google', { idToken: googleToken({ sub: 'g-none', email: 'none@example.com' }) });
+  const user = none.json().data.user;
+  assert.match(user.username, /^journeyer-[0-9a-f]{8}$/);
+  assert.equal(user.displayName, user.username);
+});
+
+test('an existing Google account keeps the name it has, whatever the token now carries', async () => {
+  const { app, pool } = await setup();
+  // Opened before #399, with the full name.
+  const opened = await post(app, '/api/v1/auth/google', { idToken: googleToken({ sub: 'g-old', email: 'old@example.com', name: 'Asha Rao' }) });
+  const { id } = opened.json().data.user;
+  assert.equal(opened.json().data.user.displayName, 'Asha Rao');
+  const again = await post(app, '/api/v1/auth/google', { idToken: googleToken({ sub: 'g-old', email: 'old@example.com', name: 'Asha Rao', given_name: 'Asha' }) });
+  assert.equal(again.json().data.user.displayName, 'Asha Rao');
+  // A name the person chose is kept too.
+  await pool.query('UPDATE users SET display_name=$1 WHERE id=$2', ['Ash', id]);
+  const later = await post(app, '/api/v1/auth/google', { idToken: googleToken({ sub: 'g-old', email: 'old@example.com', name: 'Asha Rao', given_name: 'Asha' }) });
+  assert.equal(later.json().data.user.displayName, 'Ash');
+});
+
+test('a new Apple account starts with the first name its client sends, and an existing one keeps its name', async () => {
+  const { app } = await setup();
+  const opened = await post(app, '/api/v1/auth/apple', { idToken: appleToken({ sub: 'a-first', email: 'af@example.com' }), authorizationCode: fakeApple.issueCode('a-first'), displayName: 'Meera' });
+  assert.equal(opened.statusCode, 200, opened.body);
+  assert.equal(opened.json().data.user.displayName, 'Meera');
+
+  // An Apple account opened before #399 with the full name keeps it, even when a client now sends
+  // the first name alone.
+  const before = await post(app, '/api/v1/auth/apple', { idToken: appleToken({ sub: 'a-old', email: 'ao@example.com' }), authorizationCode: fakeApple.issueCode('a-old'), displayName: 'Asha Rao' });
+  assert.equal(before.json().data.user.displayName, 'Asha Rao');
+  const again = await post(app, '/api/v1/auth/apple', { idToken: appleToken({ sub: 'a-old' }), displayName: 'Asha' });
+  assert.equal(again.json().data.user.displayName, 'Asha Rao');
+});
+
 test('with no Apple or Google config at all, the server still starts and email sign-in works', async () => {
   // A production environment file that has none of the sign-in values yet must load cleanly.
   const production = loadConfig({

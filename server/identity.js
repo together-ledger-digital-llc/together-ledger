@@ -37,6 +37,11 @@ function claimIsTrue(value) {
   return value === true || value === 'true';
 }
 
+// The first of these that holds something other than spaces, or null.
+function startingName(given, full) {
+  return [given, full].find((value) => typeof value === 'string' && value.trim()) ?? null;
+}
+
 export class IdentityVerifier {
   constructor({ googleClientIds = [], appleClientIds = [], fetch = globalThis.fetch, now = () => Date.now() } = {}) {
     this.clientIds = { google: googleClientIds, apple: appleClientIds };
@@ -122,9 +127,11 @@ export class IdentityVerifier {
       emailVerified: claimIsTrue(claims.email_verified),
       // A Hide My Email relay address never matches an existing account (#214, decided Sep 30, 2026).
       isPrivateEmail: provider === 'apple' && (claimIsTrue(claims.is_private_email) || Boolean(email?.toLowerCase().endsWith('@privaterelay.appleid.com'))),
-      // Google carries the person's name in the token. Apple never does; its client sends the
-      // name it was given on the first sign-in instead.
-      name: typeof claims.name === 'string' ? claims.name : null,
+      // The name a new account starts with. Google carries the person's name in the token: a new
+      // account takes the first name only, given_name, and the full name only when Google gives no
+      // first name (#399, decided Oct 12, 2026). Apple never does; its client sends the first name
+      // it was given on the first sign-in instead.
+      name: startingName(claims.given_name, claims.name),
       audience: claims.audience,
     };
   }
