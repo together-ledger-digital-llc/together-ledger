@@ -153,3 +153,17 @@ test('nothing tappable in the shell is under 44 points, and nothing sits under a
   const toast = await read('src/components/toast.tsx');
   assert.match(toast, /bottom: insets\.bottom \+ 20/);
 });
+
+test('a button whose label wraps has room above and below it, and one line keeps the 44-point minimum (101C)', async () => {
+  const ui = await read('src/components/ui.tsx');
+  const { MIN_TARGET } = await importMobile('src/theme/metrics.ts');
+  const button = /button: \{ flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingVertical: (\d+), borderWidth: 1 \}/.exec(ui);
+  assert.ok(button, 'the shared Button has vertical padding');
+  const padding = Number(button[1]);
+  assert.equal(padding, 10, 'the web\'s .button padding');
+  assert.match(ui, /styles\.button, targetSize/, 'and never less than the 44-point minimum');
+  // One line of 16-point text is about 21 points tall: with 10 above and below and the border it
+  // stays inside the minimum, so a one-line button is exactly as tall as before.
+  assert.ok(21 + 2 * padding + 2 <= MIN_TARGET);
+  assert.match(ui, /buttonText: \{ flexShrink: 1, fontSize: 16, fontWeight: '700', textAlign: 'center' \}/, 'a long label wraps, centred, inside the button');
+});

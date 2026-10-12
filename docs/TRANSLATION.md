@@ -15,7 +15,7 @@ Hinglish, Hindi in Latin script (`hi-Latn`). Only English exists so far. The res
 | `src/i18n/pseudo.js` | The pseudo-language, for testing layouts only; never shipped | Copy as is |
 | `src/i18n/language-choice.js` | Which language a person reads in: their choice, else their device's languages, else English; and the language screen readers speak | Copy as is |
 | `src/i18n/web.js` | This web app's wiring: loads `locales/` from its own origin, chooses the language, sets `<html lang>` | Rewrite per app |
-| `apps/mobile/src/i18n/` | This phone app's wiring (`index.ts`), the Language preference (`language-provider.tsx`), and the Intl polyfills | Rewrite `index.ts` and `language-provider.tsx`; copy the polyfills |
+| `apps/mobile/src/i18n/` | This phone app's wiring (`index.ts`), its `t()` for every file (`sentences.js`), the Language preference (`language-provider.tsx`), the themes' names (`theme-names.js`), and the Intl polyfills | Rewrite `index.ts`, `language-provider.tsx` and `theme-names.js`; copy `sentences.js` and the polyfills |
 | `src/vendor/intl-messageformat.js` | FormatJS's IntlMessageFormat for the web, made by `scripts/vendor-intl-messageformat.mjs` | Regenerate |
 | `locales/en.json` | Every English sentence, with a note for translators | The format travels; the words don't |
 | `locales/languages.json` | The languages manifest: status, reviewer, approval date, fallback, formatting | The shape travels |
@@ -136,9 +136,13 @@ sideways. For 102 and 103 to fix:
 - **Web, Export all journeys** wraps onto two lines at 320px. So do the Journey settings and
   Backup and restore headings, and the reset question takes three lines.
 - **Phone, a Button that wraps** (Start a return-to conversation, at 320pt, in English too) has no
-  padding above or below, so two lines fill it from edge to edge.
+  padding above or below, so two lines fill it from edge to edge. *Fixed in 103A: 10 points above and
+  below, the web's `.button`; one line is still the 44-point minimum.*
 - **Still in English inside a moved area:** the theme names (`src/themes.js`), Journey sharing,
   the reset question's eyebrow and Keep things as they are, and History's How to read your history.
+  *On the phone, 103A moved History's How to read your history, and what History draws from
+  sharing-view (the value labels, the delete question, "Former journeyer"), the web's words in
+  English, under `common.*`.*
 
 ## Moved areas, and the guard
 
@@ -164,6 +168,10 @@ An area is a file, with how much of it has moved:
   a space, or a word and then a full stop, question mark or colon. Keys, paths, style values and
   select values (`'yes'`, `'open'`) are none of these.
 - `allow`, on any area: exact text that is never translated.
+- `pending`, on a script area: `{ text, until }`, a sentence still written in that hasn't moved yet,
+  with what moves it. One that is no longer in the file fails, so the list stays true.
+
+A `statements` entry that begins a function declaration ends at the function's closing brace.
 
 An element or statement that can't be found fails too, so the list never silently checks nothing.
 
@@ -230,7 +238,7 @@ as TBX: `node scripts/export-glossary.mjs > glossary.tbx`.
 
 `locales/languages.json` lists every language with:
 
-- `status`: `draft` → `in-review` → `approved`.
+- `status`: `draft` → `in-review` → `approved`, or `preview` (below).
 - `reviewer` and `approvedOn` (YYYY-MM-DD): required once a language is approved, empty before.
 - `fallback`: always `en`. Hinglish falls back to English, never to Hindi: a reader of Latin
   script may not read Devanagari.
@@ -248,6 +256,15 @@ A language is:
 
 **Only an approved language may ever be offered to people** (`offeredLanguages()`). English is the
 source: approved by being the product's own words, with no reviewer to record.
+
+**A language in preview** (owner, Oct 12, decision 145) may be chosen by hand before it is approved:
+`choosableLanguages()` lists the approved ones, then each in preview, marked `preview: true`, and
+the Language choice draws the word Preview (`common.language.preview`) beside its name. It is never
+matched from a device: a phone set to Hindi reads in English until Hindi is approved, unless its
+owner chooses Hindi. Its file may lack sentences, which read in English, but what it holds must
+parse and keep English's placeholders (`previewLanguageProblems()`, in `tests/i18n-catalog.test.js`).
+The server accepts a preview choice (`PATCH /account/language`). Draft and in-review languages are
+never shown.
 
 ## People's text inside a sentence
 
@@ -311,7 +328,8 @@ reached from the device, and is refused by the server.
   account first. The device keeps a copy, so the page or app opens in the right language before
   the account has answered. The phone reads that copy at once as it starts
   (`savedLanguageNow()`), so its first screen and its type (`src/theme/fonts.ts`) are already in
-  the language; a change made while the app is open reaches the type at the next start.
+  the language. A change made while the app is open takes effect at once, type included (below,
+  "Scripts and fonts").
 - Server error messages and emails stay in English in v1; the account keeps the preference so they
   can follow it later.
 
@@ -321,8 +339,12 @@ On the web, Settings has a **Language** row (`#language-settings`). It lists "Fo
 then each approved language in its own name and script, from the manifest's `nativeName`: English,
 हिन्दी, বাংলা, Español (Latinoamérica), Hinglish (Hindi in Latin script). Each option carries its
 own `lang`, so a screen reader says हिन्दी in Hindi. **While English is the only approved
-language, the row stays hidden.** The phone's row comes in 103; `useLanguage()`
-(`apps/mobile/src/i18n/language-provider.tsx`) is what it will use.
+language, the row stays hidden.**
+
+On the phone (103A) the same choice is in two places: small, at the top of the welcome
+(`LanguageControl`), and as a Language section in Settings, after Appearance (`LanguageList`), both in
+`apps/mobile/src/components/language-choice.tsx`, both through `useLanguage()`. Neither shows while
+English is the only language that may be chosen (`languageChoiceShown()`).
 
 Approving a language (`status`, `reviewer`, `approvedOn`) is all it takes for it to appear: the
 web ships `locales/<tag>.json` for every approved language (`scripts/build-public-site.mjs`), and
@@ -347,8 +369,16 @@ the server accepts it. The phone also needs its file imported in `apps/mobile/sr
 
 The server answers `{ error: { code, message } }`, and `message` is English. The apps translate an
 error by its `code`: `errorMessage(t, error, fallback)` looks up `error.server.<code>` and uses the
-server's message only when no sentence exists for that code yet. The server doesn't change. Today
-the apps still show the server's message; 102 and 103 move them onto `errorMessage`.
+server's message only when no sentence exists for that code yet. The server doesn't change.
+
+Only a code that has one sentence wherever the server raises it can be translated by code alone.
+Where one code has several (`invalid_credentials`, `conflict`), the screen names its own area:
+the phone's sign-in reads `error.signIn.invalidCredentials`, the moment form `error.moment.conflict`.
+On the phone, `accountMessage(error, area)` (`apps/mobile/src/auth/account-messages.ts`) does this;
+`TRANSLATED_ERRORS` there lists every one, and `tests/mobile-account.test.js` holds each
+`error.server.*` sentence word for word to the server's one message for its code. The account
+client's own codes read under `mobile.error.*` (no connection, no answer) and `error.client.*`
+(the web's words too).
 
 ## Dates, numbers and money
 
@@ -417,8 +447,13 @@ Bangla (`docs/2026-10-12-devanagari-bangla-font-decision.md`). Interface text st
 
 - **The web** keys on `<html lang>`: the Language preference must set it to the active language's tag.
   Each face is one self-hosted file, fetched only when its script is on the page.
-- **The phone** chooses its faces once, at start, from the active language (`script` in
-  `apps/mobile/src/theme/fonts.ts`), and loads a Tiro face only in Hindi or Bengali.
+- **The phone** sets type for the active language's script. It opens with the script it starts in
+  loaded (`fontSources`), and loads a Tiro face only for Hindi or Bengali. A change to a language in
+  another script reads that script's file first (`loadScriptFonts`), then changes the words and the
+  type together (`setActiveScript`, called by the Language preference), so Devanagari or Bangla is
+  never drawn without Tiro or with Latin spacing. `fonts.serif` and the rest are read as a screen
+  draws, and a style sheet that uses `leading()` or `tracking()` is wrapped in `scriptStyles()`,
+  which makes it once for each script.
 - **Never track Devanagari or Bangla**, and give their marks room: a serif line height of at least 1.35
   (Hindi) or 1.3 (Bengali). On the phone, a serif style's `lineHeight` goes through `leading()` and any
   `letterSpacing` through `tracking()`; on the web, `src/styles.css` does both under `:lang(hi)` and
@@ -426,6 +461,35 @@ Bangla (`docs/2026-10-12-devanagari-bangla-font-decision.md`). Interface text st
   Latin and keeps English's spacing.
 - `tests/browser-script-fonts.spec.js` sets the screens in sample Hindi and Bengali and checks the layout
   at 320px. Rerun it with the real translations.
+
+## The phone, as of 103A
+
+The phone's most-seen screens read their sentences from `locales/en.json`: the welcome, sign-in and
+Create account, the ledger and the journey row, holding and reading a moment, Settings and Account
+settings, their questions and confirmations, every screen's title, and the server errors most
+likely seen. Every other screen still writes English and falls back to it.
+
+- **`t()` for any file.** `apps/mobile/src/i18n/sentences.js` holds the active translator.
+  `index.ts` installs one whenever the language changes; before that, and in a test that imports a
+  helper on its own, it is English, read from the same `locales/en.json` (with a JSON import
+  attribute, which Node, Babel and TypeScript read). Helpers that used to export a sentence as a
+  constant export a function or a getter, so the sentence is read as it is drawn.
+- **A change takes effect at once.** Every screen calls `useLanguage()`, so it draws again when the
+  language changes, and the stack's titles and back buttons do too.
+- **Not moved yet, on purpose:** the moment view's words ("Show moments", "In full", "Compact",
+  "All moments", "Recent moments", the compact row's spoken label), "Show recent", "＋ Hold a
+  moment" and "Name this kind of moment". `tests/mobile-moment-view.test.js` pins those lines as
+  written, and Prompt 45 changes that file; they move after it (`pending` in
+  `scripts/i18n-moved-areas.json`).
+- **Choosing a language in the phone's system settings** (iOS, and Android 13 and later) is not
+  built yet. It needs the app's languages declared at build time, `CFBundleLocalizations` on iOS
+  and a `locales_config.xml` with `android:localeConfig` on Android. expo-localization's config
+  plugin writes both from `supportedLocales`, but on Android it also sets `resourceConfigurations`,
+  which strips every other language from the libraries the app bundles, so it would need a small
+  plugin of our own. The list would be the approved languages (not previews: a system setting
+  reaches the app as the device's language, which never selects a preview), and it only matters
+  once there are two; then, on a real iPhone and Android phone, check that the app reads the
+  per-app choice through `getLocales()`.
 
 ## Copying this into I'm Home or Green Light
 
