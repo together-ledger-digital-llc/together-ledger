@@ -1,0 +1,62 @@
+{
+  "title": "Together Ledger glossary",
+  "source": "en",
+  "about": "The product's careful words: what each means, the words it must never become, and, once agreed, its term in each language. Translations fill in per language (105 to 109) and the reviewer of that language agrees each one. A translation platform imports this as TBX: node scripts/export-glossary.mjs > glossary.tbx. See docs/TRANSLATION.md.",
+  "languages": ["hi", "bn", "es-419", "hi-Latn"],
+  "terms": [
+    {
+      "id": "rests",
+      "term": "rests",
+      "partOfSpeech": "verb",
+      "definition": "What happens to a person's capacity in a journey when its payment lapses: they keep their place and can read everything, and nothing about them is lost; they just do not add for now. It is a pause that keeps everything, not a loss, a penalty or a failure.",
+      "examples": ["Their place rests until the journey is paid again."],
+      "avoid": ["removed", "suspended", "kicked out", "locked out", "deactivated", "banned"],
+      "translations": { "hi": null, "bn": null, "es-419": null, "hi-Latn": null }
+    },
+    {
+      "id": "another-person",
+      "term": "another person",
+      "partOfSpeech": "noun",
+      "definition": "How the product names room for one more person in a journey. Always a person, never a unit of something bought.",
+      "examples": ["Make room for another person."],
+      "avoid": ["seat", "license", "slot", "user", "member slot", "account"],
+      "translations": { "hi": null, "bn": null, "es-419": null, "hi-Latn": null }
+    },
+    {
+      "id": "another-place",
+      "term": "another place",
+      "partOfSpeech": "noun",
+      "definition": "The same room for one more person, said from the journey's side: a place kept for someone. A place at a table, not a place on a map.",
+      "examples": ["This journey has another place for someone you choose."],
+      "avoid": ["seat", "license", "slot", "location", "position"],
+      "translations": { "hi": null, "bn": null, "es-419": null, "hi-Latn": null }
+    },
+    {
+      "id": "journey",
+      "term": "journey",
+      "partOfSpeech": "noun",
+      "definition": "The private space two or more people keep together: their moments, practical details and conversations, over time. Something lived through together, not a trip from A to B and not a project.",
+      "examples": ["Create a private journey to invite another journeyer."],
+      "avoid": ["trip", "project", "workspace", "group", "account"],
+      "translations": { "hi": null, "bn": null, "es-419": null, "hi-Latn": null }
+    },
+    {
+      "id": "moment",
+      "term": "moment",
+      "partOfSpeech": "noun",
+      "definition": "Something that happened in a journey which the people in it chose to hold on to, shared or kept private. Small and human, not a record entry or a post.",
+      "examples": ["A moment you hold now waits on this phone."],
+      "avoid": ["entry", "post", "item", "record", "event"],
+      "translations": { "hi": null, "bn": null, "es-419": null, "hi-Latn": null }
+    },
+    {
+      "id": "journeyer",
+      "term": "journeyer",
+      "partOfSpeech": "noun",
+      "definition": "One of the people sharing a journey. Warm and equal: nobody is a customer, a user or a subordinate.",
+      "examples": ["Each journeyer chooses what feels right on their screen."],
+      "avoid": ["user", "member", "participant", "customer"],
+      "translations": { "hi": null, "bn": null, "es-419": null, "hi-Latn": null }
+    }
+  ]
+}

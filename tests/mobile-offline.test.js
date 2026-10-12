@@ -128,7 +128,11 @@ test('History and Journey sharing open once the connection is back, never "Sign 
   assert.match(notOpen, /state\.phase === 'signed-out' \? signedOut : state\.phase === 'no-journeys' \? noJourneys : 'Loading…'/, '"Sign in" only while signed out, "Loading…" only while loading');
 
   const history = await read('app/history.tsx');
-  assert.match(history, /if \(state\.phase !== 'ready'\) return <JourneyNotOpen title="History" signedOut="Sign in and open a journey to see its history\." noJourneys=\{HISTORY_WITHOUT_JOURNEY\} \/>;/);
+  assert.match(history, /if \(state\.phase !== 'ready'\) return <JourneyNotOpen title=\{t\('history\.screen\.name'\)\} signedOut=\{t\('history\.screen\.signedOut'\)\} noJourneys=\{HISTORY_WITHOUT_JOURNEY\} \/>;/);
+  // History's words are keys now (docs/TRANSLATION.md); English reads as it did.
+  const english = JSON.parse(await readFile(new URL('../locales/en.json', import.meta.url), 'utf8'));
+  assert.equal(english['history.screen.name'], 'History');
+  assert.equal(english['history.screen.signedOut'], 'Sign in and open a journey to see its history.');
   const sharing = await read('app/journey-settings.tsx');
   assert.match(sharing, /<JourneyNotOpen title="Journey sharing" signedOut="Sign in and create a private journey to invite another journeyer\." noJourneys="Your account is ready\. Create a private journey to invite another journeyer\." \/>/);
   assert.doesNotMatch(sharing, /Loading this journey…/);

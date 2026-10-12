@@ -7,8 +7,9 @@ import { useSession } from '../src/auth/session';
 import { JourneyNotOpen } from '../src/components/journey-not-open';
 import { Body, Button, Screen } from '../src/components/ui';
 import { HISTORY_WITHOUT_JOURNEY } from '../src/journey/journey-state';
-import { CONSEQUENCES, concernsByRecency, dateTimeLabel, historyEvents, valueLabel, type ConcernRecord, type SharingSnapshot } from '../src/journey/sharing-view';
+import { CONSEQUENCES, concernsByRecency, historyEvents, valueLabel, type ConcernRecord, type SharingSnapshot } from '../src/journey/sharing-view';
 import { useJourney, useReloadWhenShown } from '../src/journey/use-journey';
+import { format, t } from '../src/i18n';
 import { useShell } from '../src/shell/shell-provider';
 import { targetSize, useTheme } from '../src/theme';
 
@@ -16,10 +17,14 @@ import { targetSize, useTheme } from '../src/theme';
  * The web's event manager (renderEventManager): conversations to return to, then the journey's
  * append-only, account-attributed history, newest first (TL-M-09, #184). Its intro leads to "How
  * to read your history" (#349), which explains every part of it in plain words.
+ *
+ * Its own sentences are keys in locales/en.json (docs/TRANSLATION.md). What it draws from
+ * sharing-view (valueLabel, the delete question, "Former journeyer") and the guide's title are
+ * still the words the web shares word for word, and move with the web's.
  */
 export default function HistoryScreen() {
   const { state } = useJourney();
-  if (state.phase !== 'ready') return <JourneyNotOpen title="History" signedOut="Sign in and open a journey to see its history." noJourneys={HISTORY_WITHOUT_JOURNEY} />;
+  if (state.phase !== 'ready') return <JourneyNotOpen title={t('history.screen.name')} signedOut={t('history.screen.signedOut')} noJourneys={HISTORY_WITHOUT_JOURNEY} />;
   return <History snapshot={state.snapshot as unknown as SharingSnapshot} />;
 }
 
@@ -39,7 +44,7 @@ function History({ snapshot }: { snapshot: SharingSnapshot }) {
     try {
       await client.deleteConcern(snapshot.journey.id, concern.id, concern.version);
       await reload();
-      showToast('Conversation deleted. The history keeps a tombstone.');
+      showToast(t('history.concern.deleted'));
     } catch (error) {
       showStatus(accountMessage(error));
     } finally {
@@ -48,25 +53,25 @@ function History({ snapshot }: { snapshot: SharingSnapshot }) {
   };
 
   return (
-    <Screen title={`${snapshot.journey.name} history`} lead="Server-authoritative, account-attributed history. HMAC chaining makes database changes detectable; deleted records retain privacy-bounded tombstones." refresh={{ refreshing, onRefresh: refresh }}>
+    <Screen title={t('history.screen.title', { journey: snapshot.journey.name })} lead={t('history.screen.lead')} refresh={{ refreshing, onRefresh: refresh }}>
       <Button kind="quiet" label={HISTORY_GUIDE_TITLE} onPress={() => router.push('/history-guide')} />
-      <Text accessibilityRole="header" style={[styles.section, { color: theme.colors.fg }]}>Return-to conversations</Text>
-      <Button label="Start a return-to conversation" onPress={() => router.push('/concern')} />
+      <Text accessibilityRole="header" style={[styles.section, { color: theme.colors.fg }]}>{t('history.concerns.heading')}</Text>
+      <Button label={t('history.concerns.start')} onPress={() => router.push('/concern')} />
       {concerns.length ? concerns.map((concern) => (
         <View key={concern.id} style={[styles.card, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface, borderRadius: theme.radius.m }]}>
-          <Text style={[styles.chip, { color: theme.colors.muted }]}>{concern.status === 'open' ? 'Open' : 'Resolved'}</Text>
+          <Text style={[styles.chip, { color: theme.colors.muted }]}>{t('history.concern.status', { status: concern.status })}</Text>
           <Text style={[styles.title, { color: theme.colors.fg }]}>{concern.title}</Text>
           {concern.detail ? <Text style={[styles.body, { color: theme.colors.textSecondary }]}>{concern.detail}</Text> : null}
-          <Text style={[styles.meta, { color: theme.colors.muted }]}>Updated {dateTimeLabel(concern.updatedAt)}</Text>
+          <Text style={[styles.meta, { color: theme.colors.muted }]}>{t('history.concern.updated', { time: when(concern.updatedAt) })}</Text>
           <View style={styles.actions}>
-            <Button kind="quiet" label="Edit" onPress={() => router.push({ pathname: '/concern', params: { id: concern.id } })} />
-            <Button kind="quiet" label="Delete" pending={pending === concern.id} onPress={() => remove(concern)} />
+            <Button kind="quiet" label={t('common.action.edit')} onPress={() => router.push({ pathname: '/concern', params: { id: concern.id } })} />
+            <Button kind="quiet" label={t('common.action.delete')} pending={pending === concern.id} onPress={() => remove(concern)} />
           </View>
         </View>
-      )) : <Body>Nothing to return to yet. Conversations you want to come back to together will appear here.</Body>}
+      )) : <Body>{t('history.concerns.empty')}</Body>}
 
-      <Text accessibilityRole="header" style={[styles.section, { color: theme.colors.fg }]}>Recorded changes</Text>
-      {events.length ? events.map((event) => <EventRow key={event.id} event={event} />) : <Body>No recorded changes yet. Changes appear here as they happen. Activity from before the Event Manager began cannot be reconstructed.</Body>}
+      <Text accessibilityRole="header" style={[styles.section, { color: theme.colors.fg }]}>{t('history.events.heading')}</Text>
+      {events.length ? events.map((event) => <EventRow key={event.id} event={event} />) : <Body>{t('history.events.empty')}</Body>}
     </Screen>
   );
 }
@@ -78,8 +83,8 @@ function EventRow({ event }: { event: ReturnType<typeof historyEvents>[number] }
     <View style={[styles.card, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface, borderRadius: theme.radius.m }]}>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen((value) => !value)} style={[targetSize, styles.eventHead]}>
         <View style={styles.eventText}>
-          <Text style={[styles.title, { color: theme.colors.fg }]}>#{event.sequence} · {event.summary}</Text>
-          <Text style={[styles.meta, { color: theme.colors.muted }]}>{event.actorName} · {dateTimeLabel(event.createdAt)}</Text>
+          <Text style={[styles.title, { color: theme.colors.fg }]}>{t('history.event.heading', { sequence: event.sequence, summary: event.summary })}</Text>
+          <Text style={[styles.meta, { color: theme.colors.muted }]}>{t('history.event.byline', { actor: event.actorName, time: when(event.createdAt) })}</Text>
         </View>
         <Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.toggle, { color: theme.colors.accent }]}>{open ? '−' : '＋'}</Text>
       </Pressable>
@@ -87,16 +92,27 @@ function EventRow({ event }: { event: ReturnType<typeof historyEvents>[number] }
         <View style={styles.detail}>
           {event.changes.length ? event.changes.map(({ key, before, after }) => (
             <Text key={key} style={[styles.body, { color: theme.colors.textSecondary }]}>
-              <Text style={{ fontWeight: '700', color: theme.colors.fg }}>{key}</Text> {valueLabel(key, before)} → {valueLabel(key, after)}
+              <Text style={{ fontWeight: '700', color: theme.colors.fg }}>{key}</Text> {t('history.event.change', { before: valueLabel(key, before), after: valueLabel(key, after) })}
             </Text>
-          )) : <Text style={[styles.body, { color: theme.colors.textSecondary }]}>No field-level value change was stored for this event.</Text>}
+          )) : <Text style={[styles.body, { color: theme.colors.textSecondary }]}>{t('history.event.noChange')}</Text>}
           <Text style={[styles.meta, { color: theme.colors.muted }]}>
-            Event ID {event.id} · Previous {event.previousEventId || 'none'} · server-authoritative{event.eventHash ? ` · Hash ${event.eventHash.slice(0, 12)}…` : ''}
+            {t('history.event.record', {
+              id: event.id,
+              hasPrevious: event.previousEventId ? 'yes' : 'no',
+              previous: event.previousEventId,
+              hasHash: event.eventHash ? 'yes' : 'no',
+              hash: event.eventHash ? event.eventHash.slice(0, 12) : '',
+            })}
           </Text>
         </View>
       ) : null}
     </View>
   );
+}
+
+/** A date and time for the active language, the way sharing-view's dateTimeLabel writes it. */
+function when(value: string | null | undefined) {
+  return format.dateTime(value) ?? t('common.time.notRecorded');
 }
 
 const styles = StyleSheet.create({

@@ -39,6 +39,10 @@ import {
   HISTORY_ENTRY_PARTS, HISTORY_ENTRY_PARTS_HEADING, HISTORY_EVENT_GROUPS, HISTORY_FIELDS, HISTORY_FIELDS_HEADING, HISTORY_GUIDE_INTRO,
   HISTORY_GUIDE_SECTIONS, HISTORY_GUIDE_TITLE, HISTORY_KINDS_HEADING, HISTORY_NEVER_LABEL, HISTORY_RECORDS_LABEL, HISTORY_RECORDS_NOTHING,
 } from './history-guide.js';
+import { applyTranslations, t } from './i18n/web.js';
+
+// Every sentence index.html names by key (data-i18n) is filled in before anything else draws.
+applyTranslations();
 
 // An emailed link's one-time code: verify, recovery or invite. The server puts it after the #,
 // which no browser sends to any server or puts in a Referer (#261). A link sent before that
@@ -462,7 +466,7 @@ function renderAccountState() {
   $('#change-password-section').hidden = !changesPassword;
   $$('#change-password-form input').forEach((input) => { input.disabled = !changesPassword; });
   $('#account-sync-copy').textContent = isCloudJourney() ? 'Private journey sync is active. Moment visibility is enforced by the account service; shared threads and practical context remain visible to people in this journey.' : 'Your account is ready. Create a private journey when you are ready to invite another journeyer.';
-  $('#settings-storage-copy').textContent = isCloudJourney() ? 'This signed-in journey is loaded from the private service. Sign out to return to your browser-only journey.' : 'Browser-only journeys stay on this device unless you download a backup.';
+  $('#settings-storage-copy').textContent = t(isCloudJourney() ? 'settings.storage.signedIn' : 'settings.storage.browserOnly');
   $('#sync-badge').textContent = isCloudJourney() ? 'Private sync' : signedIn ? 'Account ready' : accountsAvailable ? 'Browser only' : 'Accounts soon';
   $('#sync-badge').classList.toggle('cloud', signedIn);
   renderBillingState();
@@ -523,7 +527,7 @@ function renderAccountState() {
     $('#invitation-history').hidden = true;
     $('#invitation-list').innerHTML = '';
   }
-  $('#theme-copy').textContent = 'Your theme changes only your own view. Each journeyer chooses what feels right on their screen.';
+  $('#theme-copy').textContent = t('common.theme.note');
 }
 
 function dateTimeLabel(value) {
@@ -2479,7 +2483,7 @@ $('#export-button').addEventListener('click', () => {
   link.download = `together-ledger-${localDay()}.json`;
   link.click();
   URL.revokeObjectURL(link.href);
-  showToast('Private backup downloaded.');
+  showToast(t('settings.backup.exported'));
 });
 
 $('#import-button').addEventListener('click', () => $('#import-file').click());
@@ -2494,7 +2498,7 @@ $('#import-file').addEventListener('change', async (event) => {
     selectedCategory = null;
     render();
     showLedgerSurface();
-    showToast('Ledger imported on this browser.');
+    showToast(t('settings.backup.imported'));
   } catch (error) {
     showToast(error.message);
   } finally {
@@ -2503,13 +2507,13 @@ $('#import-file').addEventListener('change', async (event) => {
 });
 
 $('#reset-button').addEventListener('click', async () => {
-  if (!await confirmConsequence({ title: 'Clear this browser’s ledger?', consequence: 'This browser begins again with an empty shared space. Export first if you need a backup.', confirmLabel: 'Clear ledger', destructive: true })) return;
+  if (!await confirmConsequence({ title: t('settings.reset.confirmTitle'), consequence: t('settings.reset.confirmConsequence'), confirmLabel: t('settings.reset.confirmAction'), destructive: true })) return;
   state = resetState();
   selectedDay = null;
   selectedCategory = null;
   render();
   showWelcomeSurface();
-  showToast('This browser has a fresh shared space.');
+  showToast(t('settings.reset.done'));
 });
 
 initializeDialogBranding();

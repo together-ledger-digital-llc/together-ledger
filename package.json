@@ -62,7 +62,11 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",
+    "@formatjs/intl-locale": "5.3.12",
+    "@formatjs/intl-pluralrules": "6.3.15",
     "@playwright/test": "1.60.0",
+    "esbuild": "0.28.2",
+    "intl-messageformat": "12.1.2",
     "pg-mem": "3.0.14",
     "smtp-server": "3.19.17",
     "wrangler": "4.149.0"
