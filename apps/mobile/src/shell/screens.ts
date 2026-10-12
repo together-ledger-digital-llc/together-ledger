@@ -27,6 +27,14 @@ export const SCREEN_TITLES = {
 
 export type ScreenName = keyof typeof SCREEN_TITLES;
 
+/**
+ * The gear before the word on the Settings door (owner, Oct 12, 2026; #399), understood in any
+ * language and never shown without the word. It is the platform's own ⚙ symbol, drawn as text
+ * (U+FE0E asks for that rather than a colour emoji) so it takes the word's size and colour on
+ * every theme, and no icon font is bundled for it. Screen readers read the word, not the gear.
+ */
+export const SETTINGS_GLYPH = '\u2699\uFE0E';
+
 type Route = { key: string; name: string };
 
 /**

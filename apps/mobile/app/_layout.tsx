@@ -12,12 +12,15 @@ import { MomentViewProvider } from '../src/journey/use-moment-view';
 import { useWaitingMoments, WaitingMomentsProvider } from '../src/journey/use-waiting-moments';
 import { ShellProvider, useShell } from '../src/shell/shell-provider';
 import { CONNECTION_SOURCE, OFFLINE_NOTICE } from '../src/shell/connection';
-import { backAccessibilityLabel, backLabel } from '../src/shell/screens';
+import { backAccessibilityLabel, backLabel, SETTINGS_GLYPH } from '../src/shell/screens';
 import { useConnectionWatch } from '../src/shell/use-connection';
 import { useStoredPreferences, type SaveFailure } from '../src/storage/use-stored-preferences';
 import { fontSources, targetSize, ThemeProvider, useTheme } from '../src/theme';
 
-/** Settings from the ledger's header, at the 44-point minimum like everything else. */
+/**
+ * Settings from the ledger's header, at the 44-point minimum like everything else, with the gear
+ * before the word (#399). Screen readers hear the label, never the gear.
+ */
 function SettingsButton() {
   const { theme } = useTheme();
   const journey = useJourney();
@@ -30,6 +33,7 @@ function SettingsButton() {
       onPress={() => router.push('/settings')}
       style={({ pressed }) => [styles.headerButton, targetSize, { opacity: pressed ? 0.7 : 1 }]}
     >
+      <Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.headerButtonText, { color: theme.colors.accent }]}>{SETTINGS_GLYPH}</Text>
       <Text style={[styles.headerButtonText, { color: theme.colors.accent }]}>Settings{waiting ? ` · ${waiting}` : ''}</Text>
     </Pressable>
   );
@@ -184,7 +188,7 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  headerButton: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  headerButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 8 },
   backButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 12, maxWidth: 200 },
   backArrow: { fontSize: 22 },
   headerButtonText: { fontSize: 16, fontWeight: '700' },

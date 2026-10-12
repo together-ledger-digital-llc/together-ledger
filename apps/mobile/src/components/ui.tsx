@@ -91,9 +91,12 @@ type ButtonKind = 'primary' | 'quiet' | 'destructive';
 /**
  * A pending button (the web's setButtonPending) is disabled, marked busy, and says what it is
  * doing, "Working…" unless the caller names the work; its own label comes back when it is done.
+ * A `glyph` sits before the label in the label's size and colour, and is never read aloud: the
+ * button's name is its words alone.
  */
-export function Button({ label, onPress, kind = 'primary', pending = false, pendingLabel = PENDING_LABEL, disabled = false, ref }: {
+export function Button({ label, glyph, onPress, kind = 'primary', pending = false, pendingLabel = PENDING_LABEL, disabled = false, ref }: {
   label: string;
+  glyph?: string;
   onPress: () => void;
   kind?: ButtonKind;
   pending?: boolean;
@@ -105,17 +108,19 @@ export function Button({ label, onPress, kind = 'primary', pending = false, pend
   // The destructive colour is only for what cannot be undone (CLAUDE.md).
   const fill = kind === 'primary' ? theme.colors.accent : kind === 'destructive' ? theme.colors.destructive : 'transparent';
   const text = kind === 'quiet' ? theme.colors.accent : theme.colors.onAccent;
+  const words = pending ? pendingLabel : label;
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={glyph ? words : undefined}
       accessibilityState={{ disabled: disabled || pending, busy: pending }}
       disabled={disabled || pending}
       onPress={onPress}
       ref={ref}
       style={({ pressed }) => [styles.button, targetSize, { backgroundColor: fill, borderRadius: theme.radius.pill, borderColor: kind === 'quiet' ? theme.colors.border : fill, opacity: pressed || disabled ? 0.7 : 1 }]}
     >
-      {pending ? <ActivityIndicator color={text} /> : null}
-      <Text style={[styles.buttonText, { color: text }]}>{pending ? pendingLabel : label}</Text>
+      {pending ? <ActivityIndicator color={text} /> : glyph ? <Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.buttonText, { color: text }]}>{glyph}</Text> : null}
+      <Text style={[styles.buttonText, { color: text }]}>{words}</Text>
     </Pressable>
   );
 }

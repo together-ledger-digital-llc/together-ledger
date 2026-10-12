@@ -3,6 +3,7 @@ import { StyleSheet, Text } from 'react-native';
 import { Body, Button, Screen } from '../src/components/ui';
 import { INVITATION_WORDS } from '../src/invitations/invitation-words';
 import { useShell } from '../src/shell/shell-provider';
+import { SETTINGS_GLYPH } from '../src/shell/screens';
 import { openingSurface } from '../src/shell/surface';
 import { fonts, useTheme } from '../src/theme';
 
@@ -10,7 +11,8 @@ import { fonts, useTheme } from '../src/theme';
  * Where the app opens. Someone who has begun their ledger goes straight to it; everyone else
  * meets the welcome first (the web's showWelcomeSurface / showLedgerSurface). The words are the
  * web's welcome (index.html). One Settings door (owner, Oct 12, 2026; #399): the account is
- * inside it, as Account settings, not a second button beside it.
+ * inside it, as Account settings, not a second button beside it. The door carries a gear before
+ * its word (#399), as the ledger's does.
  */
 export default function WelcomeScreen() {
   const shell = useShell();
@@ -29,7 +31,7 @@ export default function WelcomeScreen() {
       }} />
       {/* Someone who installed the app to join a journey: the iPhone carries no link through the store (#266). */}
       <Button kind="quiet" label={INVITATION_WORDS.haveOne} onPress={() => router.push('/invite')} />
-      <Button kind="quiet" label="Settings" onPress={() => router.push('/settings')} />
+      <Button kind="quiet" glyph={SETTINGS_GLYPH} label="Settings" onPress={() => router.push('/settings')} />
     </Screen>
   );
 }
