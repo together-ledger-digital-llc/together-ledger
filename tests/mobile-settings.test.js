@@ -174,7 +174,7 @@ test('the sentence under the sign-in buttons points to a screen that is really c
   assert.equal(social.newAccountName(), 'A new account starts with your first name. You can change it in Account settings.');
   assert.match(layout, /<Stack\.Screen name="account" options=\{\{ title: screenTitle\('account'\) \}\} \/>/);
   assert.equal(screens.screenTitle('account'), 'Account settings');
-  assert.equal(account.match(/<Screen title=\{t\('common\.account\.settings'\)\}/g).length, 3, 'loading, offline and signed in');
+  assert.equal(account.match(/<Screen title=\{t\('mobile\.screen\.account\.title'\)\}/g).length, 3, 'loading, offline and signed in');
   assert.match(settings, /heading=\{t\('common\.account\.settings'\)\}/);
   assert.match(await read('app/journey-settings.tsx'), /title="Journey sharing"/, 'Journey sharing keeps its own name');
 });

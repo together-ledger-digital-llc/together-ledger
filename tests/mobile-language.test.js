@@ -127,7 +127,7 @@ test('the choice appears only once there is more than English: today nothing cha
   assert.equal(screens.languageChoiceShown(choosableLanguages(withStatus({ bn: 'draft', hi: 'in-review' }))), false);
   const welcome = await read('app/index.tsx');
   assert.match(welcome, /\{languageChoiceShown\(offered\) \? <LanguageControl \/> : null\}/);
-  assert.ok(welcome.indexOf('<LanguageControl />') < welcome.indexOf("t('welcome.hero.eyebrow')"), 'small, at the top of the welcome, before anything to read');
+  assert.ok(welcome.indexOf('<LanguageControl />') < welcome.indexOf("t('common.welcome.eyebrow')"), 'small, at the top of the welcome, before anything to read');
   const settings = await read('app/settings.tsx');
   assert.match(settings, /languages: languageChoiceShown\(offered\)/);
   assert.match(settings, /<SettingsHeading>\{t\('common\.language\.title'\)\}<\/SettingsHeading>\s*<LanguageList \/>\s*<Body>\{t\('common\.language\.note'\)\}<\/Body>/, 'a Language section, under its own word, with the web\'s note');

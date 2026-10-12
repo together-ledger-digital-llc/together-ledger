@@ -137,8 +137,8 @@ test('every name box on the phone and the web counts characters, never UTF-16 un
   assert.match(account, /label=\{t\('common\.account\.nameLabel'\)\}[^\n]*limit=\{80\}/);
   const momentScreen = await read('app/moment.tsx');
   assert.match(momentScreen, /label="Name this kind of moment"[^\n]*limit=\{60\}/);
-  assert.match(momentScreen, /label=\{t\('moment\.form\.name'\)\}[\s\S]*?limit=\{120\}/);
-  assert.match(momentScreen, /label=\{t\('moment\.form\.placeLabel'\)\}[^\n]*limit=\{120\}/);
+  assert.match(momentScreen, /label=\{t\('common\.moment\.name'\)\}[\s\S]*?limit=\{120\}/);
+  assert.match(momentScreen, /label=\{t\('common\.moment\.place'\)\}[^\n]*limit=\{120\}/);
   for (const source of [account, momentScreen, await read('app/new-journey.tsx')]) {
     assert.doesNotMatch(source, /maxLength=\{(?:60|80|120|NAME_LIMIT|LOCATION_LIMIT)\}/);
   }

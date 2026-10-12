@@ -157,7 +157,7 @@
       "file": "apps/mobile/src/auth/account-messages.ts",
       "kind": "script",
       "allow": [
-        "signIn.toast.signedOut"
+        "common.account.signedOut"
       ]
     },
     {

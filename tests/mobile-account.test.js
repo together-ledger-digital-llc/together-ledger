@@ -209,12 +209,6 @@ test('accountMessage shows the service\'s own words, and the web\'s fallback oth
   for (const key of TRANSLATED_ERRORS.filter((name) => name.startsWith('error.server.'))) {
     const code = key.slice('error.server.'.length).replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
     const said = messagesOf(code);
-    // accounts_unavailable is raised by the clients themselves (src/api.js, the phone's client), never the server.
-    if (code === 'accounts_unavailable') {
-      assert.equal(said.size, 0);
-      assert.ok(readFileSync(new URL('../src/api.js', import.meta.url), 'utf8').includes(`'${english[key]}', { code: 'accounts_unavailable' }`), 'the web client\'s words');
-      continue;
-    }
     assert.deepEqual([...said], [english[key]], `${code} has one sentence on the server, word for word ${key}`);
   }
   const web = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
@@ -224,8 +218,7 @@ test('accountMessage shows the service\'s own words, and the web\'s fallback oth
   // payment the app does not offer (#268). Everything else is the web's.
   const phoneOnly = new Set(Object.values(NO_ROOM_ADDED_HERE));
   // Each notice is a key; the English it reads is in locales/en.json.
-  const noticeKeys = notices.slice(notices.indexOf('const NOTICE_KEYS = {'), notices.indexOf('} as const;', notices.indexOf('const NOTICE_KEYS = {')));
-  const noticeWords = [...noticeKeys.matchAll(/:\s*'([a-z][a-zA-Z]*(?:\.[a-zA-Z]+){2,})',/g)].map((match) => english[match[1]]);
+  const noticeWords = [...notices.matchAll(/:\s*'(common\.account\.[a-zA-Z]+)',/g)].map((match) => english[match[1]]);
   assert.ok(noticeWords.length >= 13 && noticeWords.every(Boolean), 'every notice names a sentence English has');
   for (const phrase of noticeWords.filter((phrase) => !phoneOnly.has(phrase))) {
     assert.ok(web.includes(phrase), `"${phrase}" is not the web's wording`);

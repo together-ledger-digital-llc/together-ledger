@@ -247,7 +247,7 @@ export async function appleSignInBody(credential: AppleCredential, kept: KeptApp
  * #social-sign-in): a new account opened with either starts with the first name (#401), and the
  * person can change it. Approved by the owner, Oct 12, 2026 (#399).
  */
-export const newAccountName = () => t('signIn.social.nameHint');
+export const newAccountName = () => t('common.account.newAccountName');
 
 /** What an account opened with Apple shows instead of the placeholder it was given for no email. */
 export const appleSharedNoEmailLabel = () => t('common.account.appleNoEmail');

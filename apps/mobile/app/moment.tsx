@@ -51,7 +51,7 @@ export default function MomentScreen() {
   const set = (change: Partial<Draft>) => setDraft((current) => ({ ...current, ...change }));
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: before ? t('moment.form.editTitle') : t('moment.form.title') });
+    navigation.setOptions({ title: before ? t('common.moment.editTitle') : t('mobile.screen.moment.title') });
   }, [navigation, before, language]);
 
   // A problem with this form leaves with it, as a problem raised in a web dialog does.
@@ -60,7 +60,7 @@ export default function MomentScreen() {
 
   if (journey.state.phase !== 'ready' || (id && !before)) {
     return (
-      <Screen title={t('moment.form.title')}>
+      <Screen title={t('mobile.screen.moment.title')}>
         <Body>{id ? t('mobile.moment.gone') : t('mobile.moment.noJourney')}</Body>
         <Button kind="quiet" label={t('mobile.moment.backToLedger')} onPress={() => router.back()} />
       </Screen>
@@ -73,7 +73,7 @@ export default function MomentScreen() {
       // Not the status region, which brings the top of the form into view: the field may be far
       // below it, so the words go on the field and the form scrolls to it instead.
       shell.clearStatus('moment');
-      setTitleProblem(t('moment.form.nameMissing'));
+      setTitleProblem(t('common.moment.nameMissing'));
       scroll.current?.scrollTo({ y: Math.max(0, titleTop.current - 16), animated: true });
       titleInput.current?.focus();
       return;
@@ -106,8 +106,8 @@ export default function MomentScreen() {
     kind: draft.kind,
     kindLabel: draft.kindLabel,
     occurredOn: draft.occurredOn,
-    title: draft.title.trim() || t('moment.form.themeSampleTitle'),
-    detail: draft.detail.trim() || t('moment.form.themeSampleBody'),
+    title: draft.title.trim() || t('common.moment.previewTitle'),
+    detail: draft.detail.trim() || t('common.moment.previewDetail'),
     visibility: draft.visibility,
     theme: draft.theme,
     moneyCents: draft.money.trim() === '' || !Number.isFinite(Number(draft.money)) ? null : Math.round(Number(draft.money) * 100),
@@ -121,31 +121,31 @@ export default function MomentScreen() {
   };
 
   return (
-    <Screen scrollRef={scroll} title={before ? t('moment.form.editTitle') : t('moment.form.title')} lead={t('moment.form.hostedCopy')}>
-      <Section title={t('moment.form.kind')} help={t('mobile.moment.kindHelp')}>
-        <Choices label={t('moment.form.kind')} options={momentKinds()} selected={draft.kind} onSelect={(value) => set({ kind: value })} />
+    <Screen scrollRef={scroll} title={before ? t('common.moment.editTitle') : t('mobile.screen.moment.title')} lead={t('common.moment.lead')}>
+      <Section title={t('common.moment.kind')} help={t('mobile.moment.kindHelp')}>
+        <Choices label={t('common.moment.kind')} options={momentKinds()} selected={draft.kind} onSelect={(value) => set({ kind: value })} />
       </Section>
-      {draft.kind === 'other' ? <Field label="Name this kind of moment" value={draft.kindLabel} onChangeText={(value) => set({ kindLabel: value })} limit={60} placeholder={t('moment.form.kindNamePlaceholder')} /> : null}
-      <DateField label={t('moment.form.when')} hint={t('mobile.moment.whenHint')} value={draft.occurredOn} onChange={(value) => set({ occurredOn: value })} />
+      {draft.kind === 'other' ? <Field label="Name this kind of moment" value={draft.kindLabel} onChangeText={(value) => set({ kindLabel: value })} limit={60} placeholder={t('common.moment.kindNameExample')} /> : null}
+      <DateField label={t('common.moment.when')} hint={t('mobile.moment.whenHint')} value={draft.occurredOn} onChange={(value) => set({ occurredOn: value })} />
       <View onLayout={(event) => { titleTop.current = event.nativeEvent.layout.y; }}>
         <Field
           ref={titleInput}
-          label={t('moment.form.name')}
+          label={t('common.moment.name')}
           value={draft.title}
           onChangeText={(value) => {
             set({ title: value });
             if (value.trim()) setTitleProblem(null);
           }}
           limit={120}
-          placeholder={t('moment.form.namePlaceholder')}
+          placeholder={t('common.moment.nameExample')}
           problem={titleProblem}
         />
       </View>
-      <Field label={t('mobile.moment.detail')} value={draft.detail} onChangeText={(value) => set({ detail: value })} maxLength={1200} multiline placeholder={t('moment.form.detailPlaceholder')} style={styles.detail} />
+      <Field label={t('mobile.moment.detail')} value={draft.detail} onChangeText={(value) => set({ detail: value })} maxLength={1200} multiline placeholder={t('common.moment.detailExample')} style={styles.detail} />
 
-      <Section title={t('mobile.moment.themeTitle')} help={t('moment.form.themeHelp')}>
-        <View accessibilityRole="radiogroup" accessibilityLabel={t('moment.form.theme')} style={styles.options}>
-          {[{ id: '', label: t('common.momentTheme.own') }, ...MOMENT_THEMES.map(({ id, label }) => ({ id, label: themeName(id, label) }))].map((option) => {
+      <Section title={t('mobile.moment.themeTitle')} help={t('common.moment.themeHelp')}>
+        <View accessibilityRole="radiogroup" accessibilityLabel={t('mobile.moment.themeGroup')} style={styles.options}>
+          {[{ id: '', label: t('common.moment.useMyTheme') }, ...MOMENT_THEMES.map(({ id, label }) => ({ id, label: themeName(id, label) }))].map((option) => {
             const active = normalizeMomentTheme(draft.theme) === option.id;
             const swatch = option.id ? getTheme(option.id).colors : colors;
             return (
@@ -169,22 +169,22 @@ export default function MomentScreen() {
       {/* No web price and no web add-on here, unlike the web's form (#268). If a moment has no
           room for another place, the save says so in the phone's own words. */}
       <Section title={t('mobile.moment.placesTitle')} help={t('mobile.moment.placesHelp')}>
-        <Field label={t('moment.form.placeLabel')} value={place} onChangeText={setPlace} limit={120} placeholder={t('moment.form.placePlaceholder')} onSubmitEditing={() => addTyped()} returnKeyType="done" />
-        <Button kind="quiet" label={t('moment.form.addPlace')} onPress={addTyped} />
+        <Field label={t('common.moment.place')} value={place} onChangeText={setPlace} limit={120} placeholder={t('common.moment.placeExample')} onSubmitEditing={() => addTyped()} returnKeyType="done" />
+        <Button kind="quiet" label={t('common.moment.addPlace')} onPress={addTyped} />
         {draft.locations.map((location, index) => (
           <View key={`${index}-${location.label}`} style={[styles.place, { borderColor: colors.border, borderRadius: theme.radius.s }]}>
             <View style={styles.placeCopy}>
               <Text style={[styles.placeLabel, { color: colors.fg }]}>{location.label}</Text>
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel={t('moment.form.removePlace', { place: location.label })} onPress={() => set({ locations: removePlace(draft.locations, index) })} style={[styles.remove, targetSize, { borderColor: colors.border, borderRadius: theme.radius.pill }]}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('common.moment.removePlace', { place: location.label })} onPress={() => set({ locations: removePlace(draft.locations, index) })} style={[styles.remove, targetSize, { borderColor: colors.border, borderRadius: theme.radius.pill }]}>
               <Text style={[styles.removeText, { color: colors.fg }]}>{t('common.action.remove')}</Text>
             </Pressable>
           </View>
         ))}
       </Section>
 
-      <Section title={t('moment.form.visibility')} help={visibilityHelp(before)}>
-        <View accessibilityRole="radiogroup" accessibilityLabel={t('moment.form.visibility')} style={styles.options}>
+      <Section title={t('common.moment.visibility')} help={visibilityHelp(before)}>
+        <View accessibilityRole="radiogroup" accessibilityLabel={t('common.moment.visibility')} style={styles.options}>
           {(['private', 'shared-now', 'share-later'] as const).map((value) => {
             const cue = VISIBILITY_CUES[value];
             const active = draft.visibility === value;
@@ -211,11 +211,11 @@ export default function MomentScreen() {
       </Section>
 
       <Section title={t('mobile.moment.moneyTitle')}>
-        <Field label={t('moment.form.amountPlaceholder')} value={draft.money} onChangeText={(value) => set({ money: value })} keyboardType="decimal-pad" />
+        <Field label={t('common.moment.amount')} value={draft.money} onChangeText={(value) => set({ money: value })} keyboardType="decimal-pad" />
         <DropDown label={currencyLabel()} options={currencies()} selected={draft.moneyCurrency} onSelect={(value) => set({ moneyCurrency: value })} />
       </Section>
 
-      <Section title={t('moment.form.themePreview')} help={t('common.moment.previewHelp', { theme: momentThemeName(draft.theme) })}>
+      <Section title={t('common.moment.livePreview')} help={t('common.moment.previewHelp', { theme: momentThemeName(draft.theme) })}>
         <MomentCard moment={preview} />
       </Section>
 
@@ -229,7 +229,7 @@ export default function MomentScreen() {
         />
       ) : null}
 
-      <Button label={before ? t('moment.form.saveChanges') : t('moment.form.save')} pending={pending === 'save'} disabled={pending !== null} onPress={save} />
+      <Button label={before ? t('common.moment.save') : t('common.moment.hold')} pending={pending === 'save'} disabled={pending !== null} onPress={save} />
       <Button kind="quiet" label={t('common.action.cancel')} disabled={pending !== null} onPress={() => router.back()} />
 
       {/* Deleting sits apart from Save and Cancel, in its own marked box at the foot of the form,

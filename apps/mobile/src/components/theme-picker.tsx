@@ -15,7 +15,7 @@ export function ThemePicker() {
   const { showToast } = useShell();
   const options = [{ id: null, label: t('mobile.theme.followPhone') }, ...themes.map(({ id, label }) => ({ id, label: themeName(id, label) }))];
   return (
-    <View accessibilityRole="radiogroup" accessibilityLabel={t('header.theme.menuLabel')} style={styles.group}>
+    <View accessibilityRole="radiogroup" accessibilityLabel={t('common.theme.groupLabel')} style={styles.group}>
       {options.map((option) => {
         const selected = option.id === null ? choice === null : choice !== null && theme.id === option.id;
         return (
@@ -25,7 +25,7 @@ export function ThemePicker() {
             accessibilityState={{ checked: selected }}
             onPress={() => {
               setChoice(option.id);
-              showToast(option.id === null ? t('mobile.theme.followsPhone') : t('common.theme.applied', { theme: option.label }));
+              showToast(option.id === null ? t('mobile.theme.followsPhone') : t('mobile.theme.applied', { theme: option.label }));
             }}
             style={({ pressed }) => [styles.option, targetSize, {
               borderColor: selected ? theme.colors.accent : theme.colors.border,

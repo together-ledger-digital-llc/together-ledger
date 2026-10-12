@@ -98,7 +98,7 @@ const KIND_KEYS: Readonly<Record<string, string>> = Object.freeze({
   'call-me': 'common.momentKind.callMe',
   'called-you': 'common.momentKind.calledYou',
   'practical-matter': 'common.momentKind.practicalMatter',
-  other: 'common.momentKind.addYourOwn',
+  other: 'common.momentKind.other',
 });
 
 /** The kinds of moment, [value, words], in the web's order and the active language. */
@@ -107,8 +107,8 @@ export function momentKinds(): [string, string][] {
 }
 
 export function momentLabel(kind: string, kindLabel?: string | null) {
-  if (kind === 'other') return kindLabel || t('common.momentKind.sharedNote');
-  return momentKinds().find(([value]) => value === kind)?.[1] || t('common.momentKind.moment');
+  if (kind === 'other') return kindLabel || t('common.moment.sharedNote');
+  return momentKinds().find(([value]) => value === kind)?.[1] || t('common.moment.kindFallback');
 }
 
 
@@ -132,8 +132,8 @@ export function compactRowLabel(moment: Moment) {
 export function journeyPeriod(journey: Journey) {
   const pieces: string[] = [];
   if (journey.location) pieces.push(journey.location);
-  pieces.push(journey.startDateStatus === 'unknown' ? t('home.trip.beganUnknown') : t('home.trip.began', { date: dateLabel(journey.startDate) }));
-  pieces.push(journey.endDateStatus === 'forever' ? t('home.trip.noEnd') : journey.endDateStatus === 'unsure' ? t('home.trip.endUnsure') : t('home.trip.ends', { date: dateLabel(journey.endDate) }));
+  pieces.push(journey.startDateStatus === 'unknown' ? t('common.journey.beganUnknown') : t('common.journey.began', { date: dateLabel(journey.startDate) }));
+  pieces.push(journey.endDateStatus === 'forever' ? t('common.journey.noEnd') : journey.endDateStatus === 'unsure' ? t('common.journey.endUnsure') : t('common.journey.ends', { date: dateLabel(journey.endDate) }));
   return pieces.join(' · ');
 }
 
@@ -151,7 +151,7 @@ export function recentMoments(snapshot: Snapshot): ShownMoment[] {
 
 /** The web's "See all" button, with a singular for one moment (#337). */
 export function seeAllLabel(count: number) {
-  return t('home.moments.seeAll', { count });
+  return t('common.ledger.seeAll', { count });
 }
 
 /** Three recent moments until the person asks for all, then every moment. */
@@ -180,7 +180,7 @@ export function openThreads(snapshot: Snapshot) {
 }
 
 export function moneyContext(moment: Moment) {
-  return moment.moneyCents == null ? null : t('moment.card.money', { amount: money(moment.moneyCents, moment.moneyCurrency) });
+  return moment.moneyCents == null ? null : t('common.moment.moneyContext', { amount: money(moment.moneyCents, moment.moneyCurrency) });
 }
 
 export function locationContext(moment: Moment) {

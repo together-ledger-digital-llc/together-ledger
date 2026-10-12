@@ -113,7 +113,7 @@ export function draftProblem(draft: Draft): string | null {
     const amount = Number(draft.money);
     if (!Number.isFinite(amount) || amount < 0 || amount > 1000000) return t('common.moment.moneyProblem');
   }
-  if (draft.locations.length > MAX_PLACES) return t('moment.form.tooManyPlaces');
+  if (draft.locations.length > MAX_PLACES) return t('common.moment.tooManyPlaces');
   return null;
 }
 
@@ -138,7 +138,7 @@ export function payloadFrom(draft: Draft, before: EditableMoment | null) {
 export function addPlace(locations: Place[], label: string): { locations: Place[]; problem: string | null } {
   const trimmed = label.trim();
   if (!trimmed) return { locations, problem: null };
-  if (locations.length >= MAX_PLACES) return { locations, problem: t('moment.form.tooManyPlaces') };
+  if (locations.length >= MAX_PLACES) return { locations, problem: t('common.moment.tooManyPlaces') };
   return { locations: [...locations, { label: trimmed }], problem: null };
 }
 
@@ -155,12 +155,12 @@ export function visibilityLocked(before: EditableMoment | null, visibility: stri
 }
 
 export function visibilityHelp(before: EditableMoment | null) {
-  return before?.visibility === 'shared-now' ? t('moment.form.visibilityShared') : t('moment.form.visibilityHosted');
+  return before?.visibility === 'shared-now' ? t('common.moment.visibilityLocked') : t('common.moment.visibilityHelp');
 }
 
 /** The toast after saving, in the web's words. */
 export function savedMessage(before: EditableMoment | null, visibility: string) {
-  return before ? t('moment.form.updated') : visibility === 'shared-now' ? t('moment.form.shared') : t('moment.form.heldWithYou');
+  return before ? t('common.moment.updated') : visibility === 'shared-now' ? t('common.moment.shared') : t('common.moment.heldWithYou');
 }
 
 /** Sharing a share-later moment now: the same moment, shared, from the version it was read at. */

@@ -49,20 +49,20 @@ export function MomentCard({ moment, actions }: { moment: ShownMoment; actions?:
         </View>
       ) : null}
       {moment.removedImages.length ? (
-        <Disclosure label={t('moment.photo.removed')} colors={colors}>
-          {moment.removedImages.map((image) => <Text key={image.id} style={[styles.detail, { color: colors.muted }]}>{image.filename || t('moment.photo.fallbackName')}</Text>)}
+        <Disclosure label={t('common.moment.removedPhoto')} colors={colors}>
+          {moment.removedImages.map((image) => <Text key={image.id} style={[styles.detail, { color: colors.muted }]}>{image.filename || t('common.moment.image')}</Text>)}
         </Disclosure>
       ) : null}
       {moneyNote ? (
-        <Disclosure label={t('moment.money.title')} colors={colors} divided>
+        <Disclosure label={t('common.moment.money')} colors={colors} divided>
           <Text style={[styles.detail, { color: colors.muted }]}>{moneyNote}</Text>
         </Disclosure>
       ) : null}
       <View style={styles.author}>
-        <Text style={[styles.authorText, { color: colors.muted }]}>{t('moment.card.heldBy', { name: moment.createdBy || t('common.person.journeyMember') })}</Text>
+        <Text style={[styles.authorText, { color: colors.muted }]}>{t('common.moment.heldBy', { name: moment.createdBy || t('common.person.journeyMember') })}</Text>
         {moment.shapedByBoth ? (
           <View style={[styles.badge, { backgroundColor: colors.accent, borderRadius: radius.pill }]}>
-            <Text style={[styles.badgeText, { color: colors.onAccent }]}>{t('moment.card.shapedByMore')}</Text>
+            <Text style={[styles.badgeText, { color: colors.onAccent }]}>{t('common.moment.shapedByMany')}</Text>
           </View>
         ) : null}
       </View>
@@ -127,12 +127,12 @@ function MomentPhoto({ image, moment, colors, radius }: { image: MomentImage; mo
     <View style={[styles.photo, { borderColor: colors.border, borderRadius: radius }]}>
       <View style={[styles.thumb, { backgroundColor: colors.metaBg, borderRadius: 4 }]}>
         {source && !failed ? (
-          <Image source={source} onError={() => setFailed(true)} accessibilityLabel={t('moment.photo.alt', { title: moment.title })} style={styles.thumbImage} />
+          <Image source={source} onError={() => setFailed(true)} accessibilityLabel={t('mobile.moment.photoOf', { title: moment.title })} style={styles.thumbImage} />
         ) : null}
       </View>
       <View style={styles.photoCopy}>
-        <Text style={[styles.photoKind, { color: colors.accent }]}>{t('moment.photo.label')}</Text>
-        <Text numberOfLines={1} style={[styles.photoName, { color: colors.fg }]}>{image.filename || t('moment.photo.fallbackName')}</Text>
+        <Text style={[styles.photoKind, { color: colors.accent }]}>{t('common.moment.photo')}</Text>
+        <Text numberOfLines={1} style={[styles.photoName, { color: colors.fg }]}>{image.filename || t('common.moment.image')}</Text>
         {failed ? <Text style={[styles.photoNote, { color: colors.muted }]}>{t('mobile.moment.photoFailed')}</Text> : null}
       </View>
     </View>

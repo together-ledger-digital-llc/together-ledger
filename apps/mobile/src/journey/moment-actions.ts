@@ -10,9 +10,9 @@ import { keptOnPhone } from './waiting-moments';
 
 /** Asked before a moment is shared, in the active language. */
 const shareNow = () => ({
-  title: t('moment.share.title'),
-  consequence: t('moment.share.consequence'),
-  confirmLabel: t('moment.share.confirm'),
+  title: t('common.moment.shareTitle'),
+  consequence: t('common.moment.shareConsequence'),
+  confirmLabel: t('common.moment.shareAction'),
 });
 
 /**
@@ -80,7 +80,7 @@ export function useMomentActions() {
       if (!await shell.confirmConsequence(shareNow())) return;
       if (!await attempt(() => client.updateMoment(journeyId, moment.id, sharePayload(moment)).then(() => undefined))) return;
       await journey.reload();
-      shell.showToast(t('moment.share.done'));
+      shell.showToast(t('common.moment.sharedWithJourneyer'));
     },
     async remove(moment: EditableMoment) {
       if (!journeyId) return;

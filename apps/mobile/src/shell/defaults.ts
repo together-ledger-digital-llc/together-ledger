@@ -8,4 +8,4 @@ export const TOAST_MS = 2600;
 export const workingLabel = () => t('common.action.working');
 
 /** The consequence dialog's way out, unless the caller names a better one. */
-export const keepThingsLabel = () => t('common.consequence.keep');
+export const keepThingsLabel = () => t('common.dialog.keep');

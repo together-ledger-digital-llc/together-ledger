@@ -27,13 +27,13 @@ export default function WelcomeScreen() {
   return (
     <Screen title="Together Ledger" edges={['top', 'bottom', 'left', 'right']}>
       {languageChoiceShown(offered) ? <LanguageControl /> : null}
-      <Text style={[styles.eyebrow, { color: theme.colors.accent }]}>{t('welcome.hero.eyebrow')}</Text>
+      <Text style={[styles.eyebrow, { color: theme.colors.accent }]}>{t('common.welcome.eyebrow')}</Text>
       <Text accessibilityRole="header" style={[styles.headline, fonts.serif, { color: theme.colors.fg }]}>
-        {sentenceParts('common.welcome.headline', { together: t('welcome.hero.titleEmphasis') }).map((part, index) => (
+        {sentenceParts('common.welcome.headline', { together: t('common.welcome.headlineTogether') }).map((part, index) => (
           typeof part === 'string' ? part : <Text key={index} style={fonts.serifItalic}>{part.value}</Text>
         ))}
       </Text>
-      <Body>{t('welcome.hero.intro')}</Body>
+      <Body>{t('common.welcome.lead')}</Body>
       <Button label={t('mobile.welcome.begin')} onPress={() => {
         shell.completeOnboarding();
         router.replace('/ledger');
