@@ -30,7 +30,7 @@ test('the support page only describes steps the web and the phone really have', 
   assert.ok(web.includes('I forgot my password') && account.includes('I forgot my password'));
 
   assert.ok(support.includes('choose Restore purchases in the app\'s Settings'));
-  assert.ok(settings.includes('<RestorePurchases row />') && offers.includes("label: 'Restore purchases'"));
+  assert.ok(settings.includes('<RestorePurchases key="restore" row />') && offers.includes("label: 'Restore purchases'"));
 
   assert.ok(support.includes('open Settings, then Delete account'));
   assert.ok(settings.includes('label="Delete account"'));

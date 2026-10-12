@@ -56,7 +56,20 @@ export function settingsSections({ journeyOpen }: { journeyOpen: boolean }): Set
   return journeyOpen ? ['appearance', 'journey', 'account'] : ['appearance', 'account'];
 }
 
-/** The journey's group is titled with its name, and read aloud as what it is. */
+/** The journey's group heading, on screen and read aloud alike (owner, decision 122). */
 export function journeySettingsHeading(name: string) {
-  return `Journey settings: ${name}`;
+  return `Journey settings · ${name}`;
+}
+
+export type AccountRow = 'person' | 'restore' | 'delete' | 'still-signed-in' | 'sign-in';
+
+/**
+ * The rows under Account settings for each state of the session (owner, decisions 120 and 131).
+ * Only a signed-in phone has an account to show. Offline it is still signed in and says so. Anyone
+ * else, a fresh install or a phone still asking, gets one row and nothing under it.
+ */
+export function accountSettingsRows(status: 'loading' | 'signed-out' | 'offline' | 'signed-in'): AccountRow[] {
+  if (status === 'signed-in') return ['person', 'restore', 'delete'];
+  if (status === 'offline') return ['still-signed-in'];
+  return ['sign-in'];
 }

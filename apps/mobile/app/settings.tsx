@@ -6,7 +6,7 @@ import { STILL_SIGNED_IN } from '../src/auth/session-state';
 import { accountEmailLabel } from '../src/auth/social-sign-in';
 import { awaitingYourAnswer, waitingSuffix } from '../src/journey/sharing-view';
 import { useJourney } from '../src/journey/use-journey';
-import { journeySettingsHeading, settingsSections } from '../src/shell/screens';
+import { accountSettingsRows, journeySettingsHeading, settingsSections } from '../src/shell/screens';
 import { FootLink, SettingsGroup, SettingsHeading, SettingsRow } from '../src/components/settings-rows';
 import { RestorePurchases } from '../src/components/store-offers';
 import { ThemePicker } from '../src/components/theme-picker';
@@ -31,6 +31,17 @@ export default function SettingsScreen() {
   // The ledger's header says how many wait; here it says what they are waiting for.
   const waiting = awaitingYourAnswer(snapshot);
 
+  const accountRows = {
+    // An Apple account with no email shows plain words, not the placeholder it holds (#217).
+    person: session.status === 'signed-in' ? <SettingsRow key="person" label={session.user.displayName || session.user.username} detail={accountEmailLabel(session.user.email)} onPress={() => router.push('/account')} /> : null,
+    // Room and extras bought in the App Store or Google Play, honoured again on this phone (#275).
+    restore: <RestorePurchases key="restore" row />,
+    delete: <SettingsRow key="delete" destructive label="Delete account" onPress={() => router.push('/delete-account')} />,
+    'still-signed-in': session.status === 'offline' ? <SettingsRow key="still-signed-in" label="Account settings" detail={STILL_SIGNED_IN[session.reason]} onPress={() => router.push('/account')} /> : null,
+    // The sign-in screen offers Create account too.
+    'sign-in': <SettingsRow key="sign-in" label="Sign in or create an account" onPress={() => router.push('/account')} />,
+  };
+
   const sections = {
     appearance: (
       <View key="appearance" style={styles.section}>
@@ -40,26 +51,14 @@ export default function SettingsScreen() {
       </View>
     ),
     journey: snapshot ? (
-      <SettingsGroup key="journey" heading={snapshot.journey.name} accessibilityLabel={journeySettingsHeading(snapshot.journey.name)}>
+      <SettingsGroup key="journey" heading={journeySettingsHeading(snapshot.journey.name)}>
         <SettingsRow label={`Sharing${waitingSuffix(waiting)}`} onPress={() => router.push('/journey-settings')} />
         <SettingsRow label="History and conversations" onPress={() => router.push('/history')} />
       </SettingsGroup>
     ) : null,
     account: (
       <SettingsGroup key="account" heading="Account settings">
-        {session.status === 'signed-in' ? (
-          <>
-            {/* An Apple account with no email shows plain words, not the placeholder it holds (#217). */}
-            <SettingsRow label={session.user.displayName || session.user.username} detail={accountEmailLabel(session.user.email)} onPress={() => router.push('/account')} />
-            {/* Room and extras bought in the App Store or Google Play, honoured again on this phone (#275). */}
-            <RestorePurchases row />
-            <SettingsRow destructive label="Delete account" onPress={() => router.push('/delete-account')} />
-          </>
-        ) : session.status === 'offline' ? (
-          <SettingsRow label="Account settings" detail={STILL_SIGNED_IN[session.reason]} onPress={() => router.push('/account')} />
-        ) : (
-          <SettingsRow label="Sign in" detail="Sign in to manage or delete your account." onPress={() => router.push('/account')} />
-        )}
+        {accountSettingsRows(session.status).map((row) => accountRows[row])}
       </SettingsGroup>
     ),
   };

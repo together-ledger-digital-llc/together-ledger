@@ -114,8 +114,8 @@ for the app in use rather than title art or a sign-in screen.
 ### 5. Journey sharing
 
 - **Screen:** Journey sharing.
-- **How to reach it:** Settings → under **Sample journey: Sam and Alex**,
-  **Sharing**. Stay at
+- **How to reach it:** Settings → under **Journey settings · Sample
+  journey: Sam and Alex**, **Sharing**. Stay at
   the top.
 - **On screen:** the line under the title ("2 people are here. … Each person
   signs in separately."), then the **Journey record**: **Created by Sam
@@ -131,8 +131,8 @@ for the app in use rather than title art or a sign-in screen.
 ### 6. History and conversations
 
 - **Screen:** "Sample journey: Sam and Alex history".
-- **How to reach it:** Settings → under **Sample journey: Sam and Alex**,
-  **History and conversations**.
+- **How to reach it:** Settings → under **Journey settings · Sample
+  journey: Sam and Alex**, **History and conversations**.
 - **On screen:** **Return-to conversations** with **How we split the
   weekends** (Open) and **Dishes left overnight** (Resolved), and the start of
   **Recorded changes** below them, rows showing "#… · …" with who made each

@@ -8,18 +8,18 @@ import { targetSize, useTheme } from '../theme';
  * group of rows, each row a whole-width target of at least 44 points. Colour comes from the
  * semantic roles; the destructive one is only for a row whose act cannot be undone.
  */
-export function SettingsHeading({ children, accessibilityLabel }: { children: string; accessibilityLabel?: string }) {
+export function SettingsHeading({ children }: { children: string }) {
   const { theme } = useTheme();
-  return <Text accessibilityRole="header" accessibilityLabel={accessibilityLabel} style={[styles.heading, { color: theme.colors.muted }]}>{children}</Text>;
+  return <Text accessibilityRole="header" style={[styles.heading, { color: theme.colors.muted }]}>{children}</Text>;
 }
 
-export function SettingsGroup({ heading, accessibilityLabel, children }: { heading: string; accessibilityLabel?: string; children: ReactNode }) {
+export function SettingsGroup({ heading, children }: { heading: string; children: ReactNode }) {
   const { theme } = useTheme();
   // A row a store or a session leaves out (null) draws no line of its own.
   const rows = Children.toArray(children);
   return (
     <View style={styles.group}>
-      <SettingsHeading accessibilityLabel={accessibilityLabel}>{heading}</SettingsHeading>
+      <SettingsHeading>{heading}</SettingsHeading>
       <View style={[styles.rows, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderRadius: theme.radius.m }]}>
         {rows.map((row, index) => (
           <View key={index} style={index ? [styles.divided, { borderTopColor: theme.colors.border }] : null}>{row}</View>
@@ -81,7 +81,8 @@ export function FootLink({ label, onPress, expanded }: { label: string; onPress:
 
 const styles = StyleSheet.create({
   group: { gap: 8 },
-  heading: { fontSize: 13, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', paddingHorizontal: 4 },
+  // Not set in capitals: a heading carries a journey's own name, which is shown as it was written.
+  heading: { fontSize: 14, fontWeight: '700', paddingHorizontal: 4 },
   rows: { borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   divided: { borderTopWidth: StyleSheet.hairlineWidth },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 },

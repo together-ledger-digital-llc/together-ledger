@@ -35,7 +35,7 @@ test('Settings opens the Privacy screen for everyone, signed in or not', async (
   const route = settings.indexOf("router.push('/privacy')");
   assert.ok(route > -1, 'Settings routes to /privacy');
   // The privacy entry sits after the signed-in/signed-out account block, outside either branch.
-  assert.ok(route > settings.indexOf('Sign in to manage or delete your account.'), 'it is not inside a signed-in branch');
+  assert.ok(route > settings.indexOf('<View style={styles.foot}>') && settings.indexOf('<View style={styles.foot}>') > settings.indexOf('.map((section) => sections[section])'), 'it is at the foot, outside every signed-in row');
   assert.match(await read('app/privacy.tsx'), /from '\.\.\/src\/policies\/privacy\.json'/);
   assert.match(await read('app/_layout.tsx'), /<Stack\.Screen name="privacy"/);
 });
@@ -82,7 +82,7 @@ test('the Terms screen shows terms.json, and Settings opens it for everyone', as
   assert.match(await read('app/_layout.tsx'), /<Stack\.Screen name="terms"/);
   const settings = await read('app/settings.tsx');
   const route = settings.indexOf("router.push('/terms')");
-  assert.ok(route > settings.indexOf('Sign in to manage or delete your account.'), 'it is not inside a signed-in branch');
+  assert.ok(route > settings.indexOf('<View style={styles.foot}>') && settings.indexOf('<View style={styles.foot}>') > settings.indexOf('.map((section) => sections[section])'), 'it is at the foot, outside every signed-in row');
 });
 
 test('each subscription offer links to the terms and the privacy policy, inside the app (Apple 3.1.2)', async () => {

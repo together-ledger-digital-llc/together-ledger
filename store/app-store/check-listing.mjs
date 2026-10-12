@@ -77,6 +77,7 @@ const requiredInDescription = [
 const requiredInNotes = [
   ["sign-in information", 'where the reviewer\'s email and password are: App Store Connect, never this repository'],
   ['a journey of two is free', 'nothing has to be bought'],
+  ['tap settings, then sign in or create an account', 'the one way in from the welcome (apps/mobile/app/settings.tsx)'],
   ['settings > sharing > room for more people', 'where the purchase screen is (apps/mobile/app/journey-settings.tsx)'],
   ['restore purchases is in settings', 'apps/mobile/app/settings.tsx'],
   ['honours sandbox purchases only for a short list of test accounts', 'STORE_SANDBOX_ACCOUNT_IDS (server/store-purchases.js)'],
@@ -174,6 +175,8 @@ const settings = readRepo('apps/mobile/app/settings.tsx');
 for (const label of ['Sharing', 'History and conversations', 'Delete account']) {
   if (!settings.includes(`label="${label}"`) && !settings.includes(`label={\`${label}`)) fail(`Review notes name Settings > ${label}, which apps/mobile/app/settings.tsx no longer shows`);
 }
+if (!settings.includes('label="Sign in or create an account"')) fail('Review notes name Settings > Sign in or create an account, which apps/mobile/app/settings.tsx no longer shows');
+if (!readRepo('apps/mobile/src/shell/screens.ts').includes('`Journey settings · ${name}`')) fail('Review notes name the Journey settings group, which apps/mobile/src/shell/screens.ts no longer heads that way');
 if (!readRepo('apps/mobile/src/billing/store-products.ts').includes("ROOM_TITLE = 'Room for more people'")) fail('Review notes name "Room for more people", which the phone no longer titles its offers');
 
 console.log(failed ? '\nFAILED' : '\nAll checks passed');

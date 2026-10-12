@@ -52,25 +52,58 @@ test('Settings is Appearance, the open journey, then Account settings', () => {
 
   const journey = section('journey');
   assert.match(journey, /^ {4}journey: snapshot \? \(/, 'only while a journey is open');
-  assert.match(journey, /heading=\{snapshot\.journey\.name\} accessibilityLabel=\{journeySettingsHeading\(snapshot\.journey\.name\)\}/, 'titled with the journey\'s name');
-  assert.equal(screens.journeySettingsHeading('Sample journey: Sam and Alex'), 'Journey settings: Sample journey: Sam and Alex');
+  assert.match(journey, /<SettingsGroup key="journey" heading=\{journeySettingsHeading\(snapshot\.journey\.name\)\}>/, 'headed Journey settings and the journey\'s name');
   const sharing = journey.indexOf('<SettingsRow label={`Sharing${waitingSuffix(waiting)}`} onPress={() => router.push(\'/journey-settings\')} />');
   const history = journey.indexOf('<SettingsRow label="History and conversations" onPress={() => router.push(\'/history\')} />');
   assert.ok(sharing > 0 && history > sharing, 'Sharing, with today\'s waiting count, then History and conversations');
 });
 
-test('Account settings: the person, Restore purchases and Delete account signed in; the sign-in line otherwise', () => {
+test('the journey heading reads "Journey settings · <name>" on screen and to screen readers', async () => {
+  assert.equal(screens.journeySettingsHeading('Home in Fall'), 'Journey settings · Home in Fall');
+  assert.equal(screens.journeySettingsHeading('Sample journey: Sam and Alex'), 'Journey settings · Sample journey: Sam and Alex');
+  const rows = await read('src/components/settings-rows.tsx');
+  // The heading is the one Text a screen reader reads: no label of its own to say anything else,
+  // and no capitals laid over a journey's name.
+  assert.match(rows, /<Text accessibilityRole="header" style=\{\[styles\.heading, \{ color: theme\.colors\.muted \}\]\}>\{children\}<\/Text>/);
+  assert.match(rows, /<SettingsHeading>\{heading\}<\/SettingsHeading>/);
+  assert.doesNotMatch(rows, /accessibilityLabel=\{accessibilityLabel\}/);
+  assert.doesNotMatch(rows, /textTransform/);
+  assert.doesNotMatch(settings, /heading=\{snapshot\.journey\.name\}/, 'never the bare name');
+});
+
+test('Account settings: the person, Restore purchases and Delete account signed in; one row otherwise', () => {
+  const { accountSettingsRows } = screens;
+  assert.deepEqual(accountSettingsRows('signed-in'), ['person', 'restore', 'delete'], 'name and email, Restore purchases, then Delete account in red');
+  assert.deepEqual(accountSettingsRows('offline'), ['still-signed-in'], 'offline, a signed-in phone says it is still signed in');
+  assert.deepEqual(accountSettingsRows('signed-out'), ['sign-in']);
+  assert.deepEqual(accountSettingsRows('loading'), ['sign-in']);
+
   const group = section('account');
-  assert.match(group, /<SettingsGroup key="account" heading="Account settings">/);
-  const [signedIn, offline, signedOut] = group.split(/\) : session\.status === 'offline' \? \(|\) : \(/);
-  assert.match(signedIn, /session\.status === 'signed-in' \? \(/);
-  const person = signedIn.indexOf("<SettingsRow label={session.user.displayName || session.user.username} detail={accountEmailLabel(session.user.email)} onPress={() => router.push('/account')} />");
-  const restore = signedIn.indexOf('<RestorePurchases row />');
-  const remove = signedIn.indexOf('<SettingsRow destructive label="Delete account" onPress={() => router.push(\'/delete-account\')} />');
-  assert.ok(person > 0 && restore > person && remove > restore, 'name and email, Restore purchases, then Delete account in red');
-  assert.match(offline, /STILL_SIGNED_IN\[session\.reason\]/, 'offline, it says the person is still signed in');
-  assert.match(signedOut, /<SettingsRow label="Sign in" detail="Sign in to manage or delete your account\." onPress=\{\(\) => router\.push\('\/account'\)\} \/>/, 'signed out, today\'s sign-in line');
-  assert.doesNotMatch(signedOut, /Delete account|RestorePurchases/);
+  assert.match(group, /<SettingsGroup key="account" heading="Account settings">\s*\{accountSettingsRows\(session\.status\)\.map\(\(row\) => accountRows\[row\]\)\}\s*<\/SettingsGroup>/, 'the rows are exactly those');
+  assert.match(settings, /person: session\.status === 'signed-in' \? <SettingsRow key="person" label=\{session\.user\.displayName \|\| session\.user\.username\} detail=\{accountEmailLabel\(session\.user\.email\)\} onPress=\{\(\) => router\.push\('\/account'\)\} \/> : null,/);
+  assert.match(settings, /restore: <RestorePurchases key="restore" row \/>,/);
+  assert.match(settings, /'still-signed-in': session\.status === 'offline' \? <SettingsRow key="still-signed-in" label="Account settings" detail=\{STILL_SIGNED_IN\[session\.reason\]\}/, 'the still-signed-in words only ever for a phone that is');
+  assert.match(settings, /'sign-in': <SettingsRow key="sign-in" label="Sign in or create an account" onPress=\{\(\) => router\.push\('\/account'\)\} \/>,/, 'one row, no line under it, to the screen that also offers Create account');
+  assert.match(account, /label="Create account" onPress=\{\(\) => router\.push\('\/register'\)\}/);
+  assert.equal(settings.split('STILL_SIGNED_IN[').length, 2, 'said in one place');
+  assert.doesNotMatch(settings, /Sign in to manage or delete your account\./, 'the old line is gone');
+});
+
+test('a fresh install, and a phone still asking who is signed in, see one row: "Sign in or create an account"', async () => {
+  const { createAccountClient } = await importMobile('src/api/client.ts');
+  const { sessionAnswered } = await importMobile('src/auth/session-state.ts');
+  // A fresh install holds no tokens, so the phone never asks the service and is signed out, not offline.
+  const nothingHeld = { read: async () => null, write: async () => {}, clear: async () => {} };
+  const client = createAccountClient({ base: () => '/api/v1', tokens: nothingHeld, fetch: async () => { throw new Error('never called'); } });
+  const fresh = sessionAnswered(await client.session());
+  assert.equal(fresh.status, 'signed-out');
+  // Before it has an answer, the session is loading (src/auth/session.tsx).
+  assert.match(await read('src/auth/session.tsx'), /useState<SessionState>\(\{ status: 'loading', user: null \}\)/);
+  for (const status of [fresh.status, 'loading']) {
+    const rows = screens.accountSettingsRows(status);
+    assert.deepEqual(rows, ['sign-in'], `${status}: exactly one row`);
+    assert.ok(!rows.includes('still-signed-in'), `${status}: never told it is still signed in`);
+  }
 });
 
 test('Delete account is one tap from Settings, in the destructive colour, and leads to today\'s explain and confirm screens', async () => {

@@ -122,7 +122,7 @@ each submission, and `npm run check` holds the notes to the code.
 >
 > The account provided (Sam) is already in a sample journey with a second sample account (Alex), so the shared
 > ledger has content from both people. To see the other side, sign in with the username app-review-alex and the
-> same password. Sam's private moment will not be there. In Settings, under the journey's name, Sharing shows who is
+> same password. Sam's private moment will not be there. In Settings, under Journey settings, Sharing shows who is
 > in the journey and how someone new is added: everyone already in it has to agree first. History and conversations,
 > beside it, holds the journey's record.
 >
