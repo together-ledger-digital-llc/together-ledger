@@ -479,6 +479,8 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .apple-button { align-items: center; background: var(--apple-button-bg); border: 1px solid var(--apple-button-outline); color: var(--apple-button-fg); display: flex; font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; font-size: 16px; font-weight: 500; gap: 6px; justify-content: center; padding: 0 16px; white-space: nowrap; }
 .apple-button svg { fill: currentColor; flex: none; height: 17px; width: 17px; }
 .apple-button:disabled { cursor: progress; opacity: .7; }
+/* Said under the buttons, in the words of a field hint: what a new account is called (#399). */
+.provider-hint { color: var(--muted); display: block; font-weight: 500; overflow-wrap: anywhere; }
 .link-identity { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius-l); padding: 22px; }
 .provider-divider { align-items: center; color: var(--muted); display: flex; font-size: 14px; font-weight: 800; gap: 12px; margin: 0; }
 .provider-divider::before, .provider-divider::after { border-top: 1px solid var(--line); content: ""; flex: 1; }
