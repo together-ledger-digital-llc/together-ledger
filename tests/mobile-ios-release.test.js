@@ -109,9 +109,10 @@ test('the iOS build carries no Google SDK, so GoogleSignIn and its privacy manif
   const native = autolinking('react-native-config', '--platform', 'ios').dependencies;
   assert.equal(native['@react-native-google-signin/google-signin'], undefined, 'RNGoogleSignin.podspec, and GoogleSignIn with it, is not linked');
   assert.ok(native['react-native-screens'], 'the React Native modules are still read');
-  // Android still links the native library, and the browser sheet is left out there.
+  // Android still links the native library, and the browser tab too since Sign in with Apple
+  // opens Apple's page in it there (#400; what it adds is read in tests/mobile-permissions.test.js).
   assert.ok(autolinking('react-native-config', '--platform', 'android').dependencies['@react-native-google-signin/google-signin']);
-  assert.equal(autolinking('resolve', '--platform', 'android').modules.some((module) => module.packageName === 'expo-web-browser'), false);
+  assert.equal(autolinking('resolve', '--platform', 'android').modules.some((module) => module.packageName === 'expo-web-browser'), true);
   // The Podfile would use the React Native CLI instead only with this set, which no build profile does.
   assert.doesNotMatch(JSON.stringify(eas), /EXPO_USE_COMMUNITY_AUTOLINKING/);
   // No Google pod is the only source of that manifest: neither library added for the iPhone brings one.

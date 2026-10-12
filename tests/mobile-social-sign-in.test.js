@@ -147,7 +147,7 @@ test('the email from Apple\'s first authorization is never sent from the phone: 
   assert.deepEqual(body, { idToken: 'id', authorizationCode: 'code' });
   assert.equal(kept.held, null, 'nothing to keep without a name');
   const platform = await readFile(new URL('../server/platform.js', import.meta.url), 'utf8');
-  assert.match(platform, /async socialSignIn\(provider, \{ idToken, displayName, authorizationCode \} = \{\}/, 'the server takes no email from the body');
+  assert.match(platform, /async socialSignIn\(provider, \{ idToken, displayName, authorizationCode, returnedTo \} = \{\}/, 'the server takes no email from the body');
 });
 
 test('Apple\'s answer without either credential sends nothing, and a keychain that refuses doesn\'t stop the sign-in', async () => {
@@ -215,7 +215,7 @@ test('a cancel says nothing and sends nothing; a failure in the sheet is said in
 // ---------------------------------------------------------------------------------------------
 // Hidden until ready
 
-test('nothing shows until the server says it works; an iPhone shows both or neither, Android Google alone', () => {
+test('nothing shows until the server says it works; an iPhone shows both or neither, Android each the server has ready', () => {
   const both = { google: { clientId: 'g' }, apple: { clientId: 'com.togetherledger.ledger' } };
   const none = { google: false, apple: false };
   assert.deepEqual(social.offeredSignIns('ios', null, { appleSheet: true }), none, 'not asked yet, or not answered');
@@ -224,8 +224,16 @@ test('nothing shows until the server says it works; an iPhone shows both or neit
   assert.deepEqual(social.offeredSignIns('ios', { google: null, apple: both.apple }, { appleSheet: true }), none, 'and both, or neither');
   assert.deepEqual(social.offeredSignIns('ios', both, { appleSheet: false }), none, 'Apple\'s sheet has to be there too');
   assert.deepEqual(social.offeredSignIns('android', { google: { clientId: 'g' }, apple: null }), { google: true, apple: false });
-  assert.deepEqual(social.offeredSignIns('android', both), { google: true, apple: false }, 'never Apple on Android until its web flow can finish there');
+  // Android signs in with Apple through Apple's page in the browser (#400), so it is offered Apple
+  // once the server names the Return URL that page answers to, and only then.
+  assert.deepEqual(social.offeredSignIns('android', both), { google: true, apple: false }, 'an Apple answer with no Return URL is the iPhone\'s, not Android\'s');
+  const browser = { clientId: 'com.togetherledger.ledger.web', redirectUri: 'https://api.together-ledger.com/api/v1/auth/apple/return' };
+  assert.deepEqual(social.offeredSignIns('android', { google: { clientId: 'g' }, apple: browser }), { google: true, apple: true });
+  assert.deepEqual(social.offeredSignIns('android', { google: null, apple: browser }), { google: false, apple: true }, 'no guideline ties the two on Android');
   assert.deepEqual(social.offeredSignIns('android', { google: null, apple: null }), none);
+  assert.deepEqual(social.offeredSignIns('android', null), none);
+  // The iPhone is unchanged by it: its sheet, never the browser.
+  assert.deepEqual(social.offeredSignIns('ios', { google: { clientId: 'g' }, apple: browser }, { appleSheet: false }), none);
 });
 
 test('the buttons draw nothing until then, and an unanswered or failed read leaves only email sign-in', async () => {
@@ -340,6 +348,16 @@ test('with those clients set, the phone offers Google on both platforms and Appl
     assert.equal(unset.googleClientId, null);
     assert.deepEqual(social.offeredSignIns(os, server.phoneSignInProviders(os, unset.googleClientId), { appleSheet: true }), social.NOTHING_OFFERED);
   }
+  // Once the owner sets Android's Return URL for Apple too (#400), Android offers both.
+  const withAndroidApple = new PlatformService({
+    pool: null, mailer: null, apple: { configured: () => true },
+    config: loadConfig({ NODE_ENV: 'test', GOOGLE_WEB_CLIENT_ID: GOOGLE_WEB_CLIENT, GOOGLE_CLIENT_IDS: GOOGLE_IOS_CLIENT, APPLE_ANDROID_REDIRECT_URI: 'https://api.together-ledger.com/api/v1/auth/apple/return' }),
+  });
+  const android = await googleConfigFor('android', eas.build.production.env);
+  assert.deepEqual(social.offeredSignIns('android', withAndroidApple.phoneSignInProviders('android', android.googleClientId)), { google: true, apple: true });
+  const ios = await googleConfigFor('ios', eas.build.production.env);
+  assert.deepEqual(withAndroidApple.phoneSignInProviders('ios', ios.googleClientId).apple, { clientId: 'com.togetherledger.ledger' }, 'the iPhone\'s answer is unchanged');
+
   // And a server that hasn't been given them yet offers neither phone anything.
   const bare = new PlatformService({ pool: null, config: loadConfig({ NODE_ENV: 'test' }), mailer: null, apple: { configured: () => true } });
   for (const os of ['ios', 'android']) {
@@ -356,7 +374,8 @@ test('the buttons sit on the same screens as email sign-in, equal in size and ov
   const component = await read('src/components/social-sign-in.tsx');
   const size = /const PROVIDER_BUTTON = \{ width: '100%', maxWidth: 400, height: (\d+), alignSelf: 'center' \} as const;/.exec(component);
   assert.ok(size && Number(size[1]) >= 44);
-  assert.equal(component.match(/style=\{(?:\[)?PROVIDER_BUTTON/g)?.length, 2, 'both buttons take the same size');
+  // Apple's sheet on an iPhone, Apple's browser sign-in on Android (#400), and Google: one size.
+  assert.equal(component.match(/style=\{(?:\[)?PROVIDER_BUTTON/g)?.length, 3, 'every button takes the same size');
   assert.match(component, /const PILL = PROVIDER_BUTTON\.height \/ 2;/);
   assert.match(component, /cornerRadius=\{PILL\}/);
   // The iPhone's Google button is drawn to Google's guidelines with Google's own "G" (20pt, @2x, @3x).
@@ -441,4 +460,195 @@ test('deleting an account opened with Apple or Google asks for no password, and 
   assert.match(remove, /\{asksForPassword \? <Field label="Current password"/);
   assert.match(remove, /disabled=\{\(asksForPassword && !password\) \|\| typed !== 'DELETE'\}/);
   assert.match(remove, /session\.client\.deleteAccount\(asksForPassword \? password : null\)/);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Sign in with Apple on Android (#400): Apple's page in the browser tab, its answer collected from
+// our server, then the iPhone's sign-in. The server's side is proven in tests/social-sign-in.test.js;
+// the phone's against the real server at the end of this file.
+
+const { createHash, randomBytes } = await import('node:crypto');
+const sha = (value) => createHash('sha256').update(value).digest('base64url');
+const ANDROID_RETURN = 'https://api.together-ledger.com/api/v1/auth/apple/return';
+
+test('the phone\'s secrets are 32 random bytes in base64url, hashed the way the server hashes them', () => {
+  for (let size = 0; size <= 34; size += 1) {
+    const bytes = randomBytes(size);
+    assert.equal(social.base64url(new Uint8Array(bytes)), bytes.toString('base64url'), `${size} bytes`);
+  }
+  const secret = randomBytes(32).toString('base64url');
+  assert.equal(secret.length, 43);
+  // expo-crypto digests in standard base64; the server compares in base64url.
+  assert.equal(social.base64ToBase64url(createHash('sha256').update(secret).digest('base64')), sha(secret));
+});
+
+test('Apple\'s page is asked for the name and email, answered by form to the server\'s Return URL, with the state and nonce', () => {
+  const url = new URL(social.appleAuthorizationUrl({ clientId: 'com.togetherledger.ledger.web', redirectUri: ANDROID_RETURN, state: 'the-state', nonce: 'the-nonce' }));
+  assert.equal(`${url.origin}${url.pathname}`, 'https://appleid.apple.com/auth/authorize');
+  assert.deepEqual(Object.fromEntries(url.searchParams), {
+    response_type: 'code id_token',
+    // Apple answers the name and email scopes only by form_post, so the answer goes to our server.
+    response_mode: 'form_post',
+    client_id: 'com.togetherledger.ledger.web',
+    redirect_uri: ANDROID_RETURN,
+    scope: 'name email',
+    state: 'the-state',
+    nonce: 'the-nonce',
+  });
+});
+
+test('the tab handing back is recognised by its path on our own website alone', () => {
+  for (const opened of ['https://app.together-ledger.com/apple-sign-in', 'https://APP.together-ledger.com/apple-sign-in/', '/apple-sign-in', 'apple-sign-in', 'https://app.together-ledger.com/apple-sign-in?x=1#y']) {
+    assert.equal(social.isAppleReturn(opened), true, opened);
+  }
+  for (const opened of ['https://elsewhere.example/apple-sign-in', 'http://app.together-ledger.com/apple-sign-in', 'togetherledger://apple-sign-in', 'https://app.together-ledger.com/invite#invite=x', '/apple-sign-in/more', '/']) {
+    assert.equal(social.isAppleReturn(opened), false, opened);
+  }
+  // What the router does with it is in tests/mobile-invitation.test.js, beside the invitation's.
+});
+
+test('a kept sign-in is collected only while the server still holds its answer, and only when well formed', () => {
+  const now = Date.parse('2026-10-12T12:00:00Z');
+  const kept = { verifier: randomBytes(32).toString('base64url'), nonce: randomBytes(32).toString('base64url'), startedAt: now - 60_000 };
+  assert.equal(social.stillCollectable(kept, now), true);
+  assert.equal(social.stillCollectable({ ...kept, startedAt: now - social.APPLE_RETURN_MS - 1 }, now), false, 'past the server\'s ten minutes');
+  assert.equal(social.stillCollectable({ ...kept, startedAt: now + 60_000 }, now), false, 'a clock that moved back');
+  assert.equal(social.stillCollectable({ ...kept, verifier: 'short' }, now), false);
+  assert.equal(social.stillCollectable({ verifier: kept.verifier, startedAt: now }, now), false);
+  assert.equal(social.stillCollectable(null, now), false);
+});
+
+test('the phone collects Apple\'s answer, signs in with it as the iPhone does, and says the code came back to Android', async () => {
+  const returned = { user: 'apple-user', idToken: 'id', authorizationCode: 'code', displayName: 'Asha' };
+  const { client, calls } = recording((url) => (url.endsWith('/auth/apple/returned') ? reply(200, { data: returned }) : reply(200, { data: { user: { id: 'u1', hasPassword: false }, ...pair } })));
+  assert.deepEqual(await client.collectAppleReturn({ verifier: 'v', nonce: 'n' }), returned);
+  const kept = memoryKept();
+  const body = await social.appleSignInBody(social.appleCredentialFrom(returned), kept);
+  assert.deepEqual(body, { idToken: 'id', authorizationCode: 'code', displayName: 'Asha' });
+  assert.deepEqual(kept.held, { user: 'apple-user', displayName: 'Asha' }, 'kept like the iPhone\'s, in case this sign-in doesn\'t reach the server');
+  await client.signInWithApple({ ...body, returnedTo: 'android' });
+  await client.linkIdentity('apple', { ...body, returnedTo: 'android' }, 'pw');
+  assert.deepEqual(calls.map(({ method, url, body: sent }) => ({ method, url, body: sent })), [
+    { method: 'POST', url: 'https://api.example.test/api/v1/auth/apple/returned', body: { verifier: 'v', nonce: 'n' } },
+    { method: 'POST', url: 'https://api.example.test/api/v1/auth/apple', body: { idToken: 'id', authorizationCode: 'code', displayName: 'Asha', returnedTo: 'android' } },
+    { method: 'POST', url: 'https://api.example.test/api/v1/auth/link', body: { provider: 'apple', idToken: 'id', authorizationCode: 'code', password: 'pw', returnedTo: 'android' } },
+  ]);
+  // The iPhone's link is unchanged: no returnedTo.
+  const iphone = recording();
+  await iphone.client.linkIdentity('apple', { idToken: 'id', authorizationCode: 'code' }, 'pw');
+  assert.deepEqual(iphone.calls[0].body, { provider: 'apple', idToken: 'id', authorizationCode: 'code', password: 'pw' });
+  // A later sign-in with no name finds the one kept for the same Apple user.
+  assert.deepEqual(await social.appleSignInBody(social.appleCredentialFrom({ user: 'apple-user', idToken: 'id2', authorizationCode: 'code2' }), kept), { idToken: 'id2', authorizationCode: 'code2', displayName: 'Asha' });
+});
+
+test('the providers answer carries Android\'s Return URL for Apple through to the phone', async () => {
+  const answer = { google: { clientId: 'web.apps.googleusercontent.com' }, apple: { clientId: 'com.togetherledger.ledger.web', redirectUri: ANDROID_RETURN } };
+  const { client } = recording(() => reply(200, { data: answer }));
+  assert.deepEqual(await client.providers('android', 'web.apps.googleusercontent.com'), answer);
+});
+
+test('on Android the browser sign-in is drawn with Apple\'s words and colours, and the iPhone keeps Apple\'s own button', async () => {
+  const component = await read('src/components/social-sign-in.tsx');
+  assert.match(component, /\{offer\.apple && phonePlatform === 'android' \? \(\s*<AppleButton dark=\{dark\} disabled=\{busy\} style=\{PROVIDER_BUTTON\} onPress=\{continueWithAppleInBrowser\} \/>/);
+  assert.match(component, /\{offer\.apple && phonePlatform === 'ios' \? \(\s*<AppleAuthentication\.AppleAuthenticationButton/);
+  // From there it is the iPhone's sign-in, said to have come back to Android.
+  assert.match(component, /const body: AppleSignInBody = \{ \.\.\.credential, returnedTo: 'android' \};\s*await finish\('apple', \(\) => client\.signInWithApple\(body\), body\);/);
+  const button = await read('src/components/apple-button.tsx');
+  assert.match(button, />Sign in with Apple<\/Text>/);
+  assert.match(button, /accessibilityLabel="Sign in with Apple"/);
+  assert.match(button, /light: \{ fill: '#000000', text: '#FFFFFF' \}/);
+  assert.match(button, /dark: \{ fill: '#FFFFFF', text: '#000000' \}/);
+  // The secrets are kept as the tokens are, and the tab opens in the app's own task.
+  const browser = await read('src/auth/apple-browser.ts');
+  assert.match(browser, /keychainAccessible: SecureStore\.WHEN_UNLOCKED_THIS_DEVICE_ONLY/);
+  assert.match(browser, /Crypto\.getRandomBytes\(32\)/);
+  assert.match(browser, /\{ createTask: false \}/);
+  assert.doesNotMatch(browser, /console\.|fetch\(/, 'the secrets go to the API client and nowhere else');
+});
+
+// The phone's own client and rules against the real server: Apple's page answers, the phone
+// collects, and signs in, the way src/components/social-sign-in.tsx does it.
+test('end to end: an Android phone signs in with Apple through the browser, into the account an iPhone opened', async () => {
+  const { buildApp } = await import('../server/app.js');
+  const { loadConfig } = await import('../server/config.js');
+  const { PlatformService } = await import('../server/platform.js');
+  const { IdentityVerifier } = await import('../server/identity.js');
+  const { AppleSignIn } = await import('../server/apple.js');
+  const { MemoryMailer } = await import('../server/mailer.js');
+  const { generateKeyPairSync, sign } = await import('node:crypto');
+  const { newDb } = await import('pg-mem');
+
+  const memory = newDb({ autoCreateForeignKeyIndices: true });
+  memory.public.registerFunction({ name: 'char_length', args: ['text'], returns: 'integer', implementation: (value) => value.length });
+  memory.public.registerFunction({ name: 'jsonb_array_length', args: ['jsonb'], returns: 'integer', implementation: (value) => (Array.isArray(value) ? value.length : 0) });
+  const pool = new (memory.adapters.createPg().Pool)();
+  // The ones tests/social-sign-in.test.js runs, which is what signing in touches.
+  const migrations = (await readFile(new URL('social-sign-in.test.js', import.meta.url), 'utf8')).match(/const MIGRATIONS = \[([^\]]*)\]/)[1].match(/'[^']+\.sql'/g).map((name) => name.slice(1, -5));
+  assert.ok(migrations.includes('037_let-apple-answer-an-android-phone'));
+  for (const name of migrations) {
+    await pool.query(await readFile(new URL(`../server/migrations/${name}.sql`, import.meta.url), 'utf8'));
+  }
+  const now = Date.parse('2026-10-12T12:00:00Z');
+  const keys = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const jwk = { ...keys.publicKey.export({ format: 'jwk' }), kid: 'apple-e2e', alg: 'RS256', use: 'sig' };
+  const signed = (claims) => {
+    const part = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
+    const head = part({ alg: 'RS256', kid: 'apple-e2e' });
+    const body = part({ iss: 'https://appleid.apple.com', iat: Math.floor(now / 1000), exp: Math.floor(now / 1000) + 600, ...claims });
+    return `${head}.${body}.${sign('RSA-SHA256', Buffer.from(`${head}.${body}`), keys.privateKey).toString('base64url')}`;
+  };
+  const exchanged = [];
+  const fetch = async (url, init) => {
+    if (url === 'https://appleid.apple.com/auth/keys') return Response.json({ keys: [jwk] });
+    const form = Object.fromEntries(new URLSearchParams(String(init.body)));
+    exchanged.push(form);
+    return Response.json({ refresh_token: `rt-${form.code}`, id_token: signed({ aud: form.client_id, sub: 'person-1' }) });
+  };
+  const config = loadConfig({ NODE_ENV: 'test', SESSION_SECRET: 's'.repeat(32), AUDIT_HMAC_KEY: 'a'.repeat(32), ACCOUNT_ORIGIN: 'https://app.together-ledger.com', APPLE_ANDROID_REDIRECT_URI: ANDROID_RETURN });
+  const signInKey = generateKeyPairSync('ec', { namedCurve: 'P-256' });
+  const apple = new AppleSignIn({ teamId: '769MBW6826', keyId: '985BDXJP8S', privateKey: signInKey.privateKey.export({ type: 'pkcs8', format: 'der' }).toString('base64'), encryptionKey: randomBytes(32).toString('base64'), redirectUri: config.APPLE_WEB_REDIRECT_URI, fetch, now: () => now });
+  const identity = new IdentityVerifier({ googleClientIds: [], appleClientIds: config.appleClientIds, fetch, now: () => now });
+  const platform = new PlatformService({ pool, config, mailer: new MemoryMailer(), now: () => new Date(now), identity, apple });
+  const app = await buildApp({ platform, config });
+  // The phone's client, talking to the server in memory.
+  const phone = (held = null) => {
+    const tokens = { read: async () => held, write: async (value) => { held = value; }, clear: async () => { held = null; } };
+    return createAccountClient({ base: () => 'http://phone.test/api/v1', tokens, fetch: async (url, init) => {
+      const response = await app.inject({ method: init.method || 'GET', url: url.replace('http://phone.test', ''), headers: init.headers, payload: init.body });
+      return { ok: response.statusCode < 300, status: response.statusCode, json: async () => response.json() };
+    } });
+  };
+
+  // The account opens on an iPhone, with Apple's sheet: the App ID.
+  const iphone = phone();
+  const opened = await iphone.signInWithApple({ idToken: signed({ aud: 'com.togetherledger.ledger', sub: 'person-1', email: 'person@example.test' }), authorizationCode: 'iphone-code', displayName: 'Asha' });
+
+  // On Android the server offers Apple through the browser.
+  const android = phone();
+  const offered = await android.providers('android', null);
+  assert.deepEqual(offered.apple, { clientId: 'com.togetherledger.ledger.web', redirectUri: ANDROID_RETURN });
+  assert.equal(social.offeredSignIns('android', offered).apple, true);
+
+  // The phone's secrets, the page it opens, and Apple's form to the Return URL.
+  const verifier = social.base64url(new Uint8Array(randomBytes(32)));
+  const nonce = social.base64url(new Uint8Array(randomBytes(32)));
+  const page = new URL(social.appleAuthorizationUrl({ clientId: offered.apple.clientId, redirectUri: offered.apple.redirectUri, state: sha(verifier), nonce: sha(nonce) }));
+  const answered = await app.inject({
+    method: 'POST', url: new URL(page.searchParams.get('redirect_uri')).pathname,
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    payload: new URLSearchParams({ state: page.searchParams.get('state'), code: 'android-code', id_token: signed({ aud: page.searchParams.get('client_id'), sub: 'person-1', nonce: page.searchParams.get('nonce') }) }).toString(),
+  });
+  assert.equal(answered.statusCode, 303);
+  assert.ok(social.isAppleReturn(answered.headers.location), 'the tab is sent to the link the app claims');
+
+  // The phone collects and signs in, as the component does.
+  const returned = await android.collectAppleReturn({ verifier, nonce });
+  const body = await social.appleSignInBody(social.appleCredentialFrom(returned), memoryKept());
+  const user = await android.signInWithApple({ ...body, returnedTo: 'android' });
+  assert.equal(user.id, opened.id, 'the same account the iPhone opened');
+  assert.equal(user.displayName, 'Asha');
+  assert.ok(await android.session(), 'and the phone is signed in');
+  // Collected once: the same secrets get nothing the second time.
+  await assert.rejects(android.collectAppleReturn({ verifier, nonce }), (error) => error.code === 'apple_not_returned');
+  assert.deepEqual(exchanged.map((form) => form.client_id), ['com.togetherledger.ledger'], 'a returning account is not exchanged again');
 });

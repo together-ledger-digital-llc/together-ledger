@@ -88,7 +88,10 @@
         {
           "action": "VIEW",
           "autoVerify": true,
-          "data": [{ "scheme": "https", "host": "app.together-ledger.com", "path": "/invite" }],
+          "data": [
+            { "scheme": "https", "host": "app.together-ledger.com", "path": "/invite" },
+            { "scheme": "https", "host": "app.together-ledger.com", "path": "/apple-sign-in" }
+          ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
       ],

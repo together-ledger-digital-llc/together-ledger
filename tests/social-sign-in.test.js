@@ -10,11 +10,11 @@
 // honours one-time codes, the way Apple's /auth/token and /auth/revoke do.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateKeyPairSync, randomBytes, sign, verify } from 'node:crypto';
+import { createHash, generateKeyPairSync, randomBytes, sign, verify } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { newDb } from 'pg-mem';
 import { buildApp } from '../server/app.js';
-import { loadConfig } from '../server/config.js';
+import { appleAndroidReturnUrl, loadConfig } from '../server/config.js';
 import { AppleSignIn } from '../server/apple.js';
 import { IdentityVerifier } from '../server/identity.js';
 import { MemoryMailer } from '../server/mailer.js';
@@ -44,6 +44,7 @@ const MIGRATIONS = [
   '033_let-a-moment-held-offline-arrive-once.sql',
   '034_hear-refunds-and-renewals-from-the-stores.sql',
   '035_hear-reversed-refunds-and-refunded-extras.sql',
+  '037_let-apple-answer-an-android-phone.sql',
 ];
 
 function provider(kid) {
@@ -715,4 +716,235 @@ test('a user says whether it has a password, on sign-in and on the session', asy
   const phone = await app.inject({ method: 'POST', url: '/api/v1/auth/login', headers: { 'x-together-client': 'app' }, payload: { identifier: 'haspw@example.com', password: PASSWORD } });
   const bearer = await app.inject({ method: 'GET', url: '/api/v1/session', headers: { authorization: `Bearer ${phone.json().data.token}` } });
   assert.equal(bearer.json().data.user.hasPassword, true);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Sign in with Apple on Android (#400). The phone opens Apple's page for the Services ID in the
+// browser tab; Apple posts its answer to the server's Return URL as a form; the phone collects it
+// with the secret whose SHA-256 it sent as the state, and the nonce whose SHA-256 Apple signed into
+// the ID token. From there it is the iPhone's sign-in: POST /auth/apple, or /auth/link.
+
+const SERVICES_ID = 'com.togetherledger.ledger.web';
+const ANDROID_RETURN = 'https://api.together-ledger.com/api/v1/auth/apple/return';
+const ANDROID = { APPLE_ANDROID_REDIRECT_URI: ANDROID_RETURN };
+const digest = (value) => createHash('sha256').update(value).digest('base64url');
+const phoneSecrets = () => ({ verifier: randomBytes(32).toString('base64url'), nonce: randomBytes(32).toString('base64url') });
+
+// What Apple's page posts, for the person `sub`, to the phone whose secrets are `secrets`: the
+// state and the nonce are what that phone sent Apple. `nonce` overrides the one signed into the
+// token, and null leaves it out.
+function appleForm(secrets, sub, { email = `${sub}@example.com`, nonce = digest(secrets.nonce), user, signer = apple, code = fakeApple.issueCode(sub, SERVICES_ID), ...rest } = {}) {
+  const claims = { iss: 'https://appleid.apple.com', aud: SERVICES_ID, sub, email, ...(nonce === null ? {} : { nonce, nonce_supported: true }) };
+  const form = { state: digest(secrets.verifier), code, id_token: idToken(signer, claims), ...rest };
+  if (user) form.user = JSON.stringify(user);
+  return form;
+}
+const appleAnswers = (app, form) => app.inject({
+  method: 'POST', url: '/api/v1/auth/apple/return',
+  headers: { 'content-type': 'application/x-www-form-urlencoded', origin: 'https://appleid.apple.com' },
+  payload: new URLSearchParams(form).toString(),
+});
+const collect = (app, secrets) => app.inject({ method: 'POST', url: '/api/v1/auth/apple/returned', headers: { 'x-together-client': 'app' }, payload: secrets });
+const phone = (app, url, payload) => app.inject({ method: 'POST', url, headers: { 'x-together-client': 'app' }, payload });
+
+// The whole of it, as the phone does it: Apple answers, the phone collects, and signs in.
+async function signInOnAndroid(app, sub, options = {}) {
+  const secrets = phoneSecrets();
+  const answered = await appleAnswers(app, appleForm(secrets, sub, options));
+  assert.equal(answered.statusCode, 303, answered.body);
+  const collected = await collect(app, secrets);
+  assert.equal(collected.statusCode, 200, collected.body);
+  const returned = collected.json().data;
+  const body = { idToken: returned.idToken, authorizationCode: returned.authorizationCode, returnedTo: 'android', ...(returned.displayName ? { displayName: returned.displayName } : {}) };
+  return { returned, body, response: await phone(app, '/api/v1/auth/apple', body) };
+}
+
+test('Android is offered Apple through the browser once its Return URL is set, and nothing else changes', async () => {
+  const read = async (app, query) => (await app.inject({ method: 'GET', url: `/api/v1/auth/providers${query}`, headers: { 'x-together-client': 'app' } })).json().data;
+  const { app: before } = await setup();
+  assert.equal((await read(before, '?platform=android')).apple, null, 'not until the owner sets it');
+
+  const { app } = await setup(ANDROID);
+  assert.deepEqual((await read(app, '?platform=android')).apple, { clientId: SERVICES_ID, redirectUri: ANDROID_RETURN });
+  assert.deepEqual((await read(app, '?platform=ios')).apple, { clientId: APPLE_APP }, 'the iPhone keeps its sheet');
+  assert.deepEqual((await read(app, '')).apple, { clientId: SERVICES_ID, redirectUri: 'https://app.together-ledger.com/' }, 'the web keeps its own Return URL');
+
+  // Anything but this server's own return route is not used, and the server still starts.
+  for (const wrong of ['https://app.together-ledger.com/', 'https://api.together-ledger.com/api/v1/auth/apple', `${ANDROID_RETURN}?x=1`, 'not a url']) {
+    const { app: misconfigured } = await setup({ APPLE_ANDROID_REDIRECT_URI: wrong });
+    assert.equal((await read(misconfigured, '?platform=android')).apple, null, wrong);
+  }
+  assert.equal(appleAndroidReturnUrl(ANDROID_RETURN.replace('https:', 'http:'), 'production'), '', 'https once deployed');
+  assert.equal(appleAndroidReturnUrl(ANDROID_RETURN, 'production'), ANDROID_RETURN);
+
+  // Without Apple's key or encryption key, no Apple account could open, so Android isn't offered it either.
+  const { app: keyless, platform } = await setup(ANDROID);
+  platform.apple = new AppleSignIn({ teamId: '769MBW6826', keyId: '985BDXJP8S', privateKey: '', encryptionKey: '', fetch: async () => { throw new Error('must not be called'); } });
+  assert.equal((await read(keyless, '?platform=android')).apple, null);
+});
+
+test('Apple\'s answer on Android signs in: posted to the Return URL, collected once, exchanged with Android\'s Return URL', async () => {
+  const { app, pool } = await setup(ANDROID);
+  const { returned, response, body } = await signInOnAndroid(app, 'and-1', { user: { name: { firstName: ' Asha ', lastName: 'Rao' }, email: 'and-1@example.com' } });
+  assert.equal(response.statusCode, 200, response.body);
+  const { user, token, refreshToken } = response.json().data;
+  assert.ok(token && refreshToken, 'the phone gets its token pair');
+  assert.equal(response.headers['set-cookie'], undefined);
+  // The first name alone (#401), from Apple's first authorization, which only the server saw.
+  assert.equal(returned.displayName, 'Asha');
+  assert.equal(returned.user, 'and-1');
+  assert.equal(user.displayName, 'Asha');
+  assert.equal(user.email, 'and-1@example.com');
+  // A new Apple account opens only once its code exchanges (#218), with the Return URL it was sent to.
+  assert.equal(tokenCalls().length, 1);
+  assert.equal(tokenCalls()[0].form.client_id, SERVICES_ID);
+  assert.equal(tokenCalls()[0].form.redirect_uri, ANDROID_RETURN);
+  const identity = (await pool.query(`SELECT apple_client_id, apple_refresh_token FROM user_identities WHERE subject='and-1'`)).rows[0];
+  assert.equal(identity.apple_client_id, SERVICES_ID, 'so deletion revokes with the client it was issued to');
+  assert.match(identity.apple_refresh_token, /^v1\./);
+  // Collected once: nothing is left to collect, and the sign-in itself can't open a second account.
+  assert.equal((await pool.query('SELECT * FROM apple_returns')).rowCount, 0);
+  assert.equal((await phone(app, '/api/v1/auth/apple', body)).json().data.user.id, user.id);
+});
+
+test('the browser tab is sent back to the app whatever happened, and is told nothing', async () => {
+  const { app, pool } = await setup({ ...ANDROID, ACCOUNT_ORIGIN: 'https://app.together-ledger.com' });
+  const secrets = phoneSecrets();
+  for (const form of [appleForm(secrets, 'and-2'), { state: 'not-a-state', code: 'c', id_token: 'x' }, { error: 'user_cancelled_authorize', state: digest(phoneSecrets().verifier) }, {}]) {
+    const response = await appleAnswers(app, form);
+    assert.equal(response.statusCode, 303);
+    assert.equal(response.headers.location, 'https://app.together-ledger.com/apple-sign-in');
+    assert.equal(response.headers['cache-control'], 'no-store');
+    assert.equal(response.headers['set-cookie'], undefined);
+    assert.equal(response.body, '');
+  }
+  // Only the real answer is kept, sealed: nothing of Apple's token is readable in the row.
+  const rows = (await pool.query('SELECT * FROM apple_returns')).rows;
+  assert.equal(rows.length, 1);
+  assert.match(rows[0].answer, /^v1\./);
+  assert.ok(!rows[0].answer.includes('eyJ'));
+  // A form is read at Apple's Return URL alone. Anywhere else it is refused before the route runs,
+  // as before: a password login read from it would answer invalid_credentials.
+  await registerWithPassword(app, 'form@example.com');
+  const login = await app.inject({ method: 'POST', url: '/api/v1/auth/login', headers: { origin, 'content-type': 'application/x-www-form-urlencoded' }, payload: new URLSearchParams({ identifier: 'form@example.com', password: PASSWORD }).toString() });
+  assert.notEqual(login.statusCode, 200);
+  assert.notEqual(login.json().error.code, 'invalid_credentials');
+  assert.equal(login.headers['set-cookie'], undefined);
+  // And with Apple off Android, nothing is kept at all.
+  const { app: off, pool: offPool } = await setup();
+  assert.equal((await appleAnswers(off, appleForm(phoneSecrets(), 'and-3'))).statusCode, 303);
+  assert.equal((await offPool.query('SELECT * FROM apple_returns')).rowCount, 0);
+  assert.equal((await collect(off, phoneSecrets())).json().error.code, 'sign_in_unavailable');
+});
+
+test('a bad, forged or replayed state is refused, and an answer signed for another phone\'s nonce is never this phone\'s', async () => {
+  const { app, pool, platform } = await setup(ANDROID);
+
+  // Nothing posted for these secrets: the person closed the tab, or chose Cancel on Apple's page.
+  assert.equal((await collect(app, phoneSecrets())).json().error.code, 'apple_not_returned');
+  const cancelled = phoneSecrets();
+  await appleAnswers(app, { error: 'user_cancelled_authorize', state: digest(cancelled.verifier) });
+  assert.equal((await collect(app, cancelled)).json().error.code, 'apple_not_returned');
+  // Secrets that aren't 32 bytes of base64url are not looked up at all.
+  for (const bad of [{ verifier: 'short', nonce: phoneSecrets().nonce }, { verifier: phoneSecrets().verifier }, {}]) {
+    const response = await collect(app, bad);
+    assert.equal(response.statusCode, 400, JSON.stringify(bad));
+  }
+
+  // Replayed: an answer is collected once, and the state is spent with it.
+  const once = phoneSecrets();
+  await appleAnswers(app, appleForm(once, 'and-4'));
+  assert.equal((await collect(app, once)).statusCode, 200);
+  const replayed = await collect(app, once);
+  assert.equal(replayed.statusCode, 404);
+  assert.equal(replayed.json().error.code, 'apple_not_returned');
+  // Posting it again under the same state is not a second chance either: the first is the only one.
+  const first = phoneSecrets();
+  await appleAnswers(app, appleForm(first, 'and-5'));
+  await appleAnswers(app, appleForm(first, 'someone-else'));
+  assert.equal((await collect(app, first)).json().data.user, 'and-5');
+
+  // Collected with the state's secret but not this phone's nonce: refused, and gone.
+  const wrongNonce = phoneSecrets();
+  await appleAnswers(app, appleForm(wrongNonce, 'and-6'));
+  const refused = await collect(app, { ...wrongNonce, nonce: phoneSecrets().nonce });
+  assert.equal(refused.statusCode, 401);
+  assert.equal(refused.json().error.code, 'invalid_token');
+  assert.equal((await collect(app, wrongNonce)).statusCode, 404);
+
+  // Injected: someone who learned this phone's state posts their own Apple sign-in under it, first.
+  // Their token carries their nonce, not this phone's, so this phone is never signed in as them.
+  const victim = phoneSecrets();
+  await appleAnswers(app, appleForm(victim, 'attacker', { nonce: digest(phoneSecrets().nonce) }));
+  await appleAnswers(app, appleForm(victim, 'and-7'));
+  const injected = await collect(app, victim);
+  assert.equal(injected.statusCode, 401);
+  assert.equal(injected.json().error.code, 'invalid_token');
+  // Nor with no nonce at all, as a token from the web's sign-in has.
+  const noNonce = phoneSecrets();
+  await appleAnswers(app, appleForm(noNonce, 'and-8', { nonce: null }));
+  assert.equal((await collect(app, noNonce)).json().error.code, 'invalid_token');
+  // Nor a token Apple didn't sign: kept as a refusal, so the phone is told rather than left waiting.
+  const forged = phoneSecrets();
+  await appleAnswers(app, appleForm(forged, 'and-9', { signer: stranger }));
+  assert.equal((await collect(app, forged)).json().error.code, 'invalid_token');
+  // Nor an error from Apple other than Cancel.
+  const failed = phoneSecrets();
+  await appleAnswers(app, { error: 'invalid_request', state: digest(failed.verifier) });
+  assert.equal((await collect(app, failed)).json().error.code, 'invalid_token');
+
+  // Out of date: an answer nobody collected within ten minutes is gone.
+  const late = phoneSecrets();
+  await appleAnswers(app, appleForm(late, 'and-10'));
+  await pool.query('UPDATE apple_returns SET created_at=$1', [new Date(NOW.getTime() - 11 * 60 * 1000)]);
+  assert.equal((await collect(app, late)).json().error.code, 'apple_not_returned');
+  // The server's timer clears what nobody collected (server/start.js).
+  await appleAnswers(app, appleForm(phoneSecrets(), 'and-11'));
+  await pool.query('UPDATE apple_returns SET created_at=$1', [new Date(NOW.getTime() - 11 * 60 * 1000)]);
+  assert.equal(await platform.purgeAppleReturns(), 1);
+  assert.equal((await pool.query('SELECT * FROM apple_returns')).rowCount, 0);
+});
+
+test('an Apple account opened on an iPhone signs in on Android to the same account', async () => {
+  const { app, pool } = await setup(ANDROID);
+  const iphone = await appleAccount(app, 'shared-sub', { email: 'shared@example.com' });
+  assert.equal(tokenCalls().length, 1);
+  // Apple gives the same person the same id across the team's App ID and Services ID.
+  const { response } = await signInOnAndroid(app, 'shared-sub', { email: 'shared@example.com' });
+  assert.equal(response.statusCode, 200, response.body);
+  assert.equal(response.json().data.user.id, iphone.user.id);
+  assert.equal(tokenCalls().length, 1, 'a returning account is not exchanged again');
+  assert.deepEqual((await pool.query('SELECT provider, subject FROM user_identities WHERE user_id=$1', [iphone.user.id])).rows, [{ provider: 'apple', subject: 'shared-sub' }]);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM users')).rows[0].n, 1, 'no second account');
+  // Apple leaves the email out after the first sign-in; the account is found by its id all the same.
+  const { response: again } = await signInOnAndroid(app, 'shared-sub', { email: undefined });
+  assert.equal(again.json().data.user.id, iphone.user.id);
+});
+
+test('on Android, an email with a password account asks for that password once, and its code is exchanged with Android\'s Return URL after it', async () => {
+  const { app, pool } = await setup(ANDROID);
+  const owner = await registerWithPassword(app, 'and-link@example.com');
+  const { response, body } = await signInOnAndroid(app, 'and-12', { email: 'and-link@example.com' });
+  assert.equal(response.statusCode, 409);
+  assert.equal(response.json().error.code, 'link_required');
+  assert.equal(response.json().error.details.email, 'and-link@example.com');
+  assert.equal(tokenCalls().length, 0, 'nothing is exchanged before the password');
+  assert.equal((await phone(app, '/api/v1/auth/link', { provider: 'apple', ...body, password: 'not the password at all' })).statusCode, 401);
+  const linked = await phone(app, '/api/v1/auth/link', { provider: 'apple', ...body, password: PASSWORD });
+  assert.equal(linked.statusCode, 200, linked.body);
+  assert.equal(linked.json().data.user.id, owner.id);
+  assert.equal(tokenCalls().length, 1);
+  assert.equal(tokenCalls()[0].form.redirect_uri, ANDROID_RETURN);
+  assert.match((await pool.query(`SELECT apple_refresh_token FROM user_identities WHERE subject='and-12'`)).rows[0].apple_refresh_token, /^v1\./);
+
+  // An account without a password is refused, never linked, as everywhere else.
+  const google = await post(app, '/api/v1/auth/google', { idToken: googleToken({ sub: 'g-and', email: 'and-google@example.com' }) });
+  assert.equal(google.statusCode, 200);
+  const { response: inUse } = await signInOnAndroid(app, 'and-13', { email: 'and-google@example.com' });
+  assert.equal(inUse.json().error.code, 'email_in_use');
+  // And no Apple account opens without a working code, or while Apple can't be reached.
+  fakeApple.down = true;
+  const { response: down } = await signInOnAndroid(app, 'and-14');
+  assert.equal(down.statusCode, 503);
+  assert.equal((await pool.query(`SELECT * FROM user_identities WHERE subject IN ('and-13','and-14')`)).rowCount, 0);
 });

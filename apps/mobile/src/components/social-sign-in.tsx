@@ -3,12 +3,14 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { AccountUser, AppleSignInBody, GoogleSignInBody } from '../api/client';
 import { accountMessage } from '../auth/account-messages';
+import { collectAppleAnswer, openAppleInBrowser } from '../auth/apple-browser';
 import { keptAppleName } from '../auth/kept-apple-name';
 import { useSession } from '../auth/session';
 import { googleIdTokenFromSheet } from '../auth/google-sheet';
-import { appleCancelled, appleSignInBody, NOTHING_OFFERED, offeredSignIns, type Offer } from '../auth/social-sign-in';
+import { appleCancelled, appleCredentialFrom, appleSignInBody, NOTHING_OFFERED, offeredSignIns, type Offer } from '../auth/social-sign-in';
 import { googleClientId, phonePlatform } from '../config/google';
 import { useTheme } from '../theme';
+import { AppleButton } from './apple-button';
 import { GoogleButton } from './google-button';
 import { Button, Field, Notice } from './ui';
 
@@ -28,11 +30,16 @@ type PendingLink = { provider: Provider; body: GoogleSignInBody | AppleSignInBod
  * The ID token goes to our server and nowhere else, and comes back as the same token pair a password
  * sign-in gets, kept in the keychain (#180). Closing either sheet is silent. An email that already
  * has a password account asks for that password once, in the web's words (src/app.js).
+ *
+ * Apple on Android is Apple's page in the browser tab (#400, src/auth/apple-browser.ts). Its answer
+ * is collected from our server once the tab hands back, and from then on it is the iPhone's
+ * sign-in: the same body, the same refusals, the same password to connect an account.
  */
 export function SocialSignIn({ onSignedIn }: { onSignedIn?: (user: AccountUser) => void }) {
   const session = useSession();
   const { theme } = useTheme();
   const [offer, setOffer] = useState<Offer>(NOTHING_OFFERED);
+  const [appleInBrowser, setAppleInBrowser] = useState<{ clientId: string; redirectUri: string } | null>(null);
   const [pending, setPending] = useState<Provider | 'link' | null>(null);
   const [link, setLink] = useState<PendingLink | null>(null);
   const [password, setPassword] = useState('');
@@ -45,12 +52,24 @@ export function SocialSignIn({ onSignedIn }: { onSignedIn?: (user: AccountUser) 
       const appleSheet = phonePlatform === 'ios' && await AppleAuthentication.isAvailableAsync().catch(() => false);
       const answer = await client.providers(phonePlatform, googleClientId);
       const offered = offeredSignIns(phonePlatform, answer, { appleSheet });
-      if (current) setOffer(offered);
+      if (!current) return;
+      setOffer(offered);
+      if (phonePlatform === 'android' && offered.apple && answer.apple?.redirectUri) setAppleInBrowser({ clientId: answer.apple.clientId, redirectUri: answer.apple.redirectUri });
     })().catch(() => {
       // Not ready, or not reachable: email sign-in is still here, and that is all that shows.
     });
     return () => { current = false; };
   }, [client]);
+
+  // An Apple sign-in started in the browser tab on Android, while Android stopped the app behind it
+  // (#400). The App Link starts the app again on this screen (+native-intent.tsx), and it finishes
+  // here. With nothing waiting, nothing happens.
+  useEffect(() => {
+    if (phonePlatform !== 'android') return;
+    finishAppleFromBrowser().catch(() => {});
+    // Only once, when the screen opens; a sign-in started here finishes in continueWithAppleInBrowser.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function finish(provider: Provider, signIn: () => Promise<AccountUser>, body: GoogleSignInBody | AppleSignInBody) {
     try {
@@ -109,6 +128,42 @@ export function SocialSignIn({ onSignedIn }: { onSignedIn?: (user: AccountUser) 
     }
   }
 
+  // The tab has handed back: Apple's answer, if it gave one, is waiting on the server, and from here
+  // it is the iPhone's sign-in. A code collected on Android is exchanged with Android's Return URL.
+  async function finishAppleFromBrowser() {
+    let returned;
+    try {
+      returned = await collectAppleAnswer((secrets) => client.collectAppleReturn(secrets));
+    } catch (error) {
+      setNotice(accountMessage(error));
+      return;
+    }
+    if (!returned) return;
+    const credential = await appleSignInBody(appleCredentialFrom(returned), keptAppleName);
+    if (!credential) {
+      setNotice(accountMessage(null));
+      return;
+    }
+    const body: AppleSignInBody = { ...credential, returnedTo: 'android' };
+    await finish('apple', () => client.signInWithApple(body), body);
+  }
+
+  async function continueWithAppleInBrowser() {
+    if (!appleInBrowser) return;
+    setPending('apple');
+    setNotice(null);
+    try {
+      await openAppleInBrowser(appleInBrowser);
+      await finishAppleFromBrowser();
+    } catch {
+      // Only the browser tab throws here (no browser that can open it); our server's answers are
+      // handled above, and Apple's words never reach the phone.
+      setNotice(accountMessage(null));
+    } finally {
+      setPending(null);
+    }
+  }
+
   async function connect() {
     if (!link) return;
     setPending('link');
@@ -135,7 +190,10 @@ export function SocialSignIn({ onSignedIn }: { onSignedIn?: (user: AccountUser) 
 
   return (
     <View style={styles.group} accessibilityLabel="Continue with Google or Apple">
-      {offer.apple ? (
+      {offer.apple && phonePlatform === 'android' ? (
+        <AppleButton dark={dark} disabled={busy} style={PROVIDER_BUTTON} onPress={continueWithAppleInBrowser} />
+      ) : null}
+      {offer.apple && phonePlatform === 'ios' ? (
         <AppleAuthentication.AppleAuthenticationButton
           buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
           buttonStyle={dark ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}

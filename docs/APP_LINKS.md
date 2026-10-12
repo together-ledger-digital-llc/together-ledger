@@ -8,6 +8,8 @@ Only an invitation's own path: `https://app.together-ledger.com/invite`. The cod
 
 Invitations have their own path because Android's App Links match a path but never what follows the #. A link at `/` could only be claimed together with every verification and recovery link.
 
+On Android only, one more path: `https://app.together-ledger.com/apple-sign-in`, where the browser tab is sent once Apple has answered a Sign in with Apple (#400, [API.md](API.md), Signing in with Apple on Android). It carries nothing: no code, no token, no query. The app collects Apple's answer from the server with a secret only it holds, so this link reaching the browser, or anything else, gives nothing away. It is a verified App Link rather than the app's own `togetherledger://` scheme because only an app signed with one of the keys in `assetlinks.json` can claim it; any app can register a scheme. If the link isn't verified on a phone, the tab shows the page instead, which says to close it, and closing it hands back to the app too. The iPhone signs in with Apple's own sheet and claims nothing more.
+
 | Where | What | File |
 |---|---|---|
 | Email | `https://app.together-ledger.com/invite#invite=<code>` | `server/mailer.js` (`INVITATION_PATH`) |
@@ -17,6 +19,9 @@ Invitations have their own path because Android's App Links match a path but nev
 | Android | One `autoVerify` intent filter for `https://app.together-ledger.com/invite` | `apps/mobile/app.json` |
 | Android | `/.well-known/assetlinks.json` (`application/json` from its extension) | `public/.well-known/assetlinks.json` |
 | Phone | Reads the code from the opened link (`app/+native-intent.tsx`), keeps it in the keychain until it is answered (`src/invitations/`), and shows the invitation (`app/invite.tsx`) | `apps/mobile/` |
+| Android | The same intent filter also claims `/apple-sign-in` (#400): same host, so the same `assetlinks.json` verifies it | `apps/mobile/app.json` |
+| Website | `/apple-sign-in` is a page of its own, "Back to the app", for a tab the link didn't hand back | `public/apple-sign-in.html` |
+| Phone | Apple's hand-back moves the router nowhere; the sign-in screen that opened the tab finishes it, or the account screen after a cold start (`app/+native-intent.tsx`, `src/components/social-sign-in.tsx`) | `apps/mobile/` |
 
 `scripts/app-links.mjs` says what each file must hold. The build checks them, the release gate checks them (`scripts/verify-release-bundle.mjs`), and so does `tests/app-links.test.js`.
 
@@ -46,6 +51,21 @@ Where Play Console shows them has moved. It used to be **Test and release → Ap
 
 If a key changes (Play rotates the signing key, or a new upload key is registered), add its SHA-256 as shown there: upper-case hex pairs separated by colons (`AB:CD:…`, 32 pairs). Keep a key that copies in people's hands may still be signed with. `node scripts/app-links.mjs` checks the form, and the build and the release gate stop on a placeholder or a malformed value rather than ship without the file. `tests/app-links.test.js` holds the exact list, so a change there is deliberate.
 
+### Apple: Android's Return URL on the Services ID (#400)
+
+Sign in with Apple on Android uses the web's Services ID with a second Return URL, on the API, where Apple posts its answer. Apple refuses any Return URL not registered on the Services ID, so this comes before the server setting, and the server setting before the phone build is tested.
+
+1. developer.apple.com → Certificates, Identifiers & Profiles → Identifiers. In the menu at the top right, choose **Services IDs**, then `com.togetherledger.ledger.web`.
+2. Next to **Sign in with Apple**, choose **Configure**. Check that **Primary App ID** is `com.togetherledger.ledger` (the iPhone app). Apple gives a person the same id across a primary App ID and the Services IDs grouped with it; that is what lets an account opened on an iPhone sign in on Android. If it shows another App ID, stop and say so before changing it.
+3. Under **Website URLs**: in **Domains and Subdomains**, keep `app.together-ledger.com` and add `api.together-ledger.com`. In **Return URLs**, keep `https://app.together-ledger.com/` (the web's) and add exactly `https://api.together-ledger.com/api/v1/auth/apple/return`: https, no trailing slash, nothing after it.
+4. **Next**, **Done**, **Continue**, **Save**.
+5. On the server, after the release that carries this change is running (its migration, `037_let-apple-answer-an-android-phone.sql`, runs with the release's `node server/migrate.js` like any other): add `APPLE_ANDROID_REDIRECT_URI=https://api.together-ledger.com/api/v1/auth/apple/return` to the production environment file and restart the app container. It must be the same string as in step 3. Until it is set, Android offers Google alone, as today. A value that isn't this server's `/api/v1/auth/apple/return` is not used, and the server's log says so at start (`APPLE_ANDROID_REDIRECT_URI is not this server's …`).
+6. Check: `curl -s 'https://api.together-ledger.com/api/v1/auth/providers?platform=android'` shows `"apple":{"clientId":"com.togetherledger.ledger.web","redirectUri":"https://api.together-ledger.com/api/v1/auth/apple/return"}`.
+
+**Not confirmed:** whether Apple asks to verify `api.together-ledger.com` in step 3. Nothing in this repository records a verification file for `app.together-ledger.com` either. If Apple asks for a file, stop there and say so: the API serves no such file yet.
+
+**Google and Play:** nothing to set up. The path is on the host `assetlinks.json` already verifies, so Play Console's **Deep links** page lists `/apple-sign-in` beside `/invite` once a build carrying it is uploaded.
+
 ## Checking it
 
 **The files, once deployed** (from a browser or `curl`; Bot Fight Mode may refuse an automated client, which is why none of this is a gate):
@@ -67,6 +87,18 @@ If a key changes (Play rotates the signing key, or a new upload key is registere
 | Desktop browser | Open the link | The website handles it, and the address ends at `/` |
 
 Also check: tapping the same link again once joined says you're already in, and nothing changes; a verification or recovery link still opens the browser, not the app.
+
+**Sign in with Apple on Android (#400)**, with a Play-installed build that carries it, once the Apple and server steps above are done:
+
+| Case | Do | Expect |
+|---|---|---|
+| An Apple account opened on an iPhone | Sign in → **Sign in with Apple** → sign in on Apple's page | The tab closes by itself and the app is signed in to the same account: the same name and journeys as on the iPhone |
+| A new Apple account | The same, with an Apple ID never used with Together Ledger | Signed in; the name is the first name Apple gave |
+| The email belongs to a password account | The same | "Connect Apple to your account" asks for that password once |
+| Cancel | Choose Cancel on Apple's page, or close the tab | Back on the sign-in screen, and nothing is said |
+| The link not verified (a phone test APK from Actions) | The same as the first case | The tab shows "Back to the app"; closing it signs in |
+
+If the tab shows "Back to the app" on a Play-installed build, the link isn't verified on that phone: check it with "Android: is the link verified?" below.
 
 ### Android: is the link verified?
 
