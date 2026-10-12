@@ -781,8 +781,9 @@ export class PlatformService {
         if (taken.rowCount) email = null;
       }
       // The same private sign-in name migration 003 gave accounts that predate usernames. It is
-      // also the display name only as a fallback: the name Apple sends on the first sign-in (the
-      // client passes it as displayName; Apple never sends it again), or Google's, comes first.
+      // also the display name only as a fallback: the first name Apple sends on the first sign-in
+      // (the client passes it as displayName; Apple never sends it again), or Google's given_name
+      // (server/identity.js), comes first (#399).
       const username = `journeyer-${userId.slice(0, 8)}`;
       const name = cleanOptionalName(displayName || identity.name, 80) || username;
       const created = await client.query(

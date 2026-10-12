@@ -1907,8 +1907,11 @@ $('#apple-sign-in-button').addEventListener('click', async (event) => {
     showStatus(accountMessage(null));
     return;
   }
-  // Apple sends the person's name on their first sign-in only.
-  const displayName = [user?.name?.firstName, user?.name?.lastName].filter(Boolean).join(' ');
+  // Apple sends the person's name on their first sign-in only. A new account starts with the first
+  // name alone, and the full name only when Apple gives no first name (#399, decided Oct 12, 2026).
+  const [firstName, lastName] = [user?.name?.firstName, user?.name?.lastName].map((part) => (typeof part === 'string' ? part.trim() : ''));
+  // Without a first name, the full name is the family name alone.
+  const displayName = firstName || lastName;
   const body = { idToken: authorization.id_token, authorizationCode: authorization.code };
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');

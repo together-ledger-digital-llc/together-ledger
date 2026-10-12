@@ -66,10 +66,10 @@ test('Google sends only the ID token, Apple the ID token, the authorizationCode 
   const user = await client.signInWithGoogle({ idToken: 'google-id-token' });
   assert.deepEqual(user, { id: 'u1', hasPassword: false });
   assert.deepEqual(tokens(), pair, 'stored the same way a password sign-in is, in the keychain (#180)');
-  await client.signInWithApple({ idToken: 'apple-id-token', authorizationCode: 'apple-code', displayName: 'Asha Rao' });
+  await client.signInWithApple({ idToken: 'apple-id-token', authorizationCode: 'apple-code', displayName: 'Asha' });
   assert.deepEqual(calls.map(({ method, url, body }) => ({ method, url, body })), [
     { method: 'POST', url: 'https://api.example.test/api/v1/auth/google', body: { idToken: 'google-id-token' } },
-    { method: 'POST', url: 'https://api.example.test/api/v1/auth/apple', body: { idToken: 'apple-id-token', authorizationCode: 'apple-code', displayName: 'Asha Rao' } },
+    { method: 'POST', url: 'https://api.example.test/api/v1/auth/apple', body: { idToken: 'apple-id-token', authorizationCode: 'apple-code', displayName: 'Asha' } },
   ]);
   for (const call of calls) assert.equal(call.headers['x-together-client'], 'app', 'the server answers the app with tokens, not a cookie');
 });
@@ -105,19 +105,40 @@ test('an account without a password is deleted by typing DELETE alone; one with 
 // ---------------------------------------------------------------------------------------------
 // Apple's first authorization
 
-test('the name Apple gives on the first authorization is sent, and kept until the server has it', async () => {
+test('the first name Apple gives on the first authorization is sent, and kept until the server has it', async () => {
   const kept = memoryKept();
   const first = { user: 'apple-user-1', identityToken: 'id-1', authorizationCode: 'code-1', fullName: { givenName: 'Asha', familyName: 'Rao' }, email: 'asha@privaterelay.appleid.com' };
-  assert.deepEqual(await social.appleSignInBody(first, kept), { idToken: 'id-1', authorizationCode: 'code-1', displayName: 'Asha Rao' });
-  assert.deepEqual(kept.held, { user: 'apple-user-1', displayName: 'Asha Rao' });
+  assert.deepEqual(await social.appleSignInBody(first, kept), { idToken: 'id-1', authorizationCode: 'code-1', displayName: 'Asha' });
+  assert.deepEqual(kept.held, { user: 'apple-user-1', displayName: 'Asha' });
 
   // That sign-in never reached the server. Apple doesn't give the name again; the kept one goes instead.
   const again = { user: 'apple-user-1', identityToken: 'id-2', authorizationCode: 'code-2', fullName: { givenName: null, familyName: null }, email: null };
-  assert.deepEqual(await social.appleSignInBody(again, kept), { idToken: 'id-2', authorizationCode: 'code-2', displayName: 'Asha Rao' });
+  assert.deepEqual(await social.appleSignInBody(again, kept), { idToken: 'id-2', authorizationCode: 'code-2', displayName: 'Asha' });
 
   // Never someone else's name.
   const stranger = { ...again, user: 'apple-user-2' };
   assert.deepEqual(await social.appleSignInBody(stranger, kept), { idToken: 'id-2', authorizationCode: 'code-2' });
+});
+
+// #399, decided Oct 12, 2026: a new account starts with the first name only; the full name only
+// when Apple gives no first name, which leaves the family name alone; and nothing when it gives
+// neither, so the server falls back to the private handle.
+test('a new account starts with Apple\'s first name, then the full name, then nothing', () => {
+  assert.equal(social.appleDisplayName({ givenName: 'Asha', familyName: 'Rao' }), 'Asha');
+  assert.equal(social.appleDisplayName({ givenName: '  Asha  ', familyName: null }), 'Asha');
+  assert.equal(social.appleDisplayName({ givenName: null, familyName: 'Rao' }), 'Rao');
+  assert.equal(social.appleDisplayName({ givenName: '   ', familyName: ' Rao ' }), 'Rao');
+  assert.equal(social.appleDisplayName({ givenName: null, familyName: null }), '');
+  assert.equal(social.appleDisplayName({}), '');
+  assert.equal(social.appleDisplayName(null), '');
+});
+
+test('Apple\'s answer with no first name sends the family name, and with neither sends no name', async () => {
+  const kept = memoryKept();
+  const familyOnly = { user: 'apple-user-3', identityToken: 'id-3', authorizationCode: 'code-3', fullName: { givenName: null, familyName: 'Rao' }, email: null };
+  assert.deepEqual(await social.appleSignInBody(familyOnly, kept), { idToken: 'id-3', authorizationCode: 'code-3', displayName: 'Rao' });
+  const nameless = { user: 'apple-user-4', identityToken: 'id-4', authorizationCode: 'code-4', fullName: { givenName: null, familyName: null }, email: null };
+  assert.deepEqual(await social.appleSignInBody(nameless, memoryKept()), { idToken: 'id-4', authorizationCode: 'code-4' });
 });
 
 test('the email from Apple\'s first authorization is never sent from the phone: the server reads it from the signed ID token', async () => {
