@@ -27,6 +27,21 @@
       ]
     },
     {
+      "name": "The web's Language row, what its code writes",
+      "movedIn": "101B",
+      "file": "src/app.js",
+      "kind": "script",
+      "statements": [
+        "$('#language-select').addEventListener("
+      ]
+    },
+    {
+      "name": "The phone's Language preference",
+      "movedIn": "101B",
+      "file": "apps/mobile/src/i18n/language-provider.tsx",
+      "kind": "script"
+    },
+    {
       "name": "The phone's History",
       "movedIn": "101A",
       "file": "apps/mobile/app/history.tsx",

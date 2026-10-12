@@ -42,6 +42,7 @@ const MIGRATIONS = [
   '021_let-unpaid-capacity-rest-without-losing-history.sql', '022_agree-together-before-adding-someone.sql',
   '023_let-a-phone-carry-its-own-key.sql', '024_let-google-and-apple-open-an-account.sql',
   '025_revoke-sign-in-with-apple-when-an-account-is-deleted.sql', '026_remember-a-refused-apple-deletion.sql',
+  '038_remember-the-language-a-person-chose.sql',
 ];
 
 // Signature checks have their own tests (tests/social-sign-in.test.js). Here an ID token is just

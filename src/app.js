@@ -39,7 +39,7 @@ import {
   HISTORY_ENTRY_PARTS, HISTORY_ENTRY_PARTS_HEADING, HISTORY_EVENT_GROUPS, HISTORY_FIELDS, HISTORY_FIELDS_HEADING, HISTORY_GUIDE_INTRO,
   HISTORY_GUIDE_SECTIONS, HISTORY_GUIDE_TITLE, HISTORY_KINDS_HEADING, HISTORY_NEVER_LABEL, HISTORY_RECORDS_LABEL, HISTORY_RECORDS_NOTHING,
 } from './history-guide.js';
-import { applyTranslations, t } from './i18n/web.js';
+import { activeLanguage, applyTranslations, chooseLanguage, languageChoice, languageOptions, t } from './i18n/web.js';
 
 // Every sentence index.html names by key (data-i18n) is filled in before anything else draws.
 applyTranslations();
@@ -781,6 +781,69 @@ function initializeThemePicker() {
       selects.forEach((item) => { item.value = id; });
       showToast(`${themes.find((theme) => theme.id === id)?.label || 'Theme'} applied.`);
     });
+  });
+}
+
+// The Language row (101B). It lists only languages the manifest marks approved, each in its own
+// name and script, after "Follow my device"; while English is the only one, it stays hidden.
+function renderLanguageRow() {
+  const options = languageOptions();
+  const section = $('#language-settings');
+  section.hidden = options.length < 2;
+  if (section.hidden) return;
+  const select = $('#language-select');
+  select.replaceChildren(...[{ tag: '', nativeName: t('common.language.followDevice') }, ...options].map(({ tag, nativeName }) => {
+    const option = document.createElement('option');
+    option.value = tag;
+    option.textContent = nativeName;
+    // Each name in its own language, so a screen reader says हिन्दी as Hindi, not as English.
+    if (tag) option.lang = tag;
+    return option;
+  }));
+  select.value = languageChoice() || '';
+}
+
+// Switches the page to a choice (a tag, or null for "Follow my device") and redraws what app.js
+// draws itself; index.html's own sentences are redrawn by chooseLanguage.
+async function showLanguage(choice) {
+  const before = activeLanguage();
+  await chooseLanguage(choice);
+  if (activeLanguage() !== before) {
+    render();
+    renderAccountState();
+  }
+  renderLanguageRow();
+}
+
+// Once someone is signed in, the account's choice is the one that counts. A choice made in this
+// browser before signing in carries into an account that has none of its own, and never over one
+// it has (unlessChosen: the server decides, so two devices can't both win). If the carry can't
+// reach the service, this browser keeps its choice and tries again at the next sign-in.
+async function settleLanguage() {
+  if (!accountUser) return;
+  const kept = languageChoice();
+  if (!accountUser.language && kept) {
+    try {
+      accountUser = await api.setLanguage(kept, { unlessChosen: true });
+    } catch {
+      return;
+    }
+  }
+  await showLanguage(accountUser.language);
+}
+
+function initializeLanguageRow() {
+  renderLanguageRow();
+  $('#language-select').addEventListener('change', async (event) => {
+    const choice = event.currentTarget.value || null;
+    try {
+      // Signed in, the choice is saved to the account first, and the page follows what it kept.
+      if (accountUser) accountUser = await api.setLanguage(choice);
+      await showLanguage(accountUser ? accountUser.language : choice);
+    } catch (error) {
+      showStatus(accountMessage(error));
+      renderLanguageRow();
+    }
   });
 }
 
@@ -1791,6 +1854,7 @@ $('#login-form').addEventListener('submit', async (event) => {
   setButtonPending(button, true, 'Signing in…');
   try {
     accountUser = await api.login(Object.fromEntries(new FormData(event.currentTarget)));
+    await settleLanguage();
     await refreshCloudState({ announce: true });
     refreshBillingState().catch((error) => showStatus(accountMessage(error)));
     showLedgerSurface({ persist: true });
@@ -1809,6 +1873,7 @@ $('#register-form').addEventListener('submit', async (event) => {
   setButtonPending(button, true, 'Creating account…');
   try {
     accountUser = await api.register(Object.fromEntries(new FormData(event.currentTarget)));
+    await settleLanguage();
     await refreshCloudState();
     refreshBillingState().catch((error) => showStatus(accountMessage(error)));
     showLedgerSurface({ persist: true });
@@ -1908,6 +1973,7 @@ function renderGoogleButton() {
 async function signInWith(signIn, onRefused = () => {}) {
   try {
     accountUser = await signIn();
+    await settleLanguage();
     forgetPendingLink();
     await refreshCloudState({ announce: true });
     refreshBillingState().catch((error) => showStatus(accountMessage(error)));
@@ -2518,6 +2584,7 @@ $('#reset-button').addEventListener('click', async () => {
 
 initializeDialogBranding();
 initializeThemePicker();
+initializeLanguageRow();
 render();
 if (state.preferences.onboardingComplete) showLedgerSurface();
 else showWelcomeSurface();
@@ -2540,6 +2607,7 @@ async function initializeAccount() {
       if (![401, 404].includes(error.status)) throw error;
     }
     if (accountUser) {
+      await settleLanguage();
       await refreshCloudState();
       refreshBillingState().catch((error) => showStatus(accountMessage(error)));
       showLedgerSurface({ persist: true });

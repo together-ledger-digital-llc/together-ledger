@@ -147,6 +147,13 @@ export class TogetherApi {
     return data.user;
   }
 
+  // The Language preference (101B): a tag, or null for "Follow my device". unlessChosen carries a
+  // choice made before signing in, and leaves one the account already holds as it is.
+  async setLanguage(language, { unlessChosen = false } = {}) {
+    const data = await this.request('/account/language', { method: 'PATCH', body: unlessChosen ? { language, unlessChosen } : { language }, authenticatedMutation: true });
+    return data.user;
+  }
+
   mutate(path, method, body) {
     return this.request(path, { method, body, authenticatedMutation: true });
   }

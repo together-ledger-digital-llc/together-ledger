@@ -13,6 +13,8 @@ WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY package.json index.html ./
 COPY src ./src
+# The languages manifest: which languages may be chosen (server/platform.js, setLanguage).
+COPY locales/languages.json ./locales/languages.json
 COPY server ./server
 USER node
 EXPOSE 4174

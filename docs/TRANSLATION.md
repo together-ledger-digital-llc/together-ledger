@@ -13,8 +13,9 @@ Hinglish, Hindi in Latin script (`hi-Latn`). Only English exists so far. The res
 | `src/i18n/catalog.js` | Reads translation files; the checks; the manifest rules; the glossary's TBX export | Copy as is |
 | `src/i18n/dom.js` | `t()` on a web page: `data-i18n` attributes and `<bdi>` | Copy as is (web only) |
 | `src/i18n/pseudo.js` | The pseudo-language, for testing layouts only; never shipped | Copy as is |
-| `src/i18n/web.js` | This web app's wiring: loads `locales/` from its own origin | Rewrite per app |
-| `apps/mobile/src/i18n/` | This phone app's wiring, and the Intl polyfills | Rewrite `index.ts`; copy the polyfills |
+| `src/i18n/language-choice.js` | Which language a person reads in: their choice, else their device's languages, else English; and the language screen readers speak | Copy as is |
+| `src/i18n/web.js` | This web app's wiring: loads `locales/` from its own origin, chooses the language, sets `<html lang>` | Rewrite per app |
+| `apps/mobile/src/i18n/` | This phone app's wiring (`index.ts`), the Language preference (`language-provider.tsx`), and the Intl polyfills | Rewrite `index.ts` and `language-provider.tsx`; copy the polyfills |
 | `src/vendor/intl-messageformat.js` | FormatJS's IntlMessageFormat for the web, made by `scripts/vendor-intl-messageformat.mjs` | Regenerate |
 | `locales/en.json` | Every English sentence, with a note for translators | The format travels; the words don't |
 | `locales/languages.json` | The languages manifest: status, reviewer, approval date, fallback, formatting | The shape travels |
@@ -262,6 +263,86 @@ A key a language lacks reads in English, and in development the console warns on
 English lacks shows the key itself, with the same warning. A sentence that fails to format (a
 missing value, a broken translation) falls back to English rather than breaking the screen.
 
+## Choosing the language
+
+Which language a person reads in is decided the same way on the web and the phone, by
+`src/i18n/language-choice.js`:
+
+1. **A language they chose by hand**, if the manifest still offers it.
+2. Otherwise **"Follow my device"**: the device's own languages are walked **in order, the whole
+   list**, not only the first, and the first one that matches an offered language wins.
+3. Otherwise English.
+
+A choice is a tag or nothing. Nothing is "Follow my device", and it is never stored as English:
+someone who chose English stays in English on a phone that moves to Hindi, and someone who never
+chose follows the phone when it changes.
+
+**How a device's language matches** (`matchLanguage`): the same language in the same script
+matches, whatever the region. So:
+
+| The device says | Reads in |
+|---|---|
+| `es-419`, `es-MX`, `es-AR`, `es-US`, `es-CO`, **`es-ES`**, `es` (every Spanish) | `es-419` |
+| `bn`, `bn-BD`, `bn-IN` | `bn` |
+| `hi`, `hi-IN` | `hi` |
+| `hi-Latn`, `hi-Latn-IN` ("Hindi (Latin)", offered by Android 14 and later) | `hi-Latn` |
+| `en-US`, `en-GB`, `en-IN`... | `en` |
+| anything else | the next language in the device's list; English if none matches |
+
+Spain's Spanish reads in Latin American Spanish: one Spanish for every Spanish speaker, decided by
+the owner on Oct 12, 2026. A language with no script in its tag is in its own script (Hindi:
+Devanagari, Bengali: Bengali), so `hi-IN` is never Hinglish. Hinglish is reached from the device
+only when the device itself names Hindi in Latin script; everywhere else it is only ever chosen
+by hand. A device in Hindi (Latin) when Hinglish isn't offered is not given Devanagari Hindi
+either: a reader of Latin script may not read Devanagari, so the walk goes on to the next language.
+
+**Only an approved language is ever offered, matched or read.** A draft can't be chosen, can't be
+reached from the device, and is refused by the server.
+
+### Where the choice is kept
+
+- **Before signing in**, on the device: `localStorage` on the web, the phone's key-value store on
+  the phone, both under the key `language`.
+- **At sign-in**, a choice made on the device carries into the account, **unless the account
+  already has one**, which then wins and the device follows it. The server decides
+  (`PATCH /account/language` with `unlessChosen`, `docs/API.md`), so two devices signing in at
+  once can't both win.
+- **Signed in**, the account's choice is the one that counts. Choosing a language saves it to the
+  account first. The device keeps a copy, so the page or app opens in the right language before
+  the account has answered. The phone reads that copy at once as it starts
+  (`savedLanguageNow()`), so its first screen and its type (`src/theme/fonts.ts`) are already in
+  the language; a change made while the app is open reaches the type at the next start.
+- Server error messages and emails stay in English in v1; the account keeps the preference so they
+  can follow it later.
+
+### The Language row
+
+On the web, Settings has a **Language** row (`#language-settings`). It lists "Follow my device",
+then each approved language in its own name and script, from the manifest's `nativeName`: English,
+हिन्दी, বাংলা, Español (Latinoamérica), Hinglish (Hindi in Latin script). Each option carries its
+own `lang`, so a screen reader says हिन्दी in Hindi. **While English is the only approved
+language, the row stays hidden.** The phone's row comes in 103; `useLanguage()`
+(`apps/mobile/src/i18n/language-provider.tsx`) is what it will use.
+
+Approving a language (`status`, `reviewer`, `approvedOn`) is all it takes for it to appear: the
+web ships `locales/<tag>.json` for every approved language (`scripts/build-public-site.mjs`), and
+the server accepts it. The phone also needs its file imported in `apps/mobile/src/i18n/index.ts`
+(`BUNDLED`), because Metro bundles only what is imported by name.
+
+### Screen readers
+
+- **Web:** `<html lang>` is always the active language, Hinglish included (`hi-Latn`), so screen
+  readers pronounce the page in it.
+- **Phone:** each screen built on `Screen` (`apps/mobile/src/components/ui.tsx`) sets iOS's
+  `accessibilityLanguage` from the active language. Android's TalkBack takes no language from a
+  React Native app (`docs/HINGLISH_STYLE.md` §8.4).
+- **Hinglish asks for no voice of its own** (`docs/HINGLISH_STYLE.md` §8.6): its content is
+  declared `hi-Latn`, and no separate speech language is set until the owner has run the device
+  check in §8.7 (open choice O7). The one place that is decided is `SPEECH_LANGUAGES` in
+  `src/i18n/language-choice.js`. If Indian English turns out to read it better, that line becomes
+  `'hi-Latn': 'en-IN'`: the web then puts `lang="en-IN"` on `<body>`, keeping `hi-Latn` on
+  `<html>`, and the phone asks VoiceOver for `en-IN`. Nothing else changes.
+
 ## Server errors
 
 The server answers `{ error: { code, message } }`, and `message` is English. The apps translate an
@@ -351,11 +432,11 @@ Bangla (`docs/2026-10-12-devanagari-bangla-font-decision.md`). Interface text st
 Both are Expo phone apps with a Cloudflare Workers and Hono server. Copy, never share a package:
 the company's apps copy structure and don't import from each other.
 
-**Copy as is:** `src/i18n/translator.js`, `format.js`, `catalog.js`, `pseudo.js` (and `dom.js` for a web
-client), `scripts/check-hardcoded-sentences.mjs` with its own `i18n-moved-areas.json`, `apps/mobile/src/i18n/intl-polyfills.ts` and `intl-native.ts`,
+**Copy as is:** `src/i18n/translator.js`, `format.js`, `catalog.js`, `pseudo.js`, `language-choice.js`
+(and `dom.js` for a web client), `scripts/check-hardcoded-sentences.mjs` with its own `i18n-moved-areas.json`, `apps/mobile/src/i18n/intl-polyfills.ts` and `intl-native.ts`,
 `scripts/vendor-intl-messageformat.mjs` (for a web client), `scripts/export-glossary.mjs`,
 `scripts/probe-hermes-intl.mjs` and `scripts/intl-probe.entry.js`, and the tests
-`tests/i18n-core.test.js`, `tests/i18n-hermes.test.js`, `tests/i18n-pseudo.test.js` and the checks in
+`tests/i18n-core.test.js`, `tests/i18n-language-choice.test.js`, `tests/i18n-hermes.test.js`, `tests/i18n-pseudo.test.js` and the checks in
 `tests/i18n-catalog.test.js`, with `tests/fixtures/i18n/`.
 
 **Each app changes:**

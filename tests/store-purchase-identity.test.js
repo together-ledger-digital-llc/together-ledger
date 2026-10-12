@@ -18,6 +18,7 @@ const MIGRATIONS = [
   '023_let-a-phone-carry-its-own-key', '024_let-google-and-apple-open-an-account', '025_revoke-sign-in-with-apple-when-an-account-is-deleted',
   '026_remember-a-refused-apple-deletion', '027_tie-every-store-purchase-to-an-account', '028_turn-a-store-purchase-into-capacity',
   '031_let-a-lost-renewal-reply-be-asked-again', '032_let-an-invitation-last-fourteen-days', '033_let-a-moment-held-offline-arrive-once', '034_hear-refunds-and-renewals-from-the-stores', '035_hear-reversed-refunds-and-refunded-extras',
+  '038_remember-the-language-a-person-chose',
 ];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const origin = 'http://127.0.0.1:4174';

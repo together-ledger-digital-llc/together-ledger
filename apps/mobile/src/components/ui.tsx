@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode, type Ref, type RefObject } from 'rea
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { fitTyping } from '../../../../src/display-text.js';
+import { useLanguage } from '../i18n/language-provider';
 import { PENDING_LABEL } from '../shell/defaults';
 import { STATUS_TONES } from '../shell/status';
 import { useShell } from '../shell/shell-provider';
@@ -25,6 +26,8 @@ export function Screen({ title, lead, children, edges = ['bottom', 'left', 'righ
 }) {
   const { theme } = useTheme();
   const { status } = useShell();
+  // The language VoiceOver speaks this screen in (iOS only; 101B). Undefined leaves VoiceOver's own.
+  const { speech } = useLanguage();
   const own = useRef<ScrollView>(null);
   const scroll = scrollRef ?? own;
   // Being in the right place is not the same as being seen (the web's placeStatus): a message
@@ -35,7 +38,7 @@ export function Screen({ title, lead, children, edges = ['bottom', 'left', 'righ
   // The header covers the top inset; a screen without one passes 'top' too, so nothing sits
   // under a notch or the status bar.
   return (
-    <SafeAreaView edges={edges} style={[styles.fill, { backgroundColor: theme.colors.bg }]}>
+    <SafeAreaView edges={edges} accessibilityLanguage={speech} style={[styles.fill, { backgroundColor: theme.colors.bg }]}>
       <ScrollView
         ref={scroll}
         contentContainerStyle={styles.screen}

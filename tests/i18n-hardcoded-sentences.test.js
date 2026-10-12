@@ -21,7 +21,7 @@ const texts = (found) => found.map((finding) => `${finding.file}:${finding.text}
 
 test('the moved areas are listed in one place, and none has a sentence written straight in', () => {
   const areas = movedAreas();
-  assert.deepEqual(areas.map((area) => area.file), ['index.html', 'src/app.js', 'apps/mobile/app/history.tsx']);
+  assert.deepEqual(areas.map((area) => area.file), ['index.html', 'src/app.js', 'src/app.js', 'apps/mobile/src/i18n/language-provider.tsx', 'apps/mobile/app/history.tsx']);
   for (const area of areas) assert.ok(area.name && area.movedIn && ['html', 'script'].includes(area.kind), area.name);
   assert.deepEqual(hardcodedSentences(areas), []);
   assert.match(read('package.json'), /node scripts\/check-hardcoded-sentences\.mjs/, 'npm run check runs it');

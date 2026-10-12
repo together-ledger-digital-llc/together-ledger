@@ -56,6 +56,7 @@ const MIGRATIONS = [
   '033_let-a-moment-held-offline-arrive-once',
   '034_hear-refunds-and-renewals-from-the-stores',
   '035_hear-reversed-refunds-and-refunded-extras',
+  '038_remember-the-language-a-person-chose',
 ];
 
 async function harness(t, configOverrides) {

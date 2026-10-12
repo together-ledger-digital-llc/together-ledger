@@ -34,6 +34,8 @@ export type AccountUser = {
   createdAt: string;
   /** False for an account opened with Apple or Google, which deletes without a password (#217). */
   hasPassword?: boolean;
+  /** The language chosen by hand (101B), or null for "Follow my device". */
+  language?: string | null;
 };
 
 /**
@@ -339,6 +341,15 @@ export function createAccountClient({ base, fetch, tokens, build }: {
     /** The name journeyers see (#253); the private username never changes. */
     async changeDisplayName(displayName: string) {
       return (await request<{ user: AccountUser }>('/account', { method: 'PATCH', body: { displayName }, signedIn: true })).user;
+    },
+    /**
+     * The Language preference (101B): a tag, or null for "Follow my device". unlessChosen carries
+     * a choice made on this phone before signing in, and leaves one the account holds as it is;
+     * either way the answer is the account as it now stands.
+     */
+    async setLanguage(language: string | null, { unlessChosen = false }: { unlessChosen?: boolean } = {}) {
+      const body = unlessChosen ? { language, unlessChosen } : { language };
+      return (await request<{ user: AccountUser }>('/account/language', { method: 'PATCH', body, signedIn: true })).user;
     },
     /**
      * Journey settings (TL-M-09, #184). Proposing is not adding: nothing reaches the person until

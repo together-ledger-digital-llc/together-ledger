@@ -52,6 +52,7 @@ const MIGRATIONS = [
   '033_let-a-moment-held-offline-arrive-once.sql',
   '034_hear-refunds-and-renewals-from-the-stores.sql',
   '035_hear-reversed-refunds-and-refunded-extras.sql',
+  '038_remember-the-language-a-person-chose.sql',
 ];
 
 async function appAtItsOwnHome() {

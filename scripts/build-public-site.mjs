@@ -3,6 +3,7 @@ import { appSiteAssociationProblems, APP_SITE_ASSOCIATION, ASSET_LINKS, assetLin
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { renderPrivacyPage, renderSupportPage, renderTermsPage } from './render-privacy-page.mjs';
+import { offeredLanguages } from '../src/i18n/catalog.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 // _site unless told otherwise; tests/app-links.test.js assembles into a folder of its own.
@@ -27,6 +28,7 @@ const publicFiles = [
   'src/i18n/catalog.js',
   'src/i18n/dom.js',
   'src/i18n/format.js',
+  'src/i18n/language-choice.js',
   'src/i18n/translator.js',
   'src/i18n/web.js',
   'src/journey-row.js',
@@ -41,6 +43,10 @@ const publicFiles = [
   // The sentences, read by src/i18n/web.js from this same origin (docs/TRANSLATION.md).
   'locales/en.json',
   'locales/languages.json',
+  // Every other language once it is approved, and never before (docs/TRANSLATION.md).
+  ...offeredLanguages(JSON.parse(readFileSync(join(root, 'locales/languages.json'), 'utf8')))
+    .filter((language) => language.tag !== 'en')
+    .map((language) => `locales/${language.tag}.json`),
 ];
 
 if (releaseRevision !== 'local-development' && !/^[0-9a-f]{40}$/i.test(releaseRevision)) {
