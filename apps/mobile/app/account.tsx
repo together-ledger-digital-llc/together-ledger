@@ -14,7 +14,8 @@ import { INVITATION_WORDS } from '../src/invitations/invitation-words';
 
 /**
  * Sign in, or, once signed in, the account itself: who you are, whether your email is verified,
- * and signing out. TL-M-05 (#180). The words are the web's (index.html, src/app.js).
+ * and signing out. TL-M-05 (#180). Settings opens it as Account settings, the name the sign-in
+ * screen's own words give it (#399). The words are the web's (index.html, src/app.js).
  */
 export default function AccountScreen() {
   const session = useSession();
@@ -46,13 +47,13 @@ export default function AccountScreen() {
     }
   }
 
-  if (session.status === 'loading') return <Screen title="Account"><Body>Checking this phone’s account…</Body></Screen>;
+  if (session.status === 'loading') return <Screen title="Account settings"><Body>Checking this phone’s account…</Body></Screen>;
 
   // Signed in, but the service could not be asked (#352). The password form would ask for
   // something this phone does not need.
   if (session.status === 'offline') {
     return (
-      <Screen title="Account">
+      <Screen title="Account settings">
         <Body>{ACCOUNT_WHILE_OFFLINE[session.reason]}</Body>
         <Button kind="quiet" label="Try again" pending={pending === 'refresh'} onPress={() => run('refresh', async () => {
           await session.refresh();
@@ -65,7 +66,7 @@ export default function AccountScreen() {
   if (session.status === 'signed-in') {
     const { user } = session;
     return (
-      <Screen title="Account" lead="Passwords are never shared between journeyers.">
+      <Screen title="Account settings" lead="Passwords are never shared between journeyers.">
         {/* An Apple account with no email shows plain words, not the placeholder it holds (#217). */}
         <Body>{user.displayName || user.username} · {accountEmailLabel(user.email)}</Body>
         <Body>{user.emailVerified ? 'Email verified.' : 'Email not verified yet. Invitations can be accepted once it is.'}</Body>

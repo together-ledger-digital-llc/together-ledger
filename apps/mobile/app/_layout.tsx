@@ -1,7 +1,7 @@
 import { useFonts } from 'expo-font';
 import { router, Stack } from 'expo-router';
 import { useCallback, useEffect } from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text } from 'react-native';
 import { SessionProvider, useSession } from '../src/auth/session';
 import { StoreProvider } from '../src/billing/store-provider';
 import { ShellOverlays } from '../src/components/dialogs';
@@ -12,6 +12,7 @@ import { MomentViewProvider } from '../src/journey/use-moment-view';
 import { useWaitingMoments, WaitingMomentsProvider } from '../src/journey/use-waiting-moments';
 import { ShellProvider, useShell } from '../src/shell/shell-provider';
 import { CONNECTION_SOURCE, OFFLINE_NOTICE } from '../src/shell/connection';
+import { backAccessibilityLabel, backLabel } from '../src/shell/screens';
 import { useConnectionWatch } from '../src/shell/use-connection';
 import { useStoredPreferences, type SaveFailure } from '../src/storage/use-stored-preferences';
 import { fontSources, targetSize, ThemeProvider, useTheme } from '../src/theme';
@@ -34,21 +35,48 @@ function SettingsButton() {
   );
 }
 
+/**
+ * Android's back button, drawn so it can say where it goes (#411), as the iPhone's does. The
+ * phone's own back gesture and key are untouched.
+ */
+function BackButton({ label }: { label: string }) {
+  const { theme } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={backAccessibilityLabel(label)}
+      onPress={() => router.back()}
+      style={({ pressed }) => [styles.backButton, targetSize, { opacity: pressed ? 0.7 : 1 }]}
+    >
+      <Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.backArrow, { color: theme.colors.fg }]}>←</Text>
+      <Text numberOfLines={1} style={[styles.headerButtonText, { color: theme.colors.fg }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 function ThemedStack() {
   const { theme } = useTheme();
   return (
     <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: theme.colors.surface },
-        headerTintColor: theme.colors.fg,
-        contentStyle: { backgroundColor: theme.colors.bg },
+      screenOptions={({ route, navigation }) => {
+        // Every back button names the screen it goes back to, never the one it is on (#411). The
+        // iPhone took its words from the system, which named the screen in front.
+        const back = backLabel(navigation.getState()?.routes, route.key);
+        return {
+          headerStyle: { backgroundColor: theme.colors.surface },
+          headerTintColor: theme.colors.fg,
+          contentStyle: { backgroundColor: theme.colors.bg },
+          headerBackTitle: back,
+          ...(Platform.OS === 'android' && back ? { headerLeft: () => <BackButton label={back} /> } : {}),
+        };
       }}
     >
-      {/* The two surfaces (TL-M-06, #181). index decides which one opens. */}
+      {/* The two surfaces (TL-M-06, #181). index decides which one opens. Each title here is
+          the one src/shell/screens.ts gives back buttons (#411). */}
       <Stack.Screen name="index" options={{ title: 'Welcome', headerShown: false }} />
       <Stack.Screen name="ledger" options={{ title: 'Ledger', headerRight: () => <SettingsButton /> }} />
       <Stack.Screen name="settings" options={{ title: 'Settings' }} />
-      <Stack.Screen name="account" options={{ title: 'Account' }} />
+      <Stack.Screen name="account" options={{ title: 'Account settings' }} />
       <Stack.Screen name="register" options={{ title: 'Create account' }} />
       <Stack.Screen name="recovery" options={{ title: 'Account recovery' }} />
       <Stack.Screen name="recovery-confirm" options={{ title: 'Account recovery' }} />
@@ -157,5 +185,7 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   headerButton: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  backButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 12, maxWidth: 200 },
+  backArrow: { fontSize: 22 },
   headerButtonText: { fontSize: 16, fontWeight: '700' },
 });

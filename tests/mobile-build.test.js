@@ -96,7 +96,7 @@ test('Settings shows the build at its foot, plainly and copyable', async () => {
   const settings = await read('app/settings.tsx');
   const foot = settings.lastIndexOf('{thisBuild.label}');
   assert.ok(foot > settings.indexOf('ledger-support@together-ledger.com'), 'below everything else');
-  assert.match(settings, /<Text selectable accessibilityLabel=\{`This build: \$\{thisBuild\.label\}`\}[^>]*>\{thisBuild\.label\}<\/Text>\s*<\/Screen>/);
+  assert.match(settings, /<Text selectable accessibilityLabel=\{`This build: \$\{thisBuild\.label\}`\}[^>]*>\{thisBuild\.label\}<\/Text>\s*<\/View>\s*<\/Screen>/);
 });
 
 test('no crash reporting comes with it', async () => {

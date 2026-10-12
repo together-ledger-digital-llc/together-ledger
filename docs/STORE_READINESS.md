@@ -413,8 +413,8 @@ A journey owner with others still in it must hand the journey over first
 
 ### 2.10 Contact routes (TL-C-05)
 
-- **Verified in code.** In the phone: Settings → Privacy and help names ledger-support@ for help
-  and legal@ for privacy (`apps/mobile/app/settings.tsx:42-44`), and the privacy policy screen
+- **Verified in code.** In the phone: Settings → Help names ledger-support@ for help and legal@
+  for privacy (`apps/mobile/app/settings.tsx`, at the foot, signed in or not), and the privacy policy screen
   repeats legal@ (`apps/mobile/app/privacy.tsx:44`). The policy itself is built into the app from
   `PRIVACY.md` (`apps/mobile/src/policies/privacy.json`, #328).
 - **Not verified.** That both inboxes are monitored. TL-C-05 (#263) is still open.
