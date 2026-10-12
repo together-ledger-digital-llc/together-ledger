@@ -328,6 +328,12 @@ Hindi is Devanagari and Bengali is Bangla; English, Spanish and Hinglish are Lat
 draw only Latin, so headings and moment titles in Hindi and Bengali use Tiro Devanagari Hindi and Tiro
 Bangla (`docs/2026-10-12-devanagari-bangla-font-decision.md`). Interface text stays in the system sans.
 
+- **Latin headings are Gelasio** on the web and the phone. The web's three Gelasio files hold Basic
+  Latin, Latin-1 and Latin Extended-A, which covers English, Spanish, Hinglish and the pseudo-language.
+  A language that needs more of Latin (Vietnamese, for one) needs those characters added to the files
+  first (`docs/2026-09-21-tl-m-02-font-decision.md`, "The web half"), or its headings fall back to
+  Georgia letter by letter.
+
 - **The web** keys on `<html lang>`: the Language preference must set it to the active language's tag.
   Each face is one self-hosted file, fetched only when its script is on the page.
 - **The phone** chooses its faces once, at start, from the active language (`script` in

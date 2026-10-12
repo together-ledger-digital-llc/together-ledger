@@ -1,6 +1,10 @@
 # Font decision — #177 (TL-M-02)
 
-**Status: decided.** The owner delegated the choice rather than making it at the comparison, so it was
+**Status: decided, and shipped on all three platforms.** The phone got Gelasio first; the web followed on
+2026-10-12 (prompt 104B), recorded in "The web half" at the end of this file. That section also settles the
+metric claim below, which could not be checked when this was decided.
+
+The owner delegated the choice rather than making it at the comparison, so it was
 made on the reasoning below. **It was not made by looking** — nobody has yet seen Georgia and Gelasio side
 by side on a device that has Georgia. That was the acceptance criteria's preferred route and this decision
 did not take it, which is recorded here rather than glossed.
@@ -227,3 +231,109 @@ resolving discussion. Summary table:
 | PT Serif | No | Lining only | OFL 1.1 | No | ~340–360 KB | No / No |
 | Bitter | No | Lining | OFL 1.1 | Yes, wght | ~202 KB | No / No |
 | Crimson Pro | No | Lining | OFL 1.1 | Yes, wght | ~108 KB | No / No |
+
+## The web half (prompt 104B, 2026-10-12)
+
+The phone shipped Gelasio first. The web went on drawing Georgia, so on Android the website's headings
+still fell back. This is the web's half of the decision above.
+
+### The files
+
+Three WOFF2 files in `src/fonts/`, cut from the phone's own files (`@expo-google-fonts/gelasio` 0.4.1,
+Gelasio 1.008), so web and phone draw the same version:
+
+| File | Face | Bytes |
+|---|---|---|
+| `gelasio-latin.woff2` | Regular 400 | 20,068 |
+| `gelasio-italic-latin.woff2` | Italic 400 (`h1 em`) | 21,644 |
+| `gelasio-bold-latin.woff2` | Bold 700 (`strong`, `.dialog-signature`, a bold `h3`) | 20,276 |
+| **Together** | | **61,988** |
+| `OFL-Gelasio.txt` | the licence, byte for byte `ofl/gelasio/OFL.txt` in `google/fonts` | 4,387 |
+
+They are smaller than the ≈ 75 KB estimated above because they are static instances, not the variable
+font. Each holds Basic Latin, Latin-1, Latin Extended-A, Google's "latin" punctuation and symbols, the
+arrows ← ↑ → ↓ and ₹, and nothing else. Latin Extended-A goes beyond Google's "latin" subset. It costs
+about 3 KB a file, and the pseudo-language (`src/i18n/pseudo.js`) and people's own names use it.
+₹ matters because Tiro Devanagari Hindi's range includes it, so without it an English price would fetch
+the Hindi file. Made with fontTools 4.66.1, reproducibly (a second run is byte-identical):
+
+```
+pyftsubset Gelasio_400Regular.ttf --flavor=woff2 --output-file=gelasio-latin.woff2 \
+  --unicodes="U+0000-00FF,U+0100-017F,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+20B9,U+2122,U+2190-2193,U+2212,U+2215,U+FEFF,U+FFFD"
+```
+
+(the same for `Gelasio_400Regular_Italic.ttf` and `Gelasio_700Bold.ttf`). To cover another language, add
+its characters to that list, rebuild all three, and add them to the `unicode-range` of the three
+`@font-face` rules in `src/styles.css`. `tests/web-serif.test.js` reads each file's character map and fails
+if the file and its `unicode-range` disagree. The licence names no Reserved Font Name, so the cut files
+keep the name.
+
+Measured from the files: every Spanish character (`ñ Ñ á é í ó ú ü Á É Í Ó Ú Ü ¿ ¡ « » “ ” ‘ ’ — – … €`),
+every English sentence in `locales/en.json`, every pseudo-language sentence, and no Devanagari or Bangla.
+Figures are old-style in all three: 3 4 5 7 9 descend to about −0.19 em, 6 and 8 rise to 0.71–0.75 em,
+0 1 2 sit at about 0.59 em.
+
+### The metric claim, measured
+
+Georgia 2.05, from Microsoft's core-fonts package (`georgi32.exe`), could be installed for measurement on
+Linux. That is the 1998 release; a Mac or iPhone has a later one. Against it:
+
+- **Advance widths match.** All 95 ASCII characters are identical in all three styles. Of 349 shared Latin
+  characters, 342 match in Regular; the rest are rarities (µ ¸ ď ľ Ŀ Ŋ Ĳ). Whole headings shaped with
+  HarfBuzz come out the same length to three decimals. Gelasio 1.008 has a `kern` feature, against its
+  README's "will not include kerning", but it moved none of the strings tested.
+- **Vertical metrics don't match.** Gelasio's line box is 1.27 em (ascent 1900, descent 700) against
+  Georgia's 1.14 (1878, 449), so the same `line-height` would sit Gelasio's letters about 0.056 em higher.
+  The web's `@font-face` rules give Gelasio Georgia's numbers (`ascent-override: 91.7%`,
+  `descent-override: 21.92%`, `line-gap-override: 0%`).
+
+Together these make the swap a drop-in. Rendered in Chromium with Georgia 2.05 installed, every element
+box on the welcome, home, Settings and consequence-dialog screens (247 at 320px, 249 at 1280px), in English
+and the pseudo-language, is identical on `main` and with Gelasio. Without the overrides, the italic `em`
+boxes in the welcome headings move by up to 6px and no block moves.
+
+### Weight
+
+Serif rules moved from `font-weight: 500` to 400, all in `src/styles.css`: `.welcome h1 em, .welcome h2 em`;
+`.preview-body li > div > strong`; `.welcome h3`; `h1, h2`; `h1 em`; `.summary strong`; `summary strong`;
+`.empty strong`; `.settings-grid h3`; `.concern-manager h3, .event-list-section > h3, .history-guide > h3`;
+`.section-heading h2, .privacy-boundary h2`; `.moment-card > strong`. That is 12 of the 16 uses of 500; the
+other four (`.preview-body time strong`, `.field small`, `.apple-button`, `.provider-hint`) are the sans,
+measured in Chromium. Bold stays 700 wherever it was asked for (`.dialog-signature`, `strong` in the brand,
+the journey bar and the footer, a default-bold `h3`), and it is drawn by the real Bold. On `main`, Chromium drew
+serif text at 400, 500 (as 400), 700 and 500 italic; on this branch only at 400, 400 italic and 700, the
+three files. `font-synthesis: none` on `:root` means nothing is faked.
+
+### Tracking
+
+`letter-spacing: -0.035em` on `h1, h2` is kept. With identical advance widths, the same tracking gives the
+same line lengths. Gelasio's ink is a little narrower than Georgia's, so the space between letters' ink
+across the product's headings is on average 0.004 em more in Regular and 0.02 em more in Italic at any
+given tracking. Gelasio at −0.035em reads as Georgia did, a hair more open, and no letters collide in the
+rendered specimens.
+Loosening it would lengthen every heading and change every line break for no gain. The rendered specimens
+(Georgia −0.035, Gelasio −0.035, −0.025 and 0) are in the comparison published with the pull request.
+
+### Loading
+
+`font-display: swap`, Georgia behind it. Measured on a cold first load of the welcome page (Chromium,
+cache off, three runs each, all identical):
+
+| | Layout shift added to `main`'s (0.1293 at 320px, 0.2956 at 1280px) | Gelasio arrives after first paint |
+|---|---|---|
+| Georgia's line box, preloaded (shipped) | 0 with Georgia installed; 0.0010 at 320px without | ≈ 100 ms on slow 4G, ≈ 1.25 s on 3G |
+| Georgia's line box, not preloaded | the same | ≈ 540 ms on slow 4G, ≈ 2.1 s on 3G |
+| Gelasio's own line box | 0.0009–0.0049 with Georgia, 0.0012–0.0071 without | as above |
+
+`main`'s own shift comes from the page filling itself in, not from fonts. Preloading the Regular
+(`index.html`) moves no layout but brings Gelasio in 0.45–0.85 s sooner. That matters most on Android,
+which has no Georgia, so the page is first drawn in a visibly different serif and then swapped. The Italic
+and Bold are not preloaded: the swap moves nothing, and each preload costs bandwidth on every first visit.
+The policy pages and the Apple hand-back page are not preloaded either.
+
+### Not verified
+
+No Mac, iPhone or Android phone was used. "Without Georgia" was measured with Linux's DejaVu Serif standing
+in for Android's serif. Every committed screenshot changes with the face and has to be re-recorded on the
+owner's Mac.
+

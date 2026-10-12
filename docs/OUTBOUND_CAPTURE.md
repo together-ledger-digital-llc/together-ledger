@@ -80,7 +80,7 @@ The company site, `together-ledger.com`, is reached by nothing: the capture no l
 it, so a request there would fail as an undeclared host.
 
 Checks, all passing: no host beyond these; every request `https`; **no font request of any kind**
-(the web had no `@font-face` then, so not even Gelasio was fetched; since prompt 104 its only ones are the Hindi and Bengali serif, from its own address under `/src/fonts/`, fetched only for those scripts, so an English capture still fetches no font, and the check allows those two files and nothing else); **Stripe's script loads on no
+(the web had no `@font-face` then, so not even Gelasio was fetched. Since then it fetches its own serif files, from its own address under `/src/fonts/` and nowhere else: Gelasio on every page, since prompt 104B, and the Hindi and Bengali serif only for those scripts, since prompt 104. The check allows a `.woff2` from there and no other font); **Stripe's script loads on no
 page**: only the checkout navigation reaches Stripe; **every emailed link carries its code after
 the #**, and **no emailed code reaches `app.together-ledger.com` in an address or a `Referer`**
 (all four links opened, every request our hosts received checked); 28 secrets (cookies, CSRF

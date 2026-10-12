@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
 import test from 'node:test';
 import ts from 'typescript';
+import { cmapCharacters, sfntTable } from './fixtures/font-tables.js';
 import { samples } from './fixtures/script-samples.js';
 
 // The Hindi and Bengali serif (docs/2026-10-12-devanagari-bangla-font-decision.md): which script
@@ -19,48 +20,9 @@ async function importTypeScript(name) {
   return import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
 }
 
-// Every character a TrueType file maps, from its cmap (formats 4 and 12, the two Google's fonts use).
+// Every character a TrueType file maps, from its cmap.
 async function characters(path) {
-  const font = await readFile(new URL(path, fontsDir));
-  const tables = font.readUInt16BE(4);
-  let cmap = null;
-  for (let index = 0; index < tables; index += 1) {
-    const record = 12 + index * 16;
-    if (font.toString('latin1', record, record + 4) === 'cmap') cmap = font.readUInt32BE(record + 8);
-  }
-  const mapped = new Set();
-  const subtables = font.readUInt16BE(cmap + 2);
-  for (let index = 0; index < subtables; index += 1) {
-    const offset = cmap + font.readUInt32BE(cmap + 4 + index * 8 + 4);
-    const format = font.readUInt16BE(offset);
-    if (format === 4) {
-      const segments = font.readUInt16BE(offset + 6) / 2;
-      const ends = offset + 14;
-      const starts = ends + segments * 2 + 2;
-      const deltas = starts + segments * 2;
-      const ranges = deltas + segments * 2;
-      for (let segment = 0; segment < segments; segment += 1) {
-        const end = font.readUInt16BE(ends + segment * 2);
-        const start = font.readUInt16BE(starts + segment * 2);
-        const delta = font.readUInt16BE(deltas + segment * 2);
-        const rangeOffset = font.readUInt16BE(ranges + segment * 2);
-        for (let code = start; code <= end && code !== 0xFFFF; code += 1) {
-          const glyph = rangeOffset === 0
-            ? (code + delta) & 0xFFFF
-            : font.readUInt16BE(ranges + segment * 2 + rangeOffset + (code - start) * 2);
-          if (glyph !== 0) mapped.add(code);
-        }
-      }
-    } else if (format === 12) {
-      const groups = font.readUInt32BE(offset + 12);
-      for (let group = 0; group < groups; group += 1) {
-        const start = font.readUInt32BE(offset + 16 + group * 12);
-        const end = font.readUInt32BE(offset + 20 + group * 12);
-        for (let code = start; code <= end; code += 1) mapped.add(code);
-      }
-    }
-  }
-  return mapped;
+  return cmapCharacters(sfntTable(await readFile(new URL(path, fontsDir)), 'cmap'));
 }
 
 const missing = (mapped, text) => [...new Set([...text].filter((character) => /\S/.test(character) && !mapped.has(character.codePointAt(0))))];
@@ -137,7 +99,7 @@ function range(start, end) {
 test('the web ships each script as one small self-hosted file, with its licence, and fetches nothing else', async () => {
   const css = await readFile(new URL('src/styles.css', root), 'utf8');
   const build = await readFile(new URL('scripts/build-public-site.mjs', root), 'utf8');
-  const faces = [...css.matchAll(/@font-face \{([^}]*)\}/g)].map(([, body]) => body);
+  const faces = [...css.matchAll(/@font-face \{([^}]*)\}/g)].map(([, body]) => body).filter((body) => body.includes('font-family: "Tiro'));
   assert.equal(faces.length, 2);
   for (const face of faces) {
     const file = face.match(/src: url\("\.\/(fonts\/[\w-]+\.woff2)"\)/)[1];
@@ -154,7 +116,7 @@ test('the web ships each script as one small self-hosted file, with its licence,
   assert.ok(build.includes("'src/fonts/OFL-Tiro.txt'"));
   assert.match(await readFile(new URL('src/fonts/OFL-Tiro.txt', root), 'utf8'), /SIL Open Font License, Version 1\.1/);
   assert.doesNotMatch(css, /fonts\.(googleapis|gstatic)\.com|@import/, 'nothing fetched from a CDN at runtime');
-  // Georgia still leads every serif stack: Latin is unchanged.
-  assert.equal(css.match(/font-family: Georgia, var\(--serif-scripts\)/g).length, 18);
-  assert.doesNotMatch(css, /font-family: (?!Georgia)[^;]*var\(--serif-scripts\)/);
+  // Every serif stack puts the scripts after Gelasio and Georgia, which draw only Latin.
+  assert.equal(css.match(/font-family: Gelasio, Georgia, var\(--serif-scripts\), serif;/g).length, 18);
+  assert.doesNotMatch(css, /font-family: (?!Gelasio, Georgia, )[^;]*var\(--serif-scripts\)/);
 });
