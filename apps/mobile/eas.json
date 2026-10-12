@@ -13,7 +13,9 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_API_ORIGIN": "https://api.together-ledger.com"
+        "EXPO_PUBLIC_API_ORIGIN": "https://api.together-ledger.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "830212501049-rfcs1cbpoutujis33ealcilrni2iurmo.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "830212501049-m2kdup7ckrivuqu1uure7un5fq17hvth.apps.googleusercontent.com"
       },
       "android": {
         "buildType": "apk"
@@ -22,7 +24,9 @@
     "production": {
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_API_ORIGIN": "https://api.together-ledger.com"
+        "EXPO_PUBLIC_API_ORIGIN": "https://api.together-ledger.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "830212501049-rfcs1cbpoutujis33ealcilrni2iurmo.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "830212501049-m2kdup7ckrivuqu1uure7un5fq17hvth.apps.googleusercontent.com"
       },
       "autoIncrement": true
     }
