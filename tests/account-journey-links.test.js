@@ -67,9 +67,9 @@ async function appAtItsOwnHome() {
   const mailer = new SmtpMailer({
     transport: { sendMail: async (message) => { sent.push(message); return { accepted: [message.to] }; } },
     from: 'Together Ledger <no-reply@together-ledger.com>',
-    invitationFrom: 'Together Ledger - 010 Journey Invite <journey-invitation@together-ledger.com>',
-    verificationFrom: 'Together Ledger - 020 Email Verification <account-verification@together-ledger.com>',
-    recoveryFrom: 'Together Ledger - 030 Password Reset <account-recovery@together-ledger.com>',
+    invitationFrom: 'Together Ledger <journey-invitation@together-ledger.com>',
+    verificationFrom: 'Together Ledger <account-verification@together-ledger.com>',
+    recoveryFrom: 'Together Ledger <account-recovery@together-ledger.com>',
     accountOrigin: fallbackOrigin,
   });
   const config = loadConfig({

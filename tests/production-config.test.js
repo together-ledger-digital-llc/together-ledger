@@ -194,3 +194,15 @@ test('backups go only to the company project, and a restore drill can prove one 
   assert.match(operations, /roles\/storage\.objectCreator/);
   assert.match(operations, /restore-backup-drill\.sh/);
 });
+
+// #410: every sender is plain "Together Ledger", and only the address says what the mail is for.
+// The numbered names read like ticket numbers and landed in AOL's Spam folder; a server rebuilt
+// from this file must not bring them back.
+test('every sender in the production example is named plain Together Ledger', async () => {
+  const environment = await readFile(new URL('../.env.production.example', import.meta.url), 'utf8');
+  const senders = environment.split('\n').filter((line) => /^MAIL_FROM\w*=/.test(line));
+  assert.ok(senders.length >= 4, 'the legacy fallback and the three purpose-specific senders are all there');
+  for (const line of senders) {
+    assert.match(line, /^MAIL_FROM\w*=Together Ledger <[^<>\s]+@together-ledger\.com>$/, line);
+  }
+});

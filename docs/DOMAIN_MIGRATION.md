@@ -8,10 +8,12 @@ Together Ledger is moving from the legacy Surojito subdomain to its own domain:
 | Running web app | `https://app.together-ledger.com` |
 | Company site alias | `https://www.together-ledger.com` |
 | Protected API | `https://api.together-ledger.com` |
-| Journey invitations | `Together Ledger - 010 Journey Invite <journey-invitation@together-ledger.com>` |
-| Email verification | `Together Ledger - 020 Email Verification <account-verification@together-ledger.com>` |
-| Password recovery | `Together Ledger - 030 Password Reset <account-recovery@together-ledger.com>` |
+| Journey invitations | `Together Ledger <journey-invitation@together-ledger.com>` |
+| Email verification | `Together Ledger <account-verification@together-ledger.com>` |
+| Password recovery | `Together Ledger <account-recovery@together-ledger.com>` |
 | Legacy sender fallback | `Together Ledger <no-reply@together-ledger.com>` |
+
+Every sender's display name is plain `Together Ledger`, and only the address says what the message is for. The numbered names they replaced read like ticket numbers, and mail sent under them landed in AOL's Spam folder; decided Oct 12, #410.
 
 `https://together.surojito.com` is a legacy address. Do not redirect it until the canonical public app and protected API have separately passed the synthetic-account release checks.
 
