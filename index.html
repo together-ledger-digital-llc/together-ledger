@@ -147,9 +147,11 @@
         <section class="trip-bar" aria-label="Your shared space">
           <div class="trip-identity"><small>Your shared space</small><strong id="trip-name">Loading…</strong><span id="trip-period"></span><div class="trip-record-links"><button id="event-manager-button">See event history <span id="event-count"></span></button><button id="edit-journey-button">Edit journey</button><label id="actor-control">Acting as <select id="actor-select" aria-label="Choose the local actor for new events"></select></label><span class="sync-badge" id="sync-badge">Browser only</span></div></div>
           <div class="journey-actions">
-            <label class="journey-picker"><span>Switch journey</span><select id="journey-select" aria-label="Switch journey"></select></label>
-            <button class="button quiet" id="new-journey-button">＋ New journey</button>
             <button class="button primary" data-open-moment>＋ Hold a moment</button>
+          </div>
+          <div class="journey-switch">
+            <div class="journey-picker" id="journey-picker" hidden><span id="journey-picker-label">Switch journey</span><div class="journey-row" id="journey-row" role="radiogroup" aria-labelledby="journey-picker-label"></div></div>
+            <button class="button quiet" id="new-journey-button">＋ New journey</button>
           </div>
         </section>
 

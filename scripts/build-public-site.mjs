@@ -15,6 +15,7 @@ const publicFiles = [
   'src/app.js',
   'src/display-text.js',
   'src/history-guide.js',
+  'src/journey-row.js',
   'src/leave-journey.js',
   'src/model.js',
   'src/moment-themes.js',

@@ -24,7 +24,7 @@ try {
   assert.match(html, /id="toggle-moments-button"/);
   assert.match(html, /src="\.\/src\/themes\.js"/);
   assert.match(html, /id="theme-select"/);
-  assert.match(html, /id="journey-select"/);
+  assert.match(html, /id="journey-row"/);
   assert.match(html, /id="settings-dialog"/);
   assert.match(html, /id="event-manager-button"/);
   assert.match(html, /id="event-list"/);
