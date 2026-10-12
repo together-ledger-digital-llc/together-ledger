@@ -238,5 +238,6 @@ test('the heading reads "All moments" in Compact only; In full keeps "Recent mom
 test('the full card is unchanged and still the default', async () => {
   const card = await read('src/components/moment-card.tsx');
   assert.match(card, /card: \{ borderWidth: 1, borderLeftWidth: 5, padding: 18 \}/);
-  assert.match(card, /title: \{ fontSize: 25, lineHeight: 31 \}/);
+  // 31 in Latin; leading() gives Hindi and Bengali room for their marks (scripts.ts).
+  assert.match(card, /title: \{ fontSize: 25, lineHeight: leading\(25, 31\) \}/);
 });

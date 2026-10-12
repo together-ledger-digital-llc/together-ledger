@@ -3,5 +3,5 @@
 export { chooseTheme, getTheme, themes, type Theme, type ThemeColors, type ThemeRadius } from './themes';
 export type { ThemeBase } from './resolve-theme';
 export { MIN_TARGET, targetSize } from './metrics';
-export { fonts, fontSources } from './fonts';
+export { fonts, fontSources, leading, script, tracking } from './fonts';
 export { ThemeProvider, useTheme } from './theme-provider';

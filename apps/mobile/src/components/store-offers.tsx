@@ -19,7 +19,7 @@ import {
   type RoomProductId,
   type StoreProductId,
 } from '../billing/store-products';
-import { fonts, useTheme } from '../theme';
+import { fonts, leading, useTheme } from '../theme';
 import { SettingsRow } from './settings-rows';
 import { Body, Button } from './ui';
 
@@ -168,7 +168,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 const styles = StyleSheet.create({
   section: { gap: 10, marginTop: 8 },
-  sectionTitle: { fontSize: 20, lineHeight: 26 },
+  sectionTitle: { fontSize: 20, lineHeight: leading(20, 26) },
   offer: { borderWidth: 1, padding: 14, gap: 6 },
   offerHead: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' },
   offerTitle: { fontSize: 16, fontWeight: '700', flexShrink: 1 },

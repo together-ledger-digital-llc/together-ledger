@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { AccessibilityInfo, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShell, type DialogRequest } from '../shell/shell-provider';
-import { fonts, useTheme } from '../theme';
+import { fonts, leading, tracking, useTheme } from '../theme';
 import { StatusRegion } from './status-region';
 import { Toast } from './toast';
 import { Button } from './ui';
@@ -50,8 +50,8 @@ const styles = StyleSheet.create({
   card: { maxHeight: '100%', width: '100%', maxWidth: 720, alignSelf: 'center' },
   content: { padding: 24, gap: 12 },
   signature: { fontSize: 14 },
-  eyebrow: { fontSize: 12, fontWeight: '900', letterSpacing: 1.9, textTransform: 'uppercase' },
-  title: { fontSize: 28, lineHeight: 34 },
+  eyebrow: { fontSize: 12, fontWeight: '900', letterSpacing: tracking(1.9), textTransform: 'uppercase' },
+  title: { fontSize: 28, lineHeight: leading(28, 34) },
   message: { fontSize: 16, lineHeight: 23 },
   actions: { gap: 10, marginTop: 13 },
 });

@@ -4,7 +4,7 @@ import { dateLabel, momentLabel } from '../journey/journey-view';
 import { useWaitingMoments } from '../journey/use-waiting-moments';
 import { DISCARD_LABEL, discardConsequence, inJourney, onceSent, SEND_NOW_LABEL, TRY_AGAIN_LABEL, WAITING_CUE, WAITING_HELP, WAITING_TITLE, type WaitingMoment } from '../journey/waiting-moments';
 import { useShell } from '../shell/shell-provider';
-import { fonts, useTheme } from '../theme';
+import { fonts, leading, tracking, useTheme } from '../theme';
 import { CardAction } from './moment-card';
 import { Button } from './ui';
 
@@ -75,15 +75,15 @@ function WaitingCard({ entry, elsewhere }: { entry: WaitingMoment; elsewhere: bo
 
 const styles = StyleSheet.create({
   section: { gap: 10, marginTop: 8 },
-  title: { fontSize: 20, lineHeight: 26 },
+  title: { fontSize: 20, lineHeight: leading(20, 26) },
   body: { fontSize: 15, lineHeight: 22 },
   card: { borderWidth: 1, borderLeftWidth: 5, padding: 16, gap: 6 },
   meta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 7 },
   metaText: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase' },
   chip: { borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4 },
-  chipText: { fontSize: 14, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' },
+  chipText: { fontSize: 14, fontWeight: '800', letterSpacing: tracking(0.8), textTransform: 'uppercase' },
   glyph: { fontSize: 12 },
-  cardTitle: { fontSize: 22, lineHeight: 28 },
+  cardTitle: { fontSize: 22, lineHeight: leading(22, 28) },
   refusal: { fontSize: 15, lineHeight: 22, fontWeight: '700' },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
 });

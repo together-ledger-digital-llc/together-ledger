@@ -14,6 +14,10 @@ const publicFiles = [
   'src/api.js',
   'src/app.js',
   'src/display-text.js',
+  // The Hindi and Bengali serif, fetched by src/styles.css only for those scripts, and its licence.
+  'src/fonts/OFL-Tiro.txt',
+  'src/fonts/tiro-bangla-bengali.woff2',
+  'src/fonts/tiro-devanagari-hindi-devanagari.woff2',
   'src/history-guide.js',
   'src/i18n/catalog.js',
   'src/i18n/dom.js',

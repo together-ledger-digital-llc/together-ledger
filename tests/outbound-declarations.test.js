@@ -39,10 +39,14 @@ test('nothing the website ships names a cleartext http:// address', async () => 
 
 const FONT_HOSTS = /fonts\.googleapis\.com|fonts\.gstatic\.com|typekit\.net|fonts\.bunny\.net|use\.fontawesome\.com|fast\.fonts\.net/;
 
-test('the website asks for no font: no @font-face, no @import, no font host', async () => {
+test('the website asks for no font but its own: no font from another address, no @import, no font host', async () => {
   const files = await shippedWebFiles();
   const css = files.get('src/styles.css');
-  assert.doesNotMatch(css, /@font-face/, 'a font file would be a request; the web uses the system serif and sans (CLAUDE.md, Design system)');
+  // The only @font-face rules are the Hindi and Bengali serif, each a file of our own, served from
+  // our own address and fetched only for its script (CLAUDE.md, Design system).
+  const sources = [...css.matchAll(/@font-face \{[^}]*\}/g)].flatMap(([face]) => [...face.matchAll(/url\(\s*['"]?([^'")]+)/g)].map(([, url]) => url));
+  assert.deepEqual(sources, ['./fonts/tiro-devanagari-hindi-devanagari.woff2', './fonts/tiro-bangla-bengali.woff2']);
+  assert.equal(css.match(/@font-face/g).length, 2, 'no other font file');
   assert.doesNotMatch(css, /@import/, 'a stylesheet import is a request to wherever it points');
   assert.doesNotMatch(css, /url\(\s*['"]?(?:https?:)?\/\//, 'the stylesheet loads nothing from another address');
   for (const [path, text] of files) assert.doesNotMatch(text, FONT_HOSTS, `${path} names a font host`);

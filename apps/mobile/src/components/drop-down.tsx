@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { AccessibilityInfo, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KEEP_LABEL } from '../shell/defaults';
-import { fonts, targetSize, useTheme } from '../theme';
+import { fonts, leading, targetSize, useTheme } from '../theme';
 import { Button } from './ui';
 
 /**
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   frame: { flex: 1, justifyContent: 'center' },
   card: { maxHeight: '100%', width: '100%', maxWidth: 520, alignSelf: 'center' },
   content: { padding: 24, gap: 12 },
-  title: { fontSize: 24, lineHeight: 30 },
+  title: { fontSize: 24, lineHeight: leading(24, 30) },
   options: { gap: 8 },
   option: { borderWidth: 1, paddingHorizontal: 14, justifyContent: 'center' },
   optionText: { fontSize: 16, fontWeight: '700' },

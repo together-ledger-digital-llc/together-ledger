@@ -6,7 +6,7 @@ import { PENDING_LABEL } from '../shell/defaults';
 import { STATUS_TONES } from '../shell/status';
 import { useShell } from '../shell/shell-provider';
 import { ScreenStatusRegion } from './status-region';
-import { fonts, targetSize, useTheme } from '../theme';
+import { fonts, leading, targetSize, useTheme } from '../theme';
 
 /**
  * The small set of pieces every screen is built from. Each screen carries the status region
@@ -145,7 +145,7 @@ export function Body({ children, selectable = false }: { children: ReactNode; se
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   screen: { padding: 24, gap: 16 },
-  title: { fontSize: 30, lineHeight: 36 },
+  title: { fontSize: 30, lineHeight: leading(30, 36) },
   body: { fontSize: 16, lineHeight: 23 },
   field: { gap: 6 },
   label: { fontSize: 15, fontWeight: '600' },

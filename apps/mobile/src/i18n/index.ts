@@ -21,6 +21,8 @@ export type MessageValues = Record<string, string | number | Date | null | undef
 // Always the source language for now. The Language preference (101B) chooses another, and only
 // ever one that offeredLanguages(manifest) lists.
 const active: string = manifest.source;
+/** The active language's tag: what the theme sets type for (src/theme/fonts.ts). */
+export const language = active;
 const formatting = (languageOf(manifest, active) as { formatting: Formatting }).formatting;
 const catalogs: Record<string, Record<string, string>> = { [manifest.source]: messagesOf(source) };
 

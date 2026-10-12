@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSession } from '../auth/session';
 import { locationContext, momentLabel, moneyContext, normalizeMomentTheme, visibilityCue, visibilityRole, dateLabel, type MomentImage, type ShownMoment } from '../journey/journey-view';
-import { fonts, getTheme, targetSize, useTheme, type ThemeColors } from '../theme';
+import { fonts, getTheme, leading, targetSize, tracking, useTheme, type ThemeColors } from '../theme';
 
 /**
  * One moment, as the web's .moment-card draws it (TL-M-07, #182). A moment with its own
@@ -143,9 +143,9 @@ const styles = StyleSheet.create({
   meta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 7, marginBottom: 9 },
   metaText: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase' },
   chip: { borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4 },
-  chipText: { fontSize: 14, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' },
+  chipText: { fontSize: 14, fontWeight: '800', letterSpacing: tracking(0.8), textTransform: 'uppercase' },
   glyph: { fontSize: 12 },
-  title: { fontSize: 25, lineHeight: 31 },
+  title: { fontSize: 25, lineHeight: leading(25, 31) },
   detail: { fontSize: 16, lineHeight: 25, marginTop: 8 },
   places: { fontSize: 14, fontWeight: '800', marginTop: 13 },
   photos: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },

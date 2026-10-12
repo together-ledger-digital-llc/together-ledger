@@ -4,7 +4,7 @@ import {
   HISTORY_GUIDE_SECTIONS, HISTORY_GUIDE_TITLE, HISTORY_KINDS_HEADING, HISTORY_NEVER_LABEL, HISTORY_RECORDS_LABEL, HISTORY_RECORDS_NOTHING,
 } from '../../../src/history-guide.js';
 import { Body, Screen } from '../src/components/ui';
-import { fonts, useTheme } from '../src/theme';
+import { fonts, leading, useTheme } from '../src/theme';
 
 /**
  * "How to read your history" (#349), reached from the History intro. The words are the web's own,
@@ -65,7 +65,7 @@ export default function HistoryGuideScreen() {
 
 const styles = StyleSheet.create({
   section: { gap: 8 },
-  heading: { fontSize: 22, lineHeight: 28, marginTop: 12 },
+  heading: { fontSize: 22, lineHeight: leading(22, 28), marginTop: 12 },
   subheading: { fontSize: 18, fontWeight: '700', marginTop: 8 },
   card: { borderWidth: 1, padding: 14, gap: 4 },
   title: { fontSize: 16, fontWeight: '700' },

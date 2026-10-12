@@ -14,7 +14,7 @@ import { useMomentActions } from '../src/journey/moment-actions';
 import { addPlace, CURRENCIES, CURRENCY_LABEL, DELETE_ZONE_NOTE, DELETE_ZONE_TITLE, draftFrom, draftProblem, MOMENT_NAME_MISSING, removePlace, visibilityHelp, visibilityLocked, type Draft, type EditableMoment } from '../src/journey/moment-draft';
 import { useJourney } from '../src/journey/use-journey';
 import { useShell } from '../src/shell/shell-provider';
-import { fonts, getTheme, targetSize, useTheme } from '../src/theme';
+import { fonts, getTheme, leading, targetSize, useTheme } from '../src/theme';
 
 /**
  * Hold a moment, or change one (TL-M-08, #183): the web's moment dialog (index.html,
@@ -265,7 +265,7 @@ function Section({ title, help, children }: { title: string; help?: string; chil
 
 const styles = StyleSheet.create({
   section: { gap: 10, marginTop: 8 },
-  sectionTitle: { fontSize: 20, lineHeight: 26 },
+  sectionTitle: { fontSize: 20, lineHeight: leading(20, 26) },
   help: { fontSize: 14, lineHeight: 20 },
   detail: { minHeight: 120, textAlignVertical: 'top' },
   options: { gap: 8 },

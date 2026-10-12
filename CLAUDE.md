@@ -165,6 +165,14 @@ Two things travel with that decision and are not optional:
 - **`letter-spacing: -0.035em` on `h1, h2` was tuned to Georgia's proportions.** Re-check it against
   Gelasio rather than carrying it over on faith.
 
+Hindi and Bengali are not Latin, and neither Gelasio nor Georgia draws them. Their headings, moment titles
+and brand voice use **Tiro Devanagari Hindi** and **Tiro Bangla** (SIL OFL 1.1), bundled on the phone and
+self-hosted on the web, one file per script, fetched only when that script is on the page. Reasoning,
+sizes and the rendered comparison are in `docs/2026-10-12-devanagari-bangla-font-decision.md`. Both have
+only weight 400. Devanagari and Bangla are **never tracked**: any letter-spacing breaks the headline that
+joins their letters. Their serif line height is at least 1.35 (Hindi) or 1.3 (Bengali), for the marks
+above and below the line. Interface text in both scripts stays the system sans.
+
 "Do not add a webfont" still stands for what it always meant: no `@font-face` pulling from a CDN at
 runtime. A bundled, self-hosted font file is not a webfont in that sense, and this line never forbade one.
 
