@@ -82,8 +82,8 @@ test('moments are newest first, carry their photos, and the list opens on three'
   assert.deepEqual(recent.map(({ id }) => id), ['c', 'b', 'd', 'a']);
   assert.deepEqual(recent[0].images.map(({ id }) => id), ['i1']);
   assert.deepEqual(recent[0].removedImages.map(({ id }) => id), ['i2']);
-  assert.deepEqual(view.shownMoments(recent, { expanded: false, filter: 'all' }).map(({ id }) => id), ['c', 'b', 'd']);
-  assert.deepEqual(view.shownMoments(recent, { expanded: true, filter: 'memory' }).map(({ id }) => id), ['c', 'a']);
+  assert.deepEqual(view.shownMoments(recent, { expanded: false }).map(({ id }) => id), ['c', 'b', 'd']);
+  assert.deepEqual(view.shownMoments(recent, { expanded: true }).map(({ id }) => id), ['c', 'b', 'd', 'a'], 'every moment, of every kind (#405)');
   // "See all 1 moment", never "See all 1 moments", on the phone and the web alike (#337).
   assert.equal(view.seeAllLabel(1), 'See all 1 moment');
   assert.equal(view.seeAllLabel(4), 'See all 4 moments');
@@ -92,7 +92,7 @@ test('moments are newest first, carry their photos, and the list opens on three'
   assert.equal(view.seeAllShown, model.seeAllShown, 'the phone uses the web\'s own rule');
   assert.ok(web.includes("$('#toggle-moments-button').hidden = !seeAllShown(recent.length, momentsExpanded);"));
   assert.ok(web.includes('recent.slice(0, RECENT_MOMENTS_SHOWN)'), 'and the web shows as many as the rule counts');
-  assert.deepEqual(view.momentFilters(recent).map(([value]) => value), ['all', 'promise', 'memory', 'feeling'], 'only types in use, in the web\'s order');
+  assert.equal(view.momentFilters, undefined, 'no moment filter on the phone (#405)');
   assert.deepEqual(view.openThreads(snapshot).map(({ id }) => id), ['t1']);
   assert.equal(view.chooseJourney([{ id: 'x' }, { id: 'y' }], 'y'), 'y');
   assert.equal(view.chooseJourney([{ id: 'x' }, { id: 'y' }], 'gone'), 'x');
@@ -178,8 +178,9 @@ test('pull to refresh re-reads the snapshot, and the list only draws what is on 
   assert.match(ledger, /\{listing\.seeAll \? <Button kind="quiet" label=\{expanded \? 'Show recent' : seeAllLabel\(recent\.length\)\}/, '"See all" only when there is more to see (#337)');
   assert.match(await read('src/journey/journey-view.ts'), /seeAll: !compact && seeAllShown\(recent\.length, expanded\)/, 'still the web\'s own rule, in the full view');
   assert.match(ledger, /<RefreshControl refreshing=\{journey\.refreshing\} onRefresh=\{journey\.refresh\}/);
-  assert.match(ledger, /<EmptyState title="No moments in this view" body="A small truth is enough to begin, or choose another filter to see more\." \/>/);
-  assert.ok(web.includes("emptyState('No moments in this view', 'A small truth is enough to begin, or choose another filter to see more.')"));
+  assert.match(ledger, /<EmptyState title="No moments here yet" body="A small truth is enough to begin\." \/>/);
+  assert.ok(web.includes("emptyState('No moments here yet', 'A small truth is enough to begin.')"));
+  assert.doesNotMatch(ledger + web, /choose another filter to see more/, 'no sentence that asks for a filter that is gone (#405)');
   assert.ok(web.includes("emptyState('No open threads', 'That can be a good place to rest.', { compact: true })"));
   assert.match(ledger, /<EmptyState compact title="No open threads" body="That can be a good place to rest\." \/>/);
 });

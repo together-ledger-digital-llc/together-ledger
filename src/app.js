@@ -196,7 +196,6 @@ let removeId = null;
 let removeSnapshot = null;
 let guidanceIndex = 0;
 const momentImageUrls = new Map();
-let momentFilter = 'all';
 let momentsExpanded = false;
 let momentLocations = [];
 
@@ -953,18 +952,13 @@ function renderSharedJourney(trip, moments, isEmptyStart) {
   $('#guidance-prev').disabled = guidanceIndex === 0;
   $('#guidance-skip').hidden = guidanceIndex === prompts.length - 1;
   $('#guidance-done').hidden = guidanceIndex !== prompts.length - 1;
-  const kindsInUse = new Set(recent.map((moment) => moment.kind));
-  const filters = [['all', 'All moments'], ...MOMENT_TYPES.filter(([value]) => kindsInUse.has(value))];
-  if (!filters.some(([value]) => value === momentFilter)) momentFilter = 'all';
   $('#moments-eyebrow').textContent = isEmptyStart ? 'A place to begin' : 'Our shared journey';
   $('#moments-title').textContent = isEmptyStart ? 'What can live here?' : 'Recent moments';
   $('#moments-copy').textContent = isEmptyStart ? 'A ledger can hold the things you want to remember, name, or return to. It begins empty.' : 'Hold what happened in words that feel true.';
-  $('#moment-filters').hidden = !momentsExpanded || !recent.length;
-  $('#moment-filters').innerHTML = momentsExpanded ? filters.map(([value, label]) => `<button class="${momentFilter === value ? 'active' : ''}" data-moment-filter="${value}" aria-pressed="${momentFilter === value}">${label}</button>`).join('') : '';
-  $$('[data-moment-filter]').forEach((button) => button.addEventListener('click', () => { momentFilter = button.dataset.momentFilter; renderSharedJourney(trip, moments); }));
   $('#toggle-moments-button').hidden = !seeAllShown(recent.length, momentsExpanded);
   $('#toggle-moments-button').textContent = momentsExpanded ? 'Show recent' : `See all ${countOf(recent.length, 'moment', 'moments')}`;
-  const visible = (momentsExpanded ? recent.filter((moment) => momentFilter === 'all' || moment.kind === momentFilter) : recent.slice(0, RECENT_MOMENTS_SHOWN));
+  // Every moment once "See all" is chosen, with no filter between them (#405).
+  const visible = momentsExpanded ? recent : recent.slice(0, RECENT_MOMENTS_SHOWN);
   $('#moment-timeline').innerHTML = visible.length ? visible.map((moment) => {
     const attribution = `<span>Held by ${escapeHtml(moment.createdBy || 'Journey member')}</span>${moment.shapedByBoth ? '<span class="moment-collaboration-badge">Shaped by more than one journeyer</span>' : ''}`;
     const shareAction = isCloudJourney(trip) && moment.visibility === 'share-later' ? `<button data-share-moment="${escapeHtml(moment.id)}">Share now</button>` : '';
@@ -973,7 +967,7 @@ function renderSharedJourney(trip, moments, isEmptyStart) {
     const locations = Array.isArray(moment.locations) ? moment.locations : [];
     const locationContext = locations.length ? `<div class="location-context">${escapeHtml(locations.map((location) => location.label).join(' · '))}</div>` : '';
     return `<article class="moment-card ${moment.visibility}"${momentThemeAttribute(moment.theme)}><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn)}</span><span class="visibility-chip ${moment.visibility}"><span class="visibility-glyph" aria-hidden="true">${visibilityCue(moment.visibility).glyph}</span>${escapeHtml(visibilityCue(moment.visibility).label)}</span></div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${locationContext}${attachments}${removed}${moment.moneyCents != null ? `<details class="money-context"><summary>Practical money context</summary><p>${money(moment.moneyCents, moment.moneyCurrency)} is held here as context, not a score.</p></details>` : ''}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">Edit</button></div></article>`;
-  }).join('') : isEmptyStart ? `<div class="log-types"><p>There are no examples here—only possibilities:</p><div>${MOMENT_TYPES.filter(([value]) => value !== 'other').map(([, label]) => `<span>${escapeHtml(label)}</span>`).join('')}<button type="button" data-open-custom-moment>＋ Add your own moment</button></div></div>` : emptyState('No moments in this view', 'A small truth is enough to begin, or choose another filter to see more.');
+  }).join('') : isEmptyStart ? `<div class="log-types"><p>There are no examples here—only possibilities:</p><div>${MOMENT_TYPES.filter(([value]) => value !== 'other').map(([, label]) => `<span>${escapeHtml(label)}</span>`).join('')}<button type="button" data-open-custom-moment>＋ Add your own moment</button></div></div>` : emptyState('No moments here yet', 'A small truth is enough to begin.');
   $$('[data-edit-moment]').forEach((button) => button.addEventListener('click', () => openMoment(button.dataset.editMoment)));
   $$('[data-open-moment-image]').forEach((button) => button.addEventListener('click', () => openMomentImage(button.dataset.openMomentImage)));
   $$('[data-share-moment]').forEach((button) => button.addEventListener('click', () => shareMoment(button.dataset.shareMoment)));
@@ -1742,7 +1736,6 @@ $('#moment-form').addEventListener('submit', async (event) => {
 
 $('#toggle-moments-button').addEventListener('click', () => {
   momentsExpanded = !momentsExpanded;
-  momentFilter = 'all';
   renderSharedJourney(activeTrip(state), activeMoments(state));
 });
 $('#buy-image-slot-button').addEventListener('click', async (event) => {
