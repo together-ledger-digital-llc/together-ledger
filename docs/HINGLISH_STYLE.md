@@ -1,7 +1,9 @@
 # Hinglish house style
 
-**Status: proposal, waiting for the owner's approval.** Nothing in the app uses this yet.
-Prompt 109 is the first work that will.
+**Status: proposal, with the owner's decisions of 12 October 2026 applied** (O1–O5, O8, O9;
+see §9). Still open: O7, which waits on the phone check in §8.7, and O11–O12, which are
+prompt 109's to raise. Nothing in the app uses this yet. Prompt 109 is the first work that
+will.
 
 The owner decided on 12 October 2026 that v1 offers Hinglish. The app labels it
 **"Hinglish (Hindi in Latin script)"**, and its language tag is `hi-Latn`. Phones don't offer
@@ -23,7 +25,7 @@ correct, not a finished translation.
 6. [The fixed spelling list](#6-the-fixed-spelling-list)
 7. [Real sentences from the app, in this style](#7-real-sentences-from-the-app-in-this-style)
 8. [Language tag and screen readers](#8-language-tag-and-screen-readers)
-9. [Open choices for the owner](#9-open-choices-for-the-owner)
+9. [The owner's decisions, and what is still open](#9-the-owners-decisions-and-what-is-still-open)
 
 ---
 
@@ -80,10 +82,14 @@ reachable. So every source here carries one of three levels of checking:
 Before this document is used as evidence outside the team, someone with open network access
 should open the level-3 links and check the quotation.
 
-**Where the app's text came from.** The English text of prompts 101–103 has not merged, and
-none of their branches is open, so the sentences in §7 are taken from `main`: `src/app.js`,
-`apps/mobile`, and `server/mailer.js` for the emails, at commit `5cf2c42`. No unmerged
-branch was used.
+**Where the app's text came from.** When this was first written, the English text of
+prompts 101–103 had not merged and none of their branches was open. So the sentences in §7
+are taken from `main` at commit `5cf2c42`: `src/app.js`, `src/model.js`, `apps/mobile`, and
+`server/mailer.js` for the emails. No unmerged branch was used.
+
+Since then, #418 has merged the translation system's foundation. Its `locales/en.json` holds
+the first 132 strings. Two of the sentences in §7 are among them and are marked with their
+keys. The rest still live only in the source files, and their line numbers may have moved.
 
 **The app sends no push notifications today.** `apps/mobile` has no notifications
 dependency. "Notifications" in this document therefore means the two things the app does
@@ -268,13 +274,14 @@ following:
 
 Several house rules below were checked against this output and agree with it:
 
-- **Long vowels doubled inside a word:** "maheena", "Somwaar".
+- **Long vowels doubled inside a word:** "Somwaar", "Raviwaar".
 - **The aspirated chh:** "pichhla".
-- **No e-colouring before h:** "pahle", not "pehle".
 - **The nasal e:** "mein".
 - **English month names.**
 
-Where CLDR disagrees with our list, §5.5 says what the app does about it.
+Two of the everyday exceptions the owner chose (§4, T9) differ from CLDR on purpose. CLDR
+writes "pahle" and "maheena", and we write "pehle" and "mahina". §5.4 says why that doesn't
+reach the screen, and what the app does wherever CLDR and our list disagree.
 
 ### 2.5 Sources tried and not found
 
@@ -330,6 +337,10 @@ English until emails are translated), in links, and on the screen of a journeyer
 English. A journey shared between a Hinglish reader and an English reader needs the same
 nouns on both screens. *Judgement.* "journeyer" is the one exception, see C5.
 
+The glossary that #418 added (`locales/glossary.json`) supports this for journey. It defines
+a journey as "not a trip from A to B" and lists "trip" among the words to avoid. "safar" and
+"yatra" both read as travel. *Decided (O3).*
+
 **C5. The careful words become Hindi.** The words CLAUDE.md protects ("Language") carry the
 product's care, and English loanwords for capacity are exactly the ones it forbids.
 
@@ -341,18 +352,19 @@ So:
 | English | Hinglish | Why |
 |---|---|---|
 | another person | ek aur insaan | "insaan" is a human being, warm and everyday. "vyakti" reads as a government form, and "person" as a count. |
-| another place, room | ek aur jagah, jagah | "jagah" covers both senses of English "place", a location and room for someone, just as English does. |
+| another place, room | ek aur jagah, jagah | "jagah" is a place at a table, which is the glossary's own picture of "another place" (`locales/glossary.json`). Like English "place", it can also mean a location, and the sentence decides which. |
 | rests, resting | aaraam karta/karti hai, aaraam par | A pause with no blame in it. Never "hataana" or "nikaalna" (remove), "band" (shut) or "block". |
 | journeyer | saathi | "journeyer" is not a word any Hinglish reader knows. "saathi" (companion) is exact, warm, and fits every kind of two-person relationship. |
 | propose (a person) | sujhaav dena | In Indian English and Hinglish, "propose karna" means a romantic proposal. In a couples app that must never be the reading. |
 
-The table is *judgement*, except the meaning of "propose": that is everyday Indian usage,
-and the owner should confirm it.
+The table is *judgement*, except the meaning of "propose": that is everyday Indian usage.
+*Decided (O4):* the owner accepted all five. These are the values prompt 109 enters as the
+`hi-Latn` translations in `locales/glossary.json`.
 
 **C6. Feelings, reassurance and consequences are said in Hindi.**
 
-- "kuchh bhi nahin khoyega" (nothing will be lost)
-- "ye waapas nahin liya ja sakta" (this can't be taken back)
+- "kuch bhi nahi khoyega" (nothing will be lost)
+- "ye wapas nahi liya ja sakta" (this can't be taken back)
 - "sab raazi hain" (everyone agrees)
 
 *Reason:* the warmth of the product's voice lives in the Hindi. English in these places
@@ -364,6 +376,10 @@ form carry the "please".
 
 *Reason:* Sanskritised Hindi is what government forms use. Nobody in the samples writes it.
 *Sourced pattern (§2.1); the list is judgement.*
+
+**Extended by the owner (O3–O5).** Where a word reads formal, the everyday word a Bangalore
+product team would use wins, even when that word is English. "order", not "kram"; "rules",
+not "niyam". §6.9 lists each change.
 
 **C8. Mixing happens between words, never inside them.**
 
@@ -387,15 +403,16 @@ the noun, so every English noun needs one.
 |---|---|
 | journey, photo, theme, request, service, history, settings, screen, list | moment, ledger, account, payment, purchase, email, link, password, invitation, device, phone, app, check-in, view, filter, record, connection, option, access, data, Together Ledger |
 
-So: "nayi journey", "ek naya moment", "payment nahin hua", "photo load nahin ho paayi".
-*Judgement.* Speakers differ on several of these, notably payment, app and email. Each one is
-an owner check.
+So: "nayi journey", "ek naya moment", "payment nahi hua", "photo load nahi ho payi".
+*Judgement.* Speakers differ on several of these, notably payment, app and email.
+*Decided (O5):* the owner accepted the table as it stands.
 
 ---
 
 ## 4. House style, part two: transliteration
 
-One mapping from Hindi to Latin letters, applied **without exception**. Where Hindi spelling
+One mapping from Hindi to Latin letters (T1–T8). It applies to every word except a short,
+fixed list of everyday words, T9, which the owner chose (O1). Where Hindi spelling
 and speech differ, the mapping writes **standard Hindi spelling** (Devanagari), less the
 silent vowels rule T1 removes. A writer who is unsure looks the word up in §6. A word not in
 §6 is spelled by these rules and then added to §6.
@@ -415,12 +432,12 @@ the middle of many words. Wherever it is not spoken, it is not written:
 | Hindi | Inside a word | At the end of a word |
 |---|---|---|
 | अ (short a) | a | (never written; see T1) |
-| आ ā | **aa**: aap, baat, maheena, waapas | **a**: kya, tha, karna |
+| आ ā | **aa**: aap, baat, saal, khaali | **a**: kya, tha, karna |
 | इ i | i: din, likhna | i |
-| ई ī | **ee**: theek, zaroori, seedha | **i**: abhi, nahin, saathi |
+| ई ī | **ee**: theek, zaroori, seedha | **i**: abhi, saathi, zaroori |
 | उ u | u: tum, shuru | u |
 | ऊ ū | **oo**: poora, zaroor, poochhna | **u**: shuru |
-| ए e | e: dekhna, mere | e: ke, se, pahle |
+| ए e | e: dekhna, mere | e: ke, se, ye |
 | ऐ ai | ai: kaise, taiyaar, hai | ai |
 | ओ o | o: log, koshish | o: ko, wo, karo |
 | औ au | au: aur, lautna, kaun | au |
@@ -440,21 +457,22 @@ it ("kya" aside, "abhi", "aaj", "kal"). *Sourced pattern; the exact rule is judg
 
 - It is the one convention that tells "baat" from "bat", "baad" from "bad", "naam" from
   "nam".
-- CLDR does the same ("maheena", "Somwaar").
+- CLDR does the same ("Somwaar", "Raviwaar").
 - Netflix's romanised subtitles do the same ("Tareekh").
 
-The cost is that some common words look longer than people often type them: "maheena", not
-"mahina"; "waapas", not "wapas"; "chaahte", not "chahte". This is the main trade-off in the
-whole style. It is open choice O1.
+The cost was that some everyday words looked longer than people type them: "maheena" for
+"mahina", "waapas" for "wapas", "chaahte" for "chahte". The owner decided (O1) to write
+those everyday words as people type them. They are the exceptions in T9. Every other word
+keeps the doubled vowel.
 
-**"End of a word"** includes a vowel followed only by a nasal (T3). That gives "nahin",
-"kahan", "yahan", "donon".
+**"End of a word"** includes a vowel followed only by a nasal (T3). That gives "kahan",
+"yahan", "hon".
 
 **T3. Nasal sounds.** A nasal vowel (chandrabindu or anusvara) is written as its vowel plus
 **n**:
 
-- hain, nahin, kahan, donon, hon, maange, dikhenge
-- **Before p, ph, b, bh, m** it is written **m**: sambhaalna, ummeed.
+- hain, kahan, yahan, hon, maange, dikhenge
+- **Before p, ph, b, bh, m** it is written **m**: sambhalna, ummeed.
 - **A nasal e at the very end of a word** is written **ein**: mein, karein, dein, chunein,
   baatein, jagahein. A plain "en" would read as the English "-en" ("men" is an English word).
   "ein" is the established spelling, and the one CLDR uses ("3 din mein").
@@ -465,7 +483,7 @@ whole style. It is open choice O1.
 **T4. Two vowels in a row.** When ए, ई or ऐ follows another vowel, a **y** is written
 between them:
 
-- gaye, gayi, nayi, naye, liye, aaye, paayi, jaayega, khoyega, chaahiye, hataayein
+- gaye, gayi, nayi, naye, liye, aaye, aayegi, khoyega, hataayein
 
 *Judgement, matching common use.*
 
@@ -474,11 +492,11 @@ between them:
 | Hindi | Latin | Examples |
 |---|---|---|
 | क ख ग घ | k kh g gh | kaam, khaali, galat, ghanta |
-| च छ ज झ | ch **chh** j jh | chunna, chhota, kuchh, jagah, samajhna |
+| च छ ज झ | ch **chh** j jh | chunna, chhota, pichhla, jagah, samajhna |
 | ट ठ ड ढ and त थ द ध | t th d dh (retroflex and dental are not told apart) | theek, thoda, dena, padhna |
-| प फ ब भ म | p ph b bh m | paas, phir, baat, bhi, maheena |
+| प फ ब भ म | p ph b bh m | paas, phir, baat, bhi, maange |
 | य र ल | y r l | yaad, rukna, log |
-| व | **w** before a, aa, o, oo, u, au; **v** everywhere else | wo, waapas, sawaal, Somwaar, sujhaav, vishwaas |
+| व | **w** before a, aa, o, oo, u, au; **v** everywhere else | wo, wahan, sawaal, Somwaar, sujhaav, vishwaas |
 | श ष | sh | shuru, shabd |
 | स ह | s h | sab, hai |
 | ण ञ ङ | n | |
@@ -488,8 +506,8 @@ between them:
 | ड़ ढ़ | d dh | thoda, jodna, padhna |
 
 - **"chh" is kept apart from "ch"** because aspiration is kept for every other consonant
-  (kh, gh, th, dh, ph, bh), and CLDR does the same ("pichhla"). The cost is "kuchh" where
-  "kuch" is more often typed. Open choice O1 again.
+  (kh, gh, th, dh, ph, bh), and CLDR does the same ("pichhla"). The one everyday word where
+  this looked unusual, "kuchh", is written "kuch" (T9).
 - **The v/w split** follows how the sound is said. Hindi व sounds closer to w before back
   vowels and closer to v before front vowels. It matches CLDR ("Somwaar") and common use
   ("wo", "sawaal", "vishwaas").
@@ -499,18 +517,21 @@ between them:
 **T6. Doubled consonants** are written by doubling the first letter: pakka, saccha (च्च),
 chitthi (ठ्ठ). *Judgement.*
 
-**T7. No e-colouring.** Many people say *pehle*, *kehna*, *rehna*, where Hindi spells पहले,
-कहना, रहना. We write the spelling: **pahle, kahna, rahna**.
+**T7. No e-colouring, except in T9.** Many people say *pehle*, *kehna*, *rehna*, where Hindi
+spells पहले, कहना, रहना. The rule writes the spelling, "a".
 
 *Reason:* writing what people say would need a rule about which "a" before "h" changes. It
-would also have to reckon with "sahi" and "bahut", which nobody changes. CLDR writes "pahle"
-too. This is the second largest departure from common typing. It is open choice O1.
+would also have to reckon with "sahi" and "bahut", which nobody changes.
+
+The everyday words where people always write the "e", pehle, kehna and rehna and their
+listed forms, are exceptions in T9. Everything else keeps the "a": "raha", "rahi", "rahe",
+"sahi", "bahut".
 
 **T8. Word division.**
 
 - One Hindi word is one Latin word.
 - Postpositions stand apart: "journey mein", "aap ke liye", "us par".
-- Words Hindi writes as one stay one: isliye, jismein, kyonki.
+- Words Hindi writes as one stay one: isliye, jismein, kyunki.
 - Helper verbs stand apart: "ho gaya", "kar sakte hain".
 - Repeated words take a hyphen: ek-ek, dheere-dheere.
 
@@ -526,13 +547,44 @@ English words too:
 | to | then | to |
 | par | on, but | par |
 | baad | after | (close to bad) |
-| ham | we | ham |
-| han | yes | (none) |
-| bad | (not used) | bad |
+| hum | we | hum |
 
 These are kept, because the rule is kept. Sentences are written so that the Hindi reading is
 the only sensible one. Where a sentence could be misread, use another word: "ise" or "unhein"
-for "use", and "Together Ledger" rather than "ham".
+for "use", and "Together Ledger" rather than "hum".
+
+**T9. The everyday exceptions** (decided by the owner, O1, 12 October 2026). For the
+everyday words below, the house spelling is the one people commonly type, not the one T1–T8
+produce. Each exception is a whole word, and only the forms listed are exceptions. Any other
+form of the same word follows T1–T8. For example, "rehna", "rehta", "rehti" are exceptions,
+while "raha", "rahi", "rahe" already match what people type and follow the rules. A word
+joins this list only by the owner's decision.
+
+| Write | T1–T8 would give | Forms covered | What it departs from |
+|---|---|---|---|
+| nahi | nahin | nahi | the final nasal (T3) |
+| kuch | kuchh | kuch | the aspirated chh (T5) |
+| hum | ham | hum | short a (T2) |
+| hamara | hamaara | hamara, hamari, hamare | long aa inside a word (T2) |
+| haan | han | haan | final long vowel (T2) |
+| pehle | pahle | pehle, pehla, pehli | no e-colouring (T7) |
+| mahina | maheena | mahina, mahine | long ee inside a word (T2) |
+| wapas | waapas | wapas, also in "wapas aana", "wapas lena" | long aa inside a word (T2) |
+| dono | donon | dono | the final nasal (T3) |
+| tumhara | tumhaara | tumhara, tumhari, tumhare | long aa inside a word (T2) |
+| chahna | chaahna | chahna, chahta, chahti, chahte, chahiye | long aa inside a word (T2) |
+| zyada | zyaada | zyada | long aa inside a word (T2) |
+| dobara | dobaara | dobara | long aa inside a word (T2) |
+| rehna | rahna | rehna, rehta, rehti, rehte | no e-colouring (T7) |
+| kehna | kahna | kehna, kehta, kehti, kehte | no e-colouring (T7) |
+| kyun | kyon | kyun, kyunki | the vowel o (T2) |
+| batana | bataana | batana, batayein, batao | long aa inside a word (T2) |
+| sambhalna | sambhaalna | sambhalna, sambhala, sambhalein, sambhalo | long aa inside a word (T2) |
+| jayega | jaayega | jayega, jayegi, jayenge | long aa inside a word (T2) |
+| paya | paaya | paya, payi, paye, payega, payenge | long aa inside a word (T2) |
+
+Two of these differ from CLDR's own Hinglish ("pahle", "maheena"). The app never shows
+CLDR's version of either word (§5.4).
 
 ---
 
@@ -544,7 +596,7 @@ for "use", and "Together Ledger" rather than "ham".
 abhi?"
 
 - **Postpositions follow the noun**, English nouns included: "journey mein", "email par",
-  "Apple ke zariye".
+  "Apple se".
 - **Buttons are a verb phrase ending in the verb:** "Abhi share karein", "Phir se koshish
   karein".
 - **Labels that name a state are a noun phrase:** "Abhi aaraam par", "Baad mein share".
@@ -569,26 +621,27 @@ Always *aap* on:
 - **Privacy:** every word about privacy and visibility, and every consequence dialog.
 - **Problems and endings:** every error, every offline message, every deletion.
 
-**tum only on the writing surfaces inside a journey**, where the app speaks like someone at
-your shoulder while you write to the other person:
+**tum only on the check-in prompts and the empty states** (decided, O2). These are the
+places where the app speaks like someone at your shoulder, and where *aap* reads like a form.
 
-- the check-in prompts
-- the encouragements in empty states ("A small truth is enough to begin.")
-- the hint text that helps someone write a moment
+- the check-in prompts, such as "What is one thing you noticed and appreciated?"
+- the empty states, such as "＋ Add your own" in an empty ledger
 
-Imperatives take the *-o* form: likho, chuno, rakho. *Judgement:* these are the places where
-*aap* reads like a form.
+Imperatives there take the *-o* form: batao, jodo, likho. Everything else is *aap*, including
+every hint in the moment editor. Most check-in prompts and empty states need no pronoun at
+all (§7.10), so *tum* is rare in practice.
 
-**Never both on one screen, never both in one sentence.** The moment editor holds both a
-writing hint and the privacy choice. Under this rule the whole moment editor stays *aap*.
-That leaves *tum* with very few places. It is open choice O2.
+**Never both in one sentence, never both in one block.** A block is a card, a dialog, an
+empty state, or the check-in panel. The draft said "one screen". With O2 decided, an empty
+ledger shows its *tum* empty state on the same screen as the *aap* button "＋ Ek moment
+sambhalein". So the line is drawn at the block instead.
 
 **Gender of the reader.** Hindi verbs agree in gender, and we never know the reader's. *aap*
 helps but does not solve it: "aap kar sakte hain" is masculine plural. So the house style
 prefers forms that don't depend on the reader's gender (*judgement*):
 
 - **Imperatives:** "chunein", "likho".
-- **Past tense with "ne"**, where the verb agrees with the object: "aapne moment sambhaala".
+- **Past tense with "ne"**, where the verb agrees with the object: "aapne moment sambhala".
 - **Passive:** "ise badla ja sakta hai".
 - **Sentences whose subject is a thing, not the reader.**
 
@@ -611,54 +664,58 @@ applies to named people: "naye moment jodne ka option sirf Asha ke paas rahega",
 
 ### 5.4 Numbers, money, dates and times
 
+**Decided on main by #418.** `locales/languages.json` formats Hinglish dates, numbers and
+money with **`en-IN`**, Indian English, not with `hi-Latn`. Its note says why: dates and numbers
+are written "as Indian English writes them, in Latin script". The rules below follow that.
+The outputs quoted are observed in Node 22.22.0, ICU 77.1, CLDR 47.
+
 **Numbers**
 
 - Always Western digits (0–9), never Devanagari digits, and never numbers spelled out in
   words.
 - **Counts:** "7 din", "12 jagahein", "2 hafte", exactly as the English app uses digits.
-- **Large numbers** use Indian grouping (1,00,000), as `Intl.NumberFormat('hi-Latn')` already
-  does (observed in §2.4).
+- **Large numbers** use Indian grouping, as `en-IN` does: "12,34,567.5".
 
 **Money**
 
 - Exactly as the store or Stripe gives it. Never rounded, and never re-worded into words.
-- "$1/month" becomes "$1 har maheene".
+- "$1/month" becomes "$1 har mahine".
 
 **Dates**
 
-- Day, then English month name, then year: "12 October 2026".
-- `Intl.DateTimeFormat('hi-Latn', { dateStyle: 'long' })` gives "12 October, 2026", with a
-  comma (observed). Use the Intl output rather than a hand-built date, so the comma question
-  is settled by CLDR. That is open choice O6.
-- Weekdays as CLDR writes them: Somwaar, Mangalwaar, and so on (observed).
-- Hindi month names (Kartik and the like) and transliterated English months ("Aktoobar")
-  are never used.
+- What `en-IN` gives: day, English month name, year. For example "12 October 2026", with no
+  comma.
+- Weekdays are English too ("Monday"), from the same formatter. CLDR's Hinglish weekday
+  names ("Somwaar") are not used, so that a date comes from one source.
+- Hindi month names (Kartik and the like) and transliterated English months ("Aktoobar") are
+  never used.
 
 **Times**
 
-- 12-hour clock, as Intl gives it in `hi-Latn`: "7:35 PM" (observed).
+- 12-hour clock, as `en-IN` gives it: "7:35 pm".
 
-**Where CLDR's Hinglish disagrees with our list.**
+**Relative times and lists are written by hand.** Write "3 din pehle", "5 din mein",
+"Asha, Ravi aur Meera" and "a, b ya c" from §6. Don't use `Intl.RelativeTimeFormat` or
+`Intl.ListFormat` for these:
 
-| CLDR writes | Our list writes | Where it comes from |
+- **With `en-IN`** they come out in English: "in 5 days", "Asha, Ravi and Meera".
+- **With `hi-Latn`** they come out in CLDR's spellings, which differ from our list:
+
+| CLDR `hi-Latn` writes | Our list writes | Where it comes from |
 |---|---|---|
+| "3 din pahle" | pehle (T9) | relative time |
+| "pichhla maheena" | mahina (T9) | relative time |
 | "yah maheena" | ye | relative time |
 | "aane wala kal" | waala | relative time |
 | "a, b yaa c" | ya | "or" list |
 | "1 week", "7 months" | (left untranslated) | unit formatter |
 
-So in `hi-Latn` the app should:
+*Observed; writing these by hand is judgement.*
 
-- **Use Intl** for numbers, currency, dates and clock times.
-- **Write relative times and "or"-lists by hand** from §6, not with
-  `Intl.RelativeTimeFormat` or `Intl.ListFormat({ type: 'disjunction' })`.
-- **Use "and"-lists** freely: CLDR writes "aur", which matches.
-
-*Observed; the recommendation is judgement.*
-
-**Plurals.** CLDR's plural rule for `hi-Latn` puts 0 in the same category as 1 (observed:
-`select(0)` is "one"). Most Hindi count words don't change ("1 din", "7 din"), but some do
-("1 ghanta", "7 ghante"). Prompt 109 should test the 0 case.
+**Plurals.** `locales/languages.json` says Hinglish uses Hindi's plural rules. CLDR's rule
+for `hi` and `hi-Latn` puts 0 in the same category as 1 (observed: `select(0)` is "one").
+Most Hindi count words don't change ("1 din", "7 din"), but some do ("1 ghanta",
+"7 ghante"). Prompt 109 should test the 0 case.
 
 ### 5.5 Capitalisation
 
@@ -682,6 +739,10 @@ language, Hinglish included. The setting itself stays labelled **"Language"**.
 *Reason:* someone who chose Hinglish by mistake, or handed their phone to someone, must be
 able to find the way back without reading Hinglish. *Judgement.*
 
+**Note for prompt 109.** On main, `locales/languages.json` (#418) gives Hinglish's `name` and
+`nativeName` as just "Hinglish". The label the owner decided is "Hinglish (Hindi in Latin
+script)". Prompt 109 should bring the two together (O12).
+
 ### 5.7 What to avoid
 
 **Slang that dates quickly**
@@ -697,8 +758,8 @@ able to find the way back without reading Hinglish. *Judgement.*
 - **No minimising a price:** never "sirf $1" or "bas $1". The price is stated, never sold.
 - **No guilt or urgency:** never "Abhi pay karo warna…". This is also the confirm-shaming the
   Indian dark-patterns guidelines name.
-- **No tension words:** never "tension mat lo", "chill", "koi baat nahin" about a payment or
-  a privacy choice. Reassurance states facts: "kuchh bhi charge nahin hua", "kuchh bhi nahin
+- **No tension words:** never "tension mat lo", "chill", "koi baat nahi" about a payment or
+  a privacy choice. Reassurance states facts: "kuch bhi charge nahi hua", "kuch bhi nahi
   khoyega".
 - **No flirty or "miss you" lines.** Ever. This is a relationship product, which makes them
   worse, not better.
@@ -706,7 +767,9 @@ able to find the way back without reading Hinglish. *Judgement.*
 **Words with a second meaning in Indian English**
 
 - **"propose"** means a romantic proposal; use "sujhaav dena".
-- **"order"** means a purchase or delivery in Indian apps; use "kram" for sequence.
+- **"order"** is used for a sequence: "usi order mein". In many Indian apps an "order" is a
+  purchase, but this app never calls a purchase an order, so here it can only mean a
+  sequence. The draft used the formal "kram"; the owner chose the everyday word (§6.9).
 - **"seat", "slot"** are the capacity words this product forbids.
 
 **Formal Hindi and officialese** (C7).
@@ -728,6 +791,8 @@ lists variants seen in the wild that we do not use.
 - **gender:** given for nouns (m / f).
 - **rule:** names the transliteration rule (§4) that decides the spelling.
 - **CLDR:** marks a spelling that matches CLDR's `hi-Latn` data (observed, §2.4).
+- **T9:** marks one of the owner's everyday exceptions (§4). The strict spelling is then
+  listed among the rejected variants.
 
 ### 6.1 The careful words and product words
 
@@ -759,8 +824,8 @@ lists variants seen in the wild that we do not use.
 | sujhaav | proposal of a person (m) | sujhav, sujhaw, proposal |
 | sujhaav dena | to propose a person | propose karna |
 | lautna | to return to (a conversation) | loutna, lotna |
-| sambhaalna | to hold (a moment) | sambhalna, sambhaal na |
-| sambhaalein | hold (aap) | sambhalein, sambhaalen |
+| sambhalna | to hold (a moment); T9 | sambhaalna, sambhal na |
+| sambhalein | hold (aap); T9 | sambhaalein, sambhalen |
 | check-in | check-in (m) | checkin, check in |
 | History | the History screen (f) | itihaas, Itihas |
 | Settings | the Settings screen (f, plural) | settingz, vinyaas |
@@ -783,11 +848,11 @@ lists variants seen in the wild that we do not use.
 | aapne | you (with past tense) | apne (that is another word) |
 | apna / apni / apne | one's own | apnaa |
 | tum | you (warm) | tm |
-| tumhaara / tumhaari / tumhaare | your (warm) | tumhara, tumhari, tumhare |
+| tumhara / tumhari / tumhare | your (warm); T9 | tumhaara, tumhaari, tumhaare |
 | main | I | mai, mae |
 | mera / meri / mere | my | meraa |
-| ham | we (prefer "Together Ledger"; T8) | hum |
-| hamaara / hamaari | our | hamara, humara |
+| hum | we (prefer "Together Ledger"; T8); T9 | ham |
+| hamara / hamari / hamare | our; T9 | hamaara, humara |
 | wo | he, she, it, that | woh, vo, voh, vah |
 | ye | this, these, he, she | yeh, yah, yae |
 | is / us | this, that (oblique) | iss, uss |
@@ -796,13 +861,13 @@ lists variants seen in the wild that we do not use.
 | iska / uska / unka | its, his, her, their | iskaa, uskaa |
 | koi | someone, any | koee, koyi |
 | kisi | someone (oblique) | kisee |
-| kuchh | something | kuch, kuchch |
+| kuch | something; T9 | kuchh, kuchch |
 | sab | all, everyone | sub |
 | sabhi | all of them | sabhee |
 | sabka / sabki | everyone's | sabkaa |
 | har | every | harr |
 | log / logon | people | logo |
-| donon | both | dono, donno |
+| dono | both; T9 | donon, donno |
 | khud | oneself | khudh |
 
 ### 6.3 Question words and connectors
@@ -810,8 +875,8 @@ lists variants seen in the wild that we do not use.
 | Write | Meaning | Not |
 |---|---|---|
 | kya | what | kyaa, kia |
-| kyon | why | kyun, kyu, kiyon |
-| kyonki | because | kyunki, kyuki |
+| kyun | why; T9 | kyon, kyu, kiyon |
+| kyunki | because; T9 | kyonki, kyuki |
 | kaun | who | kon, kaon |
 | kab | when | kabb |
 | kahan | where | kaha, kahaan |
@@ -834,8 +899,8 @@ lists variants seen in the wild that we do not use.
 | hi | only, just (emphasis) | hee |
 | sirf | only | srf, sirph |
 | na | not (in "na … na", "jab tak … na") | naa |
-| nahin | no, not | nahi, nhi, nai, nahee |
-| han | yes | haan, ha, haa |
+| nahi | no, not; T9 | nahin, nhi, nai, nahee |
+| haan | yes; T9 | han, ha, haa |
 | ji | polite particle | jee |
 
 ### 6.4 Postpositions and place words
@@ -854,7 +919,7 @@ lists variants seen in the wild that we do not use.
 | bina | without | binaa |
 | paas | near, with (someone) | pas |
 | taraf | towards | tarf |
-| zariye | through, by way of | jariye, zariya |
+| se | through, by way of: "Apple se" | ke zariye (formal), ke through |
 | hisaab | according to (in "ke hisaab se") | hisab |
 | andar | inside | ander |
 | baahar | outside | bahar |
@@ -873,26 +938,26 @@ lists variants seen in the wild that we do not use.
 | kal | tomorrow, yesterday (CLDR) | kall |
 | din | day (CLDR) | dinn |
 | hafta / hafte | week, weeks (CLDR) | hapta, hafthe |
-| maheena / maheene | month, months (CLDR) | mahina, mahine, mahena |
+| mahina / mahine | month, months; T9 (CLDR writes "maheena") | maheena, maheene, mahena |
 | saal | year (CLDR) | sal |
 | ghanta / ghante | hour, hours (CLDR) | ganta, ghantaa |
-| pahle | before, first (CLDR) | pehle, pehele |
+| pehle | before, first; T9 (CLDR writes "pahle") | pahle, pehele |
 | baad | after | bad |
 | baad mein | later | baadme, badme |
 | phir | again, then | fir, fhir |
 | phir se | again | firse, phirse |
-| dobaara | again, a second time | dobara |
+| dobara | again, a second time; T9 | dobaara |
 | hamesha | always | hamesa, humesha |
 | hamesha ke liye | for good, permanently | |
 | kabhi | ever, sometimes | kabhie |
-| kabhi nahin | never | kabhi nahi |
+| kabhi nahi | never; T9 | kabhi nahin |
 | jaldi | soon, quickly | jaldee |
 | turant | straight away | turanth, turunt |
 | thodi der mein | in a moment | thodi der me, thori der mein |
 | der | a while | derr |
 | pichhla / pichhli | last, previous (CLDR) | pichla, pichhala |
 | agla / agli | next (CLDR) | aglaa |
-| shuruaat | beginning (f) | shuruat, shuruwat |
+| shuru | the start: "shuru karne ke liye" | shuruaat (formal), shuruat |
 | abhi tak | so far, yet | abhitak |
 
 ### 6.6 Verbs
@@ -916,7 +981,7 @@ imperative where the style uses it (§5.2).
 | rakhna · rakhein · rakho | to keep | rakhen, rakhe |
 | dekhna · dekhein | to see | dekhen |
 | bhejna · bhejein | to send | bhejen, bheje |
-| jodna · jodein | to add | jorna, joden |
+| jodna · jodein · jodo | to add | jorna, joden |
 | judna | to join, be added | jurna |
 | badalna · badlein | to change | badalein, badlen |
 | hataana · hataayein | to remove (things only) | hatana, hatayein, hataen |
@@ -926,32 +991,32 @@ imperative where the style uses it (§5.2).
 | band karna | to close, stop | bandh karna |
 | shuru karna | to begin | suru, shuroo |
 | rukna · rukein | to wait, stop | rukiye, rukhna |
-| raah dekhna | to wait for | rah dekhna |
+| wait karna | to wait for | raah dekhna (formal), intezaar karna |
 | maangna | to ask for | mangna |
 | poochhna | to ask (a question) | puchna, poochna |
-| bataana · bataayein | to tell | batana, batayein |
+| batana · batayein · batao | to tell; T9 | bataana, bataayein, bataao |
 | dikhna | to be seen, appear | dikhai dena |
 | dikhaana | to show | dikhana |
 | milna | to get, meet | |
 | pahunchna | to reach | pohochna, pahuchna, pahochna |
 | koshish karna | to try | kosis, koshis |
-| chaahna · chaahte hain | to want | chahna, chahte |
-| chaahiye | is needed | chahiye, chaiye |
-| paana · paaye / paayi | to manage to | paya, payi |
-| jaana · jaayega | to go | jana, jayega, jaega |
+| chahna · chahte hain | to want; T9 | chaahna, chaahte |
+| chahiye | is needed; T9 | chaahiye, chaiye |
+| paana · paya / payi / paye / payega | to manage to; T9 for the inflected forms | paaya, paayi, paaye |
+| jaana · jayega / jayegi / jayenge | to go; T9 for the future forms | jana, jaayega, jaega |
 | aana · aayega | to come | ana, ayega, aaega |
-| waapas aana | to come back | wapas aana, vapas aana |
-| waapas lena | to take back, withdraw | wapas lena |
+| wapas aana | to come back; T9 | waapas aana, vapas aana |
+| wapas lena | to take back, withdraw; T9 | waapas lena |
 | samajhna | to understand | samjhna |
 | maanna | to accept | manna |
 | raazi hona | to agree | razi hona |
 | mana karna | to decline | manaa karna |
-| rahna · rahta / rahti / rahte | to stay | rehna, rehta |
-| kahna | to say | kehna |
+| rehna · rehta / rehti / rehte | to stay; T9 (but raha, rahi, rahe) | rahna, rahta, rahti |
+| kehna · kehta / kehti / kehte | to say; T9 | kahna, kahte |
 | khona · khoyega | to lose, be lost | khoega |
-| jaari rakhna | to keep on | jari rakhna |
+| chalu rehna | to keep going | jaari rakhna (formal), jari rakhna |
 | istemaal karna | to use | istemal, istmaal |
-| darj hona | to be recorded | dars |
+| record hona | to be recorded | darj hona (formal) |
 
 ### 6.7 Nouns
 
@@ -968,14 +1033,14 @@ imperative where the style uses it (§5.2).
 | madad | help (f) | madat |
 | bharosa | trust (m) | bharosaa |
 | yaad | memory (f) | yad |
-| niyam / niyamon | rule, rules (m) | |
+| rules | rules (m, plural) | niyam, niyamon (formal) |
 | tareeka | way, method (m) | tarika |
 | tarah | kind, manner (f) | tarha |
 | wajah | reason (f) | vajah, wajeh |
-| kram | order, sequence (m) | (never "order" for sequence) |
+| order | order, sequence (m): "usi order mein" | kram (formal) |
 | galti | mistake (f) | ghalti |
 | hissa | part (m) | |
-| raah | way, path (f) | rah |
+| baari | turn (f): "aaraam ki baari" | (never "kram") |
 | record | record (m) | |
 | option | option (m) | |
 
@@ -985,7 +1050,7 @@ imperative where the style uses it (§5.2).
 |---|---|---|
 | naya / nayi / naye | new | nya, nai, naii |
 | puraana / puraani | old | purana, purani |
-| pahla / pahli | first | pehla, pehli |
+| pehla / pehli | first; T9 | pahla, pahli |
 | aakhri | last | akhri, aakhiri |
 | chhota / chhoti | small | chota |
 | bada / badi | big | bara |
@@ -996,12 +1061,12 @@ imperative where the style uses it (§5.2).
 | zaroor | certainly | jarur, zarur |
 | khaali | empty, vacant | khali |
 | poora / poori | complete | pura, puri |
-| zyaada | more, a lot | zyada, jyada |
+| zyada | more, a lot; T9 | zyaada, jyada |
 | kam | less | kum |
 | thoda / thodi | a little | thora, thodaa |
 | bahut | very | bohot, bahot, bhot |
 | seedha / seedhi | straightforward | sidha |
-| narm | gentle | naram |
+| pyaar se | gently, kindly | narm, narmi se (formal) |
 | alag | separate, different | |
 | ek jaisa / ek jaisi | the same | ek jesa |
 | taiyaar | ready | tayyar, taiyar |
@@ -1013,13 +1078,37 @@ imperative where the style uses it (§5.2).
 | khaas | special | khas |
 | ek / do / teen | one / two / three | tin |
 
-That is 241 rows across the eight tables. Many rows carry several forms of one word, so the list fixes well over 300 spellings.
+### 6.9 Formal words replaced by everyday ones (owner decision, O3–O5)
+
+Where the draft used a word that reads formal, it now uses the everyday word a Bangalore
+product team would use. Each change:
+
+| Draft (formal) | Now (everyday) | Where it changed |
+|---|---|---|
+| kram (order, sequence) | order: "usi order mein" | sentence 44, §5.7, §6.7 |
+| kram, for the resting order | baari (turn): "aaraam ki baari kiski pehle aayegi" | sentence 37, §8.7 |
+| niyam, niyamon (rules) | rules | sentence 45, §6.7 |
+| darj hona (to be recorded) | record hona | sentence 48, §6.6 |
+| raah dekhna (to wait for) | wait karna | sentence 35, §6.6 |
+| ke zariye (through) | se: "Apple se" | sentence 33, §6.4, §8.7 |
+| jaari rakhna (to keep on) | chalu rehna | sentences 37 and 38, §6.6 |
+| narm (gentle) | pyaar se | sentence 50, §6.8 |
+| shuruaat (beginning) | shuru karna: "shuru karne ke liye" | sentence 17, §6.5 |
+
+Some words were kept because they read as everyday:
+
+- **The careful words the owner accepted (O4):** insaan, saathi, aaraam, jagah, sujhaav.
+- **Others:** raazi, istemaal, zaroori, taiyaar, turant, hisaab.
+
+That is 241 rows across the first eight tables. Many rows carry several forms of one word,
+so the list fixes well over 300 spellings.
 
 ---
 
 ## 7. Real sentences from the app, in this style
 
-Taken from `main` at `5cf2c42`. Placeholders such as `{payer}` stand where the app inserts a
+Taken from `main` at `5cf2c42` (see §1). Sentence 14 is also `history.concerns.empty`, and
+sentence 19 is also `common.theme.note`, in `locales/en.json`. Placeholders such as `{payer}` stand where the app inserts a
 name. Each line is a draft for the owner to correct. The note column says which rule the
 line tests.
 
@@ -1027,11 +1116,11 @@ line tests.
 
 | # | Where | English | Hinglish | Tests |
 |---|---|---|---|---|
-| 1 | `apps/mobile/app/ledger.tsx:116` | ＋ Hold a moment | ＋ Ek moment sambhaalein | product verb, *aap* imperative |
+| 1 | `apps/mobile/app/ledger.tsx:116` | ＋ Hold a moment | ＋ Ek moment sambhalein | product verb, *aap* imperative |
 | 2 | `apps/mobile/app/ledger.tsx:108` | ＋ New journey | ＋ Nayi journey | journey is feminine (C9) |
 | 3 | `apps/mobile/app/ledger.tsx:86` | Share now | Abhi share karein | English stem plus "karein" (C8) |
 | 4 | `apps/mobile/app/account.tsx:58` | Try again | Phir se koshish karein | Hindi for everyday words (C1, C7) |
-| 5 | `apps/mobile/app/journey-settings.tsx:296` | Rest earlier · Rest later | Pahle aaraam · Baad mein aaraam | careful word "rest" (C5) |
+| 5 | `apps/mobile/app/journey-settings.tsx:296` | Rest earlier · Rest later | Pehle aaraam · Baad mein aaraam | careful word "rest" (C5) |
 | 6 | `apps/mobile/app/account.tsx:113` | Sign out everywhere | Har device se sign out karein | phone words stay English (C2) |
 | 7 | `apps/mobile/app/journey-settings.tsx:199` | Propose this person | Is insaan ka sujhaav dein | never "propose karna" (C5) |
 
@@ -1039,21 +1128,21 @@ line tests.
 
 | # | Where | English | Hinglish | Tests |
 |---|---|---|---|---|
-| 8 | `apps/mobile/src/auth/account-messages.ts:6` | The account service could not complete that request. | Account service ye request poori nahin kar paayi. | service and request are feminine |
-| 9 | `apps/mobile/src/components/moment-card.tsx:135` | Photo could not be loaded. | Photo load nahin ho paayi. | photo is feminine |
-| 10 | `apps/mobile/src/api/client.ts:103` | Together Ledger can’t be reached right now. You’re still signed in. Try again in a moment. | Abhi Together Ledger se connection nahin ho pa raha. Aap ab bhi signed in hain. Thodi der mein phir se koshish karein. | English state word (C8); "ab bhi" |
-| 11 | `src/app.js:2015` | The new passwords do not match. | Donon naye password ek jaise nahin hain. | "donon" (T3) |
-| 12 | `apps/mobile/src/billing/store-purchase.ts:49` | This purchase did not start, and nothing was charged. Try again in a moment. | Ye purchase shuru nahin hua, aur aapse kuchh bhi charge nahin hua. Thodi der mein phir se koshish karein. | money reassurance states a fact (§5.7) |
+| 8 | `apps/mobile/src/auth/account-messages.ts:6` | The account service could not complete that request. | Account service ye request poori nahi kar payi. | service and request are feminine |
+| 9 | `apps/mobile/src/components/moment-card.tsx:135` | Photo could not be loaded. | Photo load nahi ho payi. | photo is feminine |
+| 10 | `apps/mobile/src/api/client.ts:103` | Together Ledger can’t be reached right now. You’re still signed in. Try again in a moment. | Abhi Together Ledger se connection nahi ho pa raha. Aap ab bhi signed in hain. Thodi der mein phir se koshish karein. | English state word (C8); "ab bhi" |
+| 11 | `src/app.js:2015` | The new passwords do not match. | Dono naye password ek jaise nahi hain. | "dono" (T9) |
+| 12 | `apps/mobile/src/billing/store-purchase.ts:49` | This purchase did not start, and nothing was charged. Try again in a moment. | Ye purchase shuru nahi hua, aur aapse kuch bhi charge nahi hua. Thodi der mein phir se koshish karein. | money reassurance states a fact (§5.7) |
 
 ### 7.3 Empty states
 
 | # | Where | English | Hinglish | Tests |
 |---|---|---|---|---|
-| 13 | `src/app.js:840` | Nothing has been written here yet. | Yahan abhi tak kuchh nahin likha gaya hai. | passive, no gender for the reader |
-| 14 | `apps/mobile/app/history.tsx:66` | Nothing to return to yet. Conversations you want to come back to together will appear here. | Abhi lautne ke liye kuchh nahin hai. Jin baaton par aap donon saath lautna chaahte hain, wo yahan dikhengi. | long vowel inside a word ("chaahte", T2) |
-| 15 | `apps/mobile/app/ledger.tsx:178` | A ledger can hold the things you want to remember, name, or return to. It begins empty. | Ek ledger mein wo baatein rakhi ja sakti hain jinhein aap yaad rakhna, naam dena, ya jin par phir se lautna chaahte hain. Ye khaali shuru hota hai. | ledger stays English (C4) |
-| 16 | `src/app.js:1224` | Nothing in this view. Choose another filter. | Is view mein kuchh nahin hai. Koi aur filter chunein. | |
-| 17 | `src/app.js:970` | A small truth is enough to begin. | Shuruaat ke liye ek chhota sa sach kaafi hai. | no pronoun, so no register question |
+| 13 | `src/app.js:840` | Nothing has been written here yet. | Yahan abhi tak kuch nahi likha gaya hai. | passive, no gender for the reader |
+| 14 | `apps/mobile/app/history.tsx:66` | Nothing to return to yet. Conversations you want to come back to together will appear here. | Abhi lautne ke liye kuch nahi hai. Jin baaton par aap dono saath lautna chahte hain, wo yahan dikhengi. | "chahte" (T9) |
+| 15 | `apps/mobile/app/ledger.tsx:178` | A ledger can hold the things you want to remember, name, or return to. It begins empty. | Ek ledger mein wo baatein rakhi ja sakti hain jinhein aap yaad rakhna, naam dena, ya jin par phir se lautna chahte hain. Ye khaali shuru hota hai. | ledger stays English (C4) |
+| 16 | `src/app.js:1224` | Nothing in this view. Choose another filter. | Is view mein kuch nahi hai. Koi aur filter chunein. | |
+| 17 | `src/app.js:970` | A small truth is enough to begin. | Shuru karne ke liye ek chhota sa sach kaafi hai. | no pronoun, so no register question; "shuru karne", not "shuruaat" (§6.9) |
 | 18 | `apps/mobile/app/ledger.tsx:164` | That can be a good place to rest. | Ye ruk kar aaraam karne ki sahi jagah ho sakti hai. | "aaraam" and "jagah" in their everyday sense |
 
 ### 7.4 Settings and account
@@ -1062,8 +1151,8 @@ line tests.
 |---|---|---|---|---|
 | 19 | `apps/mobile/app/settings.tsx:50` | Your theme changes only your own view. Each journeyer chooses what feels right on their screen. | Aapki theme sirf aapka apna view badalti hai. Har saathi ki screen par wahi theme hoti hai jo wo khud chune. | "saathi"; the verb avoids the reader's gender (§5.2) |
 | 20 | `apps/mobile/src/auth/social-sign-in.ts:249` | A new account starts with your first name. You can change it in Account settings. | Naya account aapke first name se shuru hota hai. Ise Account settings mein badla ja sakta hai. | passive instead of "aap badal sakte hain" |
-| 21 | `apps/mobile/app/new-journey.tsx:56` | Year, month and day, such as 2026-09-30. | Saal, maheena aur din, jaise 2026-09-30. | "maheena" (T2, CLDR) |
-| 22 | `apps/mobile/app/account.tsx:95` | Signing out removes hosted journeys from this view without deleting them. | Sign out karne par hosted journeys is view se hat jaati hain, par delete nahin hotin. | English plural "journeys" (C8) |
+| 21 | `apps/mobile/app/new-journey.tsx:56` | Year, month and day, such as 2026-09-30. | Saal, mahina aur din, jaise 2026-09-30. | "mahina" (T9; CLDR writes "maheena") |
+| 22 | `apps/mobile/app/account.tsx:95` | Signing out removes hosted journeys from this view without deleting them. | Sign out karne par hosted journeys is view se hat jaati hain, par delete nahi hotin. | English plural "journeys" (C8) |
 | 23 | `apps/mobile/app/settings.tsx:75` | For help using Together Ledger, write to ledger-support@together-ledger.com. For anything about your privacy or your data, write to legal@together-ledger.com. | Together Ledger istemaal karne mein madad ke liye ledger-support@together-ledger.com par likhein. Apni privacy ya apne data se judi kisi bhi baat ke liye legal@together-ledger.com par likhein. | |
 
 ### 7.5 Notifications: emails and status lines
@@ -1075,7 +1164,7 @@ line tests.
 | 26 | `server/mailer.js:90` (email subject) | Reset your Together Ledger password | Apna Together Ledger password reset karein | |
 | 27 | `apps/mobile/src/journey/moment-actions.ts:81` | Moment shared with your journeyer. | Moment aapke saathi ke saath share ho gaya. | |
 | 28 | `apps/mobile/src/journey/sharing-view.ts:318` | Everyone agreed. The invitation is on its way to them. | Sab raazi hain. Invitation unhein bheja ja raha hai. | "raazi" needs no gender |
-| 29 | `src/app.js:2585` | You are offline. This journey is still here, and anything needing the account service will wait until you reconnect. | Aap offline hain. Ye journey yahin hai, aur jin kaamon ke liye account service chaahiye, wo connection waapas aane tak rukenge. | |
+| 29 | `src/app.js:2585` | You are offline. This journey is still here, and anything needing the account service will wait until you reconnect. | Aap offline hain. Ye journey yahin hai, aur jin kaamon ke liye account service chahiye, wo connection wapas aane tak rukenge. | |
 | 30 | `apps/mobile/src/journey/waiting-moments.ts:170` | Your waiting moment was sent. | Aapka ruka hua moment bhej diya gaya. | |
 | 31 | `apps/mobile/src/journey/sharing-view.ts:380` | Asked for 7 more days. Everyone in this journey can see it. | 7 din aur maange gaye. Is journey mein sab ise dekh sakte hain. | digits, invariant "din" |
 
@@ -1083,45 +1172,59 @@ line tests.
 
 | # | Where | English | Hinglish | Tests |
 |---|---|---|---|---|
-| 32 | `apps/mobile/src/billing/store-products.ts:103` | A journey of two is free. Room for more people belongs to this journey, so it is the same on every device anyone here uses. | Do logon ki journey free hai. Aur logon ke liye jagah is journey ki hoti hai, isliye yahan koi bhi kisi bhi device par ho, wo ek jaisi rahti hai. | "jagah" for room; "rahti" (T7) |
-| 33 | `apps/mobile/src/billing/store-products.ts:120` | Cancel it with Apple at least 24 hours before it renews to stop the next payment. | Agla payment rokne ke liye, renew hone se kam se kam 24 ghante pahle Apple ke zariye ise cancel karein. | money words stay English (C3) |
-| 34 | `apps/mobile/src/billing/store-products.ts:127` | Every moment’s first place stays free. An extra place is paid for once, and stays with this moment for good. It never rests and never lapses. | Har moment ki pahli jagah free rahti hai. Ek extra jagah ka payment ek hi baar hota hai, aur wo hamesha ke liye is moment ke saath rahti hai. Wo na kabhi aaraam karti hai, na kabhi expire hoti hai. | "place" as location and "rest" in one sentence |
-| 35 | `apps/mobile/src/journey/sharing-view.ts:362` (grace banner) | This journey is waiting on a payment from {payer}. 5 days left · 2 of 6 extra weeks asked for this year. If it isn't paid, only {names} can add new moments. Everyone else can still see everything, and nothing is lost. Paying again brings everyone back. | Ye journey {payer} ke payment ki raah dekh rahi hai. 5 din baaki · is saal 6 mein se 2 extra hafte maange gaye. Agar payment nahin hua, to naye moment jodne ka option sirf {names} ke paas rahega. Baaki sab ab bhi sab kuchh dekh sakenge, aur kuchh bhi nahin khoyega. Payment phir se hone par sab dobaara jod sakenge. | the hardest line: names without gender, rest without blame |
-| 36 | `apps/mobile/src/billing/store-purchase.ts:177` | Your purchase is safe with the store, and it will be added when Together Ledger can check it. Nothing more will be charged. | Aapka purchase store ke paas safe hai, aur jaise hi Together Ledger ise check kar paayega, ye jud jaayega. Aapse aur kuchh bhi charge nahin hoga. | "ise", not "use" (T8) |
-| 37 | `apps/mobile/app/journey-settings.tsx:293` | Who rests first, if it isn't paid. The last person here keeps adding with you. | Agar payment nahin hua, to aaraam kis kram mein hoga. Is list ka aakhri naam aapke saath moment jodna jaari rakhega. | "kram", not "order" (§5.7) |
-| 38 | `apps/mobile/app/journey-settings.tsx:295` | Resting now · Keeps adding with you | Abhi aaraam par · Aapke saath jodna jaari | state labels as noun phrases (§5.1) |
+| 32 | `apps/mobile/src/billing/store-products.ts:103` | A journey of two is free. Room for more people belongs to this journey, so it is the same on every device anyone here uses. | Do logon ki journey free hai. Aur logon ke liye jagah is journey ki hoti hai, isliye yahan koi bhi kisi bhi device par ho, wo ek jaisi rehti hai. | "jagah" for room; "rehti" (T9) |
+| 33 | `apps/mobile/src/billing/store-products.ts:120` | Cancel it with Apple at least 24 hours before it renews to stop the next payment. | Agla payment rokne ke liye, renew hone se kam se kam 24 ghante pehle Apple se ise cancel karein. | money words stay English (C3); "Apple se", not "ke zariye" (§6.9) |
+| 34 | `apps/mobile/src/billing/store-products.ts:127` | Every moment’s first place stays free. An extra place is paid for once, and stays with this moment for good. It never rests and never lapses. | Har moment ki pehli jagah free rehti hai. Ek extra jagah ka payment ek hi baar hota hai, aur wo hamesha ke liye is moment ke saath rehti hai. Wo na kabhi aaraam karti hai, na kabhi expire hoti hai. | "place" as location and "rest" in one sentence |
+| 35 | `apps/mobile/src/journey/sharing-view.ts:362` (grace banner) | This journey is waiting on a payment from {payer}. 5 days left · 2 of 6 extra weeks asked for this year. If it isn't paid, only {names} can add new moments. Everyone else can still see everything, and nothing is lost. Paying again brings everyone back. | Ye journey {payer} ke payment ka wait kar rahi hai. 5 din baaki · is saal 6 mein se 2 extra hafte maange gaye. Agar payment nahi hua, to naye moment jodne ka option sirf {names} ke paas rahega. Baaki sab ab bhi sab kuch dekh sakenge, aur kuch bhi nahi khoyega. Payment phir se hone par sab dobara jod sakenge. | the hardest line: names without gender, rest without blame |
+| 36 | `apps/mobile/src/billing/store-purchase.ts:177` | Your purchase is safe with the store, and it will be added when Together Ledger can check it. Nothing more will be charged. | Aapka purchase store ke paas safe hai, aur jaise hi Together Ledger ise check kar payega, ye jud jayega. Aapse aur kuch bhi charge nahi hoga. | "ise", not "use" (T8) |
+| 37 | `apps/mobile/app/journey-settings.tsx:293` | Who rests first, if it isn't paid. The last person here keeps adding with you. | Agar payment nahi hua, to aaraam ki baari kiski pehle aayegi. Is list ke aakhri naam ke liye, aapke saath moment jodna chalu rahega. | "baari" and "chalu", not "kram" and "jaari" (§6.9) |
+| 38 | `apps/mobile/app/journey-settings.tsx:295` | Resting now · Keeps adding with you | Abhi aaraam par · Aapke saath jodna chalu | state labels as noun phrases (§5.1) |
 
 ### 7.7 Privacy
 
 | # | Where | English | Hinglish | Tests |
 |---|---|---|---|---|
 | 39 | `apps/mobile/src/journey/moment-actions.ts:11` | Share this moment now? | Ye moment abhi share karein? | consequence dialog in *aap* |
-| 40 | `apps/mobile/src/journey/moment-actions.ts:12` | Everyone in this journey will be able to see it, including anyone who joins later. That access cannot be undone. | Is journey mein sab ise dekh paayenge, unke saath wo log bhi jo baad mein judenge. Ye access waapas nahin liya ja sakta. | an irreversible step said plainly |
+| 40 | `apps/mobile/src/journey/moment-actions.ts:12` | Everyone in this journey will be able to see it, including anyone who joins later. That access cannot be undone. | Is journey mein sab ise dekh payenge, unke saath wo log bhi jo baad mein judenge. Ye access wapas nahi liya ja sakta. | an irreversible step said plainly |
 | 41 | `apps/mobile/app/moment.tsx:120` | Choose whether this stays with you, is shared now, or waits until you are ready. | Chunein ki ye sirf aapke paas rahe, abhi share ho, ya tab tak ruke jab tak aap taiyaar na hon. | |
-| 42 | `apps/mobile/src/journey/moment-draft.ts:156` | Private stays with you. Shared now opens it to everyone in this journey, including anyone who joins later. Share later stays with you until you deliberately share it. | Private aapke paas hi rahta hai. Abhi share ise is journey mein sabke liye khol deta hai, unke liye bhi jo baad mein judenge. Baad mein share tab tak aapke paas rahta hai jab tak aap khud ise share na karein. | the three visibility labels |
-| 43 | `apps/mobile/app/account.tsx:69` | Passwords are never shared between journeyers. | Password kabhi bhi saathiyon ke beech share nahin hote. | Hindi plural "saathiyon" (C8) |
-| 44 | `apps/mobile/src/journey/waiting-moments.ts:149` | Kept on this phone until the service has them, and sent in the order you held them. Nobody else sees them before then. | Service tak pahunchne tak ye isi phone par rahte hain, aur ek-ek karke usi kram mein bheje jaate hain jismein aapne inhein sambhaala tha. Tab tak inhein koi aur nahin dekhta. | |
-| 45 | `apps/mobile/app/delete-account.tsx:41` | Permanently delete this account? This follows the journey ownership rules shown here and cannot be undone. | Ye account hamesha ke liye delete karein? Ye yahan dikhaaye gaye journey ownership ke niyamon ke hisaab se hoga, aur ise waapas nahin kiya ja sakta. | deletion is never softened |
+| 42 | `apps/mobile/src/journey/moment-draft.ts:156` | Private stays with you. Shared now opens it to everyone in this journey, including anyone who joins later. Share later stays with you until you deliberately share it. | Private aapke paas hi rehta hai. Abhi share ise is journey mein sabke liye khol deta hai, unke liye bhi jo baad mein judenge. Baad mein share tab tak aapke paas rehta hai jab tak aap khud ise share na karein. | the three visibility labels |
+| 43 | `apps/mobile/app/account.tsx:69` | Passwords are never shared between journeyers. | Password kabhi bhi saathiyon ke beech share nahi hote. | Hindi plural "saathiyon" (C8) |
+| 44 | `apps/mobile/src/journey/waiting-moments.ts:149` | Kept on this phone until the service has them, and sent in the order you held them. Nobody else sees them before then. | Service tak pahunchne tak ye isi phone par rehte hain, aur ek-ek karke usi order mein bheje jaate hain jismein aapne inhein sambhala tha. Tab tak inhein koi aur nahi dekhta. | |
+| 45 | `apps/mobile/app/delete-account.tsx:41` | Permanently delete this account? This follows the journey ownership rules shown here and cannot be undone. | Ye account hamesha ke liye delete karein? Ye yahan dikhaaye gaye journey ownership ke rules ke hisaab se hoga, aur ise wapas nahi kiya ja sakta. | deletion is never softened |
 
 ### 7.8 The careful words: another person, another place, invitation
 
 | # | Where | English | Hinglish | Tests |
 |---|---|---|---|---|
-| 46 | `apps/mobile/src/journey/sharing-view.ts:148` | There is room to add another person, and everybody here has to agree to them. · There is no open place right now. | Ek aur insaan ke liye jagah hai, aur yahan sabka raazi hona zaroori hai. · Abhi koi jagah khaali nahin hai. | "ek aur insaan", "jagah" |
-| 47 | `apps/mobile/src/journey/sharing-view.ts:278` | Their link stops working, and the place it held is free again straight away. The journey’s history keeps a record that it was withdrawn. | Unka link kaam karna band kar deta hai, aur jo jagah wo rok raha tha, wo turant phir se khaali ho jaati hai. Journey ki history mein ye record rahta hai ki invitation waapas liya gaya tha. | |
-| 48 | `apps/mobile/src/journey/sharing-view.ts:283` | The question is taken back, and nothing is sent to them. Nobody is recorded as having refused, and this person can be proposed again later. | Sawaal waapas le liya jaata hai, aur unhein kuchh nahin bheja jaata. Kisi ke naam mana karna darj nahin hota, aur is insaan ka sujhaav baad mein phir se diya ja sakta hai. | |
+| 46 | `apps/mobile/src/journey/sharing-view.ts:148` | There is room to add another person, and everybody here has to agree to them. · There is no open place right now. | Ek aur insaan ke liye jagah hai, aur yahan sabka raazi hona zaroori hai. · Abhi koi jagah khaali nahi hai. | "ek aur insaan", "jagah" |
+| 47 | `apps/mobile/src/journey/sharing-view.ts:278` | Their link stops working, and the place it held is free again straight away. The journey’s history keeps a record that it was withdrawn. | Unka link kaam karna band kar deta hai, aur jo jagah wo rok raha tha, wo turant phir se khaali ho jaati hai. Journey ki history mein ye record rehta hai ki invitation wapas liya gaya tha. | |
+| 48 | `apps/mobile/src/journey/sharing-view.ts:283` | The question is taken back, and nothing is sent to them. Nobody is recorded as having refused, and this person can be proposed again later. | Sawaal wapas le liya jaata hai, aur unhein kuch nahi bheja jaata. Kisi ke naam mana karna record nahi hota, aur is insaan ka sujhaav baad mein phir se diya ja sakta hai. | |
 | 49 | `src/app.js:1670` | Check-in complete. It can rest until tomorrow. | Check-in ho gaya. Ab ye kal tak aaraam kar sakta hai. | |
 
-### 7.9 The writing surfaces: aap and tum side by side
+### 7.9 Writing hints in the moment editor: aap
 
-These show the warmer *tum* (§5.2), so the owner can judge it against *aap* on the same
-words.
+Decided (O2): these stay *aap*.
 
-| # | Where | English | aap | tum |
+| # | Where | English | Hinglish | Tests |
 |---|---|---|---|---|
-| 50 | `apps/mobile/app/moment.tsx:140` (hint) | Use your own words. Keep it simple and kind. | Apne shabdon mein likhein. Baat seedhi aur narm rakhein. | Apne shabdon mein likho. Baat seedhi aur narm rakho. |
-| 51 | `apps/mobile/app/moment.tsx:140` (label) | What would you like to hold? (Optional) | Kya sambhaalna hai? (Optional) | (same: no pronoun needed) |
-| 52 | `src/app.js:957` | Hold what happened in words that feel true. | Jo hua, wo un shabdon mein sambhaalein jo sach lagein. | Jo hua, wo un shabdon mein sambhaalo jo sach lagein. |
+| 50 | `apps/mobile/app/moment.tsx:140` (hint) | Use your own words. Keep it simple and kind. | Apne shabdon mein likhein. Baat seedhi rakhein, aur pyaar se. | "pyaar se", not "narm" (§6.9) |
+| 51 | `apps/mobile/app/moment.tsx:140` (label) | What would you like to hold? (Optional) | Kya sambhalna hai? (Optional) | no pronoun needed |
+| 52 | `src/app.js:957` | Hold what happened in words that feel true. | Jo hua, wo un shabdon mein sambhalein jo sach lagein. | |
+
+### 7.10 Check-ins and empty states: where tum goes
+
+Decided (O2): *tum* goes only here. These lines are new in this revision. They show that
+most of them need no pronoun. Where one is needed, the *aap* version sits beside it for
+comparison.
+
+| # | Where | English | Hinglish (tum) | aap, for comparison |
+|---|---|---|---|---|
+| 53 | `src/model.js:146` (check-in) | What feels important to name with care today? | Aaj kaun si baat dhyaan se kehna zaroori lagta hai? | (same: no pronoun) |
+| 54 | `src/model.js:146` (check-in) | What is one thing you noticed and appreciated? | Ek baat batao jo tumne notice ki, aur jo tumhein pasand aayi. | Ek baat batayein jo aapne notice ki, aur jo aapko pasand aayi. |
+| 55 | `src/model.js:146` (check-in) | Is there an open thread that would feel lighter with a small next step? | Kya koi khuli baat hai jo ek chhote se agle kadam se halki ho sakti hai? | (same: no pronoun) |
+| 56 | `src/model.js:146` (check-in) | What boundary would help this journey feel more spacious? | Kaun si boundary is journey ko thoda aur khula bana sakti hai? | (same: no pronoun) |
+| 57 | `src/model.js:146` (check-in) | What do we want to remember about this season together? | Is daur ke baare mein hum saath mein kya yaad rakhna chahte hain? | (same: "hum") |
+| 58 | `src/app.js:970` (empty ledger) | ＋ Add your own | ＋ Apna khud ka jodo | ＋ Apna khud ka jodein |
 
 ---
 
@@ -1190,13 +1293,13 @@ varies between Android versions (<https://github.com/facebook/hermes/blob/main/d
 `hi_Latn` data. ICU normally falls back by dropping the script, `hi-Latn` → `hi`. That would
 mean Devanagari dates in a Latin-script interface. This is an inference.
 
-**So prompt 109 should check before formatting:**
+**Already handled on main.** #418 formats Hinglish dates, numbers and money with `en-IN`
+(`locales/languages.json`), which every phone and browser has. So this gap doesn't reach the
+app.
 
-- Call `Intl.DateTimeFormat.supportedLocalesOf(['hi-Latn'])`.
-- If it comes back empty, format with `en-IN` instead. `en-IN` is `hi_Latn`'s CLDR parent,
-  so its numbers and dates are nearly the same.
-
-The same check applies to each browser. Whether Chrome, Safari and Firefox include
+It would matter again only if Hinglish's `formatting.locale` were changed to `hi-Latn`. In
+that case, check `Intl.DateTimeFormat.supportedLocalesOf(['hi-Latn'])` first, and fall back
+to `en-IN`, which is `hi_Latn`'s CLDR parent. Whether Chrome, Safari and Firefox include
 `hi_Latn` is **untested**.
 
 ### 8.3 VoiceOver (iPhone)
@@ -1280,7 +1383,8 @@ special capability, not the default:
 
 - **Web:** set it on `<html lang>` when Hinglish is chosen.
 - **Phone app:** use it as the app's language when Hinglish is chosen.
-- **Formatting:** use it for `Intl` formatting, with the `en-IN` fallback in §8.2.
+- **Formatting:** not `hi-Latn`. Dates, numbers and money use `en-IN`, as
+  `locales/languages.json` already sets (§5.4).
 
 *Reasons:*
 
@@ -1328,25 +1432,25 @@ This takes about fifteen minutes and needs an iPhone, an Android phone, and a co
 <div lang="hi-Latn">
   <p>Ye moment abhi share karein?</p>
   <p>Ek aur insaan ke liye jagah hai, aur yahan sabka raazi hona zaroori hai.</p>
-  <p>Agar payment nahin hua, to aaraam kis kram mein hoga.</p>
+  <p>Agar payment nahi hua, to aaraam ki baari kiski pehle aayegi.</p>
   <p>Aap offline hain. Ye journey yahin hai.</p>
-  <p>Renew hone se kam se kam 24 ghante pahle Apple ke zariye ise cancel karein.</p>
+  <p>Renew hone se kam se kam 24 ghante pehle Apple se ise cancel karein.</p>
 </div>
 <h1 lang="en">Tag: hi</h1>
 <div lang="hi">
   <p>Ye moment abhi share karein?</p>
   <p>Ek aur insaan ke liye jagah hai, aur yahan sabka raazi hona zaroori hai.</p>
-  <p>Agar payment nahin hua, to aaraam kis kram mein hoga.</p>
+  <p>Agar payment nahi hua, to aaraam ki baari kiski pehle aayegi.</p>
   <p>Aap offline hain. Ye journey yahin hai.</p>
-  <p>Renew hone se kam se kam 24 ghante pahle Apple ke zariye ise cancel karein.</p>
+  <p>Renew hone se kam se kam 24 ghante pehle Apple se ise cancel karein.</p>
 </div>
 <h1 lang="en">Tag: en-IN</h1>
 <div lang="en-IN">
   <p>Ye moment abhi share karein?</p>
   <p>Ek aur insaan ke liye jagah hai, aur yahan sabka raazi hona zaroori hai.</p>
-  <p>Agar payment nahin hua, to aaraam kis kram mein hoga.</p>
+  <p>Agar payment nahi hua, to aaraam ki baari kiski pehle aayegi.</p>
   <p>Aap offline hain. Ye journey yahin hai.</p>
-  <p>Renew hone se kam se kam 24 ghante pahle Apple ke zariye ise cancel karein.</p>
+  <p>Renew hone se kam se kam 24 ghante pehle Apple se ise cancel karein.</p>
 </div>
 ```
 
@@ -1356,7 +1460,7 @@ This takes about fifteen minutes and needs an iPhone, an Android phone, and a co
 2. Swipe through the page one line at a time, from the top.
 3. For each of the fifteen lines, write down three things:
    - **Voice:** which voice spoke it (Hindi, Indian English, or the phone's default English).
-   - **Hindi words:** whether "aaraam", "zaroori", "jagah" and "kram" sounded like Hindi
+   - **Hindi words:** whether "aaraam", "zaroori", "jagah" and "baari" sounded like Hindi
      words.
    - **Numbers and English words:** whether "24", "payment", "Apple" and "cancel" sounded
      right.
@@ -1382,102 +1486,67 @@ This takes about fifteen minutes and needs an iPhone, an Android phone, and a co
 
 ---
 
-## 9. Open choices for the owner
+## 9. The owner's decisions, and what is still open
 
-Each choice comes with a recommendation. "Approve as written" takes every recommendation.
+Decided by the owner on 12 October 2026, and applied throughout this document:
 
-**O1. Strict spelling, or common typing?** The mapping in §4 is applied without exception,
-as asked, and it costs some familiar shapes:
+**O1. Spelling: decided, common spellings for everyday words.**
 
-| We write | People often type |
-|---|---|
-| maheena | mahina |
-| waapas | wapas |
-| chaahte | chahte |
-| kuchh | kuch |
-| nahin | nahi |
-| pahle | pehle |
-| donon | dono |
-| tumhaara | tumhara |
-| ham | hum |
-| han | haan |
+- Everyday words are written as people commonly type them: nahi, kuch, hum, haan, pehle,
+  mahina, wapas and similar.
+- They form a short, fixed exceptions list (§4, T9): twenty words with their listed forms.
+- Every other word keeps the strict mapping (T1–T8).
+- The spelling list (§6) and the sentences (§7) now match.
+- A word joins T9 only by the owner's decision.
 
-Several of ours are what CLDR writes ("maheena", "pichhla", "pahle"), so they also match the
-dates and numbers the app formats itself.
+**O2. Where tum goes: decided, check-ins and empty states only** (§5.2, §7.10). Applying it
+moved one rule. "Never both on one screen" became "never both in one block", because an empty
+ledger's *tum* empty state shares the screen with an *aap* button.
 
-- **Recommendation:** keep the strict mapping.
-- **The alternative:** a short, named exception list, say at most ten words such as "kuch",
-  "nahi", "hum", "haan", "pehle". It reads more like everyday typing. The cost: every
-  exception is something the next writer must remember, which the rule exists to avoid.
-- **Owner's call either way:** whether any of these strict spellings reads as wrong, rather
-  than unfamiliar, to a native reader.
+**O3. journey and moment stay English: decided, as recommended** (C4). The glossary #418
+added supports this for journey.
 
-**O2. Where the warmer *tum* goes.**
+**O4. The careful words: decided, as recommended.**
 
-- **(A) Recommended:** only on the check-in prompts and the empty-state encouragements, so no
-  screen ever mixes *aap* and *tum*.
-- **(B)** On every writing hint, including inside the moment editor. That screen would then
-  mix registers, because its privacy choice stays *aap*.
-- **(C)** Nowhere in v1; *aap* throughout.
+- saathi (journeyer)
+- aaraam (rest)
+- ek aur insaan (another person)
+- jagah (place and room)
+- sujhaav dena (propose)
 
-§7.9 shows the same lines both ways.
+These are the `hi-Latn` values prompt 109 enters in `locales/glossary.json`.
 
-**O3. journey and moment stay English.** The recommendation keeps them English, for the
-reasons in C4. The alternatives:
+**O5. Genders of English nouns: decided, as recommended** (C9).
 
-- **"safar"** is warm, and "safar ke saathi" is a lovely pairing. But it reads as travel, and
-  it parts the Hinglish screen from the English one.
-- **"pal"** fits the feeling, but not the product object the app names everywhere.
+**O3–O5, formal words.** Where a word reads formal, the everyday word wins. §6.9 lists each
+of the nine changes.
 
-**O4. The careful words.** Confirm or replace each one:
+**O6. Dates: settled on main by #418,** not by this document. `locales/languages.json`
+formats Hinglish with `en-IN`, so dates read "12 October 2026", with no comma. §5.4 and §8
+now follow that. There is nothing for the owner to decide unless they want a different
+formatting locale.
 
-- **saathi** for journeyer
-- **aaraam** for rest. "thahrna" (to pause) is the alternative.
-- **ek aur insaan** for another person
-- **jagah** for both place and room
-- **sujhaav dena** for propose
+**O7. The speech tag: still open.** Declare `hi-Latn` for content (§8.6). Whether to add an
+`en-IN` speech override on iOS and the web waits on the owner's phone check (§8.7).
 
-**O5. Genders of English nouns** (C9). Speakers differ on payment, app and email in
-particular. Confirm the table.
+**O8. Emails: decided, as recommended.**
 
-**O6. Dates.** `Intl` in `hi-Latn` writes "12 October, 2026", with a comma; `en-IN` writes
-"12 October 2026".
+- Invitation emails stay in English.
+- Hinglish is only ever sent to someone who chose it.
+- Proposal and password emails follow the recipient's own setting, once emails are
+  translated.
 
-- **Recommendation:** let Intl decide, so dates are never hand-built. The comma comes with
-  that.
-- **If the comma looks wrong:** prompt 109 formats from parts instead.
+**O9. The Bangalore caution: noted, no change.**
 
-**O7. The speech tag.** Declare `hi-Latn` for content (§8.6). Whether to add an `en-IN`
-speech override on iOS and the web waits on the owner's check (§8.7).
+**O10. "propose": settled with O4.** Accepting "sujhaav dena" keeps "propose karna" and its
+romantic reading out of the app.
 
-**O8. Which emails go out in Hinglish.**
+**Still for prompt 109 to raise:**
 
-- An **invitation** goes to someone who has not chosen any language in the app.
-- **Recommendation:** invitation emails stay in English, and Hinglish is only ever sent to
-  someone who chose it. Proposal and password emails follow the recipient's own setting,
-  once emails are translated at all.
-- The drafts in §7.5 show the style. They do not decide that emails are translated in v1.
-
-**O9. The Bangalore premise.** The owner asked for the style of Bangalore product teams.
-This draft follows what those teams ship (§2.1), but one caution belongs in front of the
-owner. In 2024 a Bengaluru customer publicly objected to a Hinglish notification for not
-being in Kannada (§2.1).
-
-- **What this means here:** Hinglish is opt-in here, chosen by hand, and nothing in this
-  draft sends it to anyone who did not choose it (O8). So this is not a reason to change the
-  decision.
-- **Recommendation:** never describe Hinglish, in the app or the listing, as *the* Indian
-  language.
-
-**O10. "propose".** The draft avoids "propose karna" because in Indian English it means a
-romantic proposal. Confirm, since it shapes the whole invitation flow.
-
-**O11. Android's own Hindi (Latin).** Android 14 and later list `hi-Latn-IN` among the
-platform's locales (§8.1). So some Android phones may offer Hinglish after all, despite the
-premise that phones don't.
-
-- **This does not change the decision:** the in-app setting is still needed for iPhones,
-  older Android, and the web.
-- **Prompt 109 can also declare `hi-Latn` as a supported app language** (Expo's
-  `supportedLocales`), so Android 14 and later show it in the system's per-app language list.
-  That is the owner's call.
+- **O11. Android's own Hindi (Latin).** Android 14 and later list `hi-Latn-IN` among the
+  platform's locales (§8.1). Prompt 109 can also declare `hi-Latn` as a supported app
+  language (Expo's `supportedLocales`), so Android 14 and later show it in the system's
+  per-app language list. That is the owner's call when 109 is ready.
+- **O12. The language's label.** `locales/languages.json` names Hinglish just "Hinglish"
+  (`name` and `nativeName`). The owner's label is "Hinglish (Hindi in Latin script)" (§5.6).
+  Prompt 109 should make them one.
