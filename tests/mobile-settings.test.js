@@ -67,7 +67,7 @@ test('the Settings door shows a gear before the word, and is read as "Settings" 
   const button = layout.slice(layout.indexOf('function SettingsButton()'), layout.indexOf('function BackButton('));
   assert.match(button, /accessibilityLabel=\{waiting \? t\('mobile\.settings\.openWaitingSpoken', \{ count: waiting \}\) : t\('mobile\.settings\.open'\)\}/, 'read as "Settings", with what waits, and never the gear');
   assert.equal(english['mobile.settings.openWaitingSpoken'], 'Settings, {count, number} to answer');
-  assert.equal(english['mobile.settings.openWaiting'], 'Settings · {count, number} to answer');
+  assert.equal(english['mobile.settings.openWaiting'], 'Settings · {count, number}');
   const gear = button.indexOf('<Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.headerButtonText, { color: theme.colors.accent }]}>{SETTINGS_GLYPH}</Text>');
   const label = button.indexOf("<Text style={[styles.headerButtonText, { color: theme.colors.accent }]}>{waiting ? t('mobile.settings.openWaiting', { count: waiting }) : t('mobile.settings.open')}</Text>");
   assert.ok(gear > 0 && label > gear, 'the gear sits before the word, sized and coloured with it');

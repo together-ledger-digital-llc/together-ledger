@@ -276,7 +276,8 @@ const GOOGLE_ANDROID_CLIENT = '830212501049-asm6nbn1g4rsv8oggv8sdqedv0m3l70v.app
 let googleConfigBuilds = 0;
 async function googleConfigFor(os, env) {
   const asModule = (source) => `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
-  const rules = ts.transpileModule(await read('src/auth/social-sign-in.ts'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
+  const rules = ts.transpileModule(await read('src/auth/social-sign-in.ts'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText
+    .replace(/from '(\.[^']+\.js)'/g, (_, specifier) => `from '${new URL(specifier, new URL('src/auth/social-sign-in.ts', mobile)).href}'`);
   const original = await read('src/config/google.ts');
   const source = original
     .replace("import { Platform } from 'react-native';", `const Platform = { OS: ${JSON.stringify(os)} };`)
@@ -369,7 +370,7 @@ test('with those clients set, the phone offers Google on both platforms and Appl
 test('the buttons sit on the same screens as email sign-in, equal in size and over the 44-point minimum', async () => {
   const account = await read('app/account.tsx');
   const register = await read('app/register.tsx');
-  assert.match(account, /<Screen title="Sign in"[^>]*>\s*\{\/\*[^]*?\*\/\}\s*<SocialSignIn \/>/);
+  assert.match(account, /<Screen title=\{t\('common\.account\.signInTitle'\)\}[^>]*>\s*\{\/\*[^]*?\*\/\}\s*<SocialSignIn \/>/);
   assert.match(register, /<SocialSignIn onSignedIn=\{\(\) => router\.replace\('\/account'\)\} \/>/);
   const component = await read('src/components/social-sign-in.tsx');
   const size = /const PROVIDER_BUTTON = \{ width: '100%', maxWidth: 400, height: (\d+), alignSelf: 'center' \} as const;/.exec(component);
@@ -433,25 +434,25 @@ test('an Apple account with no email shows plain words, on the phone and the web
   assert.equal(social.accountEmailLabel('asha@privaterelay.appleid.com'), 'asha@privaterelay.appleid.com');
   assert.equal(social.accountEmailLabel('asha@example.test'), 'asha@example.test');
   const web = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
-  assert.ok(web.includes(`const APPLE_SHARED_NO_EMAIL = '${social.APPLE_SHARED_NO_EMAIL}';`), 'the same words on the web');
+  assert.ok(web.includes(`const APPLE_SHARED_NO_EMAIL = '${social.appleSharedNoEmailLabel()}';`), 'the same words on the web');
   const platform = await readFile(new URL('../server/platform.js', import.meta.url), 'utf8');
   assert.ok(platform.includes('`${provider}-${userId}@no-email.invalid`'), 'the placeholder the server gives is the one recognised');
-  assert.match(await read('app/account.tsx'), /\{accountEmailLabel\(user\.email\)\}/);
+  assert.match(await read('app/account.tsx'), /email: accountEmailLabel\(user\.email\) \}\)/);
 });
 
 test('an Apple account with no email is offered no verification email, and told where to write, on the phone and the web', async () => {
   assert.equal(social.appleSharedNoEmail('apple-0f9e8d7c@no-email.invalid'), true);
   assert.equal(social.appleSharedNoEmail('asha@example.test'), false);
-  assert.equal(social.NO_EMAIL_SUPPORT, 'For help with this account, write to ledger-support@together-ledger.com.');
+  assert.equal(social.noEmailSupport(), 'For help with this account, write to ledger-support@together-ledger.com.');
   const account = await read('app/account.tsx');
-  assert.match(account, /\{appleSharedNoEmail\(user\.email\) \? <Body selectable>\{NO_EMAIL_SUPPORT\}<\/Body> : null\}/);
-  assert.match(account, /\{!user\.emailVerified && !appleSharedNoEmail\(user\.email\) \? \(\s*<>\s*<Button kind="quiet" label="Resend verification email"/);
+  assert.match(account, /\{appleSharedNoEmail\(user\.email\) \? <Body selectable>\{noEmailSupport\(\)\}<\/Body> : null\}/);
+  assert.match(account, /\{!user\.emailVerified && !appleSharedNoEmail\(user\.email\) \? \(\s*<>\s*<Button kind="quiet" label=\{t\('common\.account\.resendVerification'\)\}/);
   const web = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
-  assert.ok(web.includes(`const NO_EMAIL_SUPPORT = '${social.NO_EMAIL_SUPPORT}';`), 'the same sentence on the web');
+  assert.ok(web.includes(`const NO_EMAIL_SUPPORT = '${social.noEmailSupport()}';`), 'the same sentence on the web');
   assert.match(web, /\$\('#resend-verification-button'\)\.hidden = !signedIn \|\| accountUser\.emailVerified \|\| noEmail;/);
   // The address is the one SUPPORT.md and Settings give.
   assert.ok((await readFile(new URL('../SUPPORT.md', import.meta.url), 'utf8')).includes('ledger-support@together-ledger.com'));
-  assert.ok((await read('app/settings.tsx')).includes('ledger-support@together-ledger.com'));
+  assert.ok(JSON.parse(await readFile(new URL('../locales/en.json', import.meta.url), 'utf8'))['mobile.settings.helpText'].includes('ledger-support@together-ledger.com'), 'Settings\' Help');
 });
 
 test('deleting an account opened with Apple or Google asks for no password, and stays three taps', async () => {
@@ -659,19 +660,19 @@ test('end to end: an Android phone signs in with Apple through the browser, into
 const NEW_ACCOUNT_NAME = 'A new account starts with your first name. You can change it in Account settings.';
 
 test('under the buttons, and only with them, the phone says a new account starts with the first name', async () => {
-  assert.equal(social.NEW_ACCOUNT_NAME, NEW_ACCOUNT_NAME, 'the words approved on Oct 12, 2026');
+  assert.equal(social.newAccountName(), NEW_ACCOUNT_NAME, 'the words approved on Oct 12, 2026');
   const component = await read('src/components/social-sign-in.tsx');
   const nothing = component.indexOf('if (!offer.google && !offer.apple) return null;');
   const linking = component.indexOf('if (link) {');
   const google = component.indexOf('<GoogleButton ');
-  const said = component.indexOf('<Text style={[styles.hint, { color: theme.colors.muted }]}>{NEW_ACCOUNT_NAME}</Text>');
-  const or = component.indexOf('>or</Text>');
+  const said = component.indexOf('<Text style={[styles.hint, { color: theme.colors.muted }]}>{newAccountName()}</Text>');
+  const or = component.indexOf(">{t('common.signIn.or')}</Text>");
   assert.ok(nothing > 0 && linking > nothing, 'no buttons offered, or a password being asked for, returns before it');
   assert.ok(component.indexOf('<AppleAuthentication.AppleAuthenticationButton') < google && google < said && said < or, 'below both buttons, above "or"');
   // On Android, below Apple's browser sign-in too (#400), so it is said wherever Apple is offered.
   const androidApple = component.indexOf('<AppleButton ');
   assert.ok(androidApple > linking && androidApple < google && androidApple < said, 'below Android\'s Apple button');
-  assert.equal(component.split('{NEW_ACCOUNT_NAME}').length, 2, 'said once');
+  assert.equal(component.split('{newAccountName()}').length, 2, 'said once');
   // In a field hint's size and the theme's muted colour, as wide as the buttons.
   assert.match(await read('src/components/ui.tsx'), /hint: \{ fontSize: 13, lineHeight: 18 \}/);
   assert.match(component, /hint: \{ fontSize: 13, lineHeight: 18, width: '100%', maxWidth: PROVIDER_BUTTON\.maxWidth, alignSelf: 'center' \}/);

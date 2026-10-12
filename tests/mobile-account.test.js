@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import ts from 'typescript';
@@ -12,8 +13,12 @@ export async function importMobile(path) {
   return import(`data:text/javascript;base64,${Buffer.from(outputText.replace(/from '(\.[^']+\.js)'/g, (_, specifier) => `from '${new URL(specifier, new URL(path, mobile)).href}'`)).toString('base64')}`);
 }
 
-const { createAccountClient, OFFLINE_MESSAGE, UNREACHABLE_MESSAGE, UNAVAILABLE_MESSAGE } = await importMobile('src/api/client.ts');
-const { accountMessage, ACCOUNT_FALLBACK_MESSAGE, NO_ROOM_ADDED_HERE } = await importMobile('src/auth/account-messages.ts');
+const { createAccountClient, offlineMessage, unreachableMessage, unavailableMessage } = await importMobile('src/api/client.ts');
+const { accountMessage, accountFallbackMessage, NO_ROOM_ADDED_HERE, TRANSLATED_ERRORS } = await importMobile('src/auth/account-messages.ts');
+// Each is read in the active language as it is said; imported on its own, the phone reads English.
+const [OFFLINE_MESSAGE, UNREACHABLE_MESSAGE, UNAVAILABLE_MESSAGE, ACCOUNT_FALLBACK_MESSAGE] = [offlineMessage(), unreachableMessage(), unavailableMessage(), accountFallbackMessage()];
+const english = JSON.parse(await readFile(new URL('../locales/en.json', import.meta.url), 'utf8'));
+const unmarked = (text) => text.replace(/[\u2068\u2069]/g, '');
 const { sessionAnswered, sessionFailed, LEDGER_WHILE_OFFLINE, ACCOUNT_WHILE_OFFLINE, STILL_SIGNED_IN } = await importMobile('src/auth/session-state.ts');
 
 function memoryTokens(initial = null) {
@@ -142,7 +147,7 @@ test('opening the app with the network failing says offline, not signed out', as
   assert.ok(ledger.indexOf("if (state.phase === 'offline') return <LedgerWhileOffline reason={state.reason}") < ledger.indexOf("if (state.phase === 'signed-out'"), 'the ledger says offline before it ever offers Sign in');
   assert.match(ledger, /function LedgerWhileOffline[\s\S]*?<Body>\{LEDGER_WHILE_OFFLINE\[reason\]\}<\/Body>/);
   assert.match(await read('app/account.tsx'), /if \(session\.status === 'offline'\) \{[\s\S]*?ACCOUNT_WHILE_OFFLINE\[session\.reason\]/);
-  assert.match(await read('app/settings.tsx'), /'still-signed-in': session\.status === 'offline' \? <SettingsRow key="still-signed-in" label="Account settings" detail=\{STILL_SIGNED_IN\[session\.reason\]\}/);
+  assert.match(await read('app/settings.tsx'), /'still-signed-in': session\.status === 'offline' \? <SettingsRow key="still-signed-in" label=\{t\('common\.account\.settings'\)\} detail=\{STILL_SIGNED_IN\[session\.reason\]\}/);
   for (const words of [...Object.values(LEDGER_WHILE_OFFLINE), ...Object.values(ACCOUNT_WHILE_OFFLINE), ...Object.values(STILL_SIGNED_IN)]) {
     assert.match(words, /still signed in/, 'every offline screen says the person is still signed in');
     assert.doesNotMatch(words, /\bwait/, 'and promises nothing waits');
@@ -192,13 +197,30 @@ test('signing out forgets this phone\'s tokens even when the service cannot be t
 test('accountMessage shows the service\'s own words, and the web\'s fallback otherwise', async () => {
   assert.equal(accountMessage({ code: 'invalid_credentials', message: 'Password confirmation failed.' }), 'Password confirmation failed.');
   assert.equal(accountMessage(new Error('boom')), ACCOUNT_FALLBACK_MESSAGE);
+  // A code with one sentence wherever the service raises it is said by its code, in the active
+  // language; English reads exactly as the service words it (docs/TRANSLATION.md, "Server errors").
+  assert.equal(accountMessage({ code: 'rate_limit_exceeded', message: 'Too many requests. Wait and try again.' }), 'Too many requests. Wait and try again.');
+  assert.equal(accountMessage({ code: 'some_new_code', message: 'Something the phone has no sentence for.' }), 'Something the phone has no sentence for.', 'a code with no sentence yet keeps the service\'s words');
+  // invalid_credentials has two sentences on the server, so only sign-in reads its own.
+  assert.equal(accountMessage({ code: 'invalid_credentials', message: 'Username, email, or password is incorrect.' }, 'error.signIn'), 'Username, email, or password is incorrect.');
+  assert.match(await readFile(new URL('app/account.tsx', mobile), 'utf8'), /\}, 'error\.signIn'\)\} \/>/, 'the sign-in button reads sign-in\'s own');
+  const server = ['server/app.js', 'server/platform.js', 'server/identity.js', 'server/apple.js'].map((file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')).join('\n');
+  const messagesOf = (code) => new Set([...server.matchAll(new RegExp(`'${code}',(?: message:)? (?:'([^']*)'|\`([^\`]*)\`)`, 'g'))].map(([, single, template]) => single ?? template));
+  for (const key of TRANSLATED_ERRORS.filter((name) => name.startsWith('error.server.'))) {
+    const code = key.slice('error.server.'.length).replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+    const said = messagesOf(code);
+    assert.deepEqual([...said], [english[key]], `${code} has one sentence on the server, word for word ${key}`);
+  }
   const web = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
   assert.ok(web.includes(`return '${ACCOUNT_FALLBACK_MESSAGE}';`));
   const notices = await readFile(new URL('src/auth/account-messages.ts', mobile), 'utf8');
   // The phone's words for a moment with no room are its own on purpose: the web's point at a
   // payment the app does not offer (#268). Everything else is the web's.
   const phoneOnly = new Set(Object.values(NO_ROOM_ADDED_HERE));
-  for (const phrase of [...notices.matchAll(/:\s*'([^']+)',/g)].map((match) => match[1]).filter((phrase) => !phoneOnly.has(phrase))) {
+  // Each notice is a key; the English it reads is in locales/en.json.
+  const noticeWords = [...notices.matchAll(/:\s*'(common\.account\.[a-zA-Z]+)',/g)].map((match) => english[match[1]]);
+  assert.ok(noticeWords.length >= 13 && noticeWords.every(Boolean), 'every notice names a sentence English has');
+  for (const phrase of noticeWords.filter((phrase) => !phoneOnly.has(phrase))) {
     assert.ok(web.includes(phrase), `"${phrase}" is not the web's wording`);
   }
 });
@@ -214,7 +236,7 @@ test('tokens live in the keychain, never in plain storage, and never move to ano
 test('account deletion is three taps from settings, and says what goes and what stays', async () => {
   const settings = await readFile(new URL('app/settings.tsx', mobile), 'utf8');
   const remove = await readFile(new URL('app/delete-account.tsx', mobile), 'utf8');
-  assert.match(settings, /label="Delete account" onPress=\{\(\) => router\.push\('\/delete-account'\)\}/, 'tap 1: settings opens the deletion screen');
+  assert.match(settings, /label=\{t\('common\.account\.delete'\)\} onPress=\{\(\) => router\.push\('\/delete-account'\)\}/, 'tap 1: settings opens the deletion screen');
   assert.match(remove, /label="Permanently delete account"[^\n]*onPress=\{confirm\}/, 'tap 2: the deletion button asks to confirm');
   // The web's words, and then the one thing the web has no need to say: a store subscription
   // carries on until it is cancelled with Apple or Google (owner, Oct 8, 2026; Guideline 5.1.1(v)).
@@ -330,10 +352,12 @@ test('changing the password keeps this phone\'s tokens, and a wrong one is said 
 });
 
 test('the phone says signing out everywhere as signing out is said, and names moments still waiting', async () => {
-  const { signOutEverywhereConsequence, signOutConsequence, SIGN_OUT_EVERYWHERE_CONSEQUENCE } = await importMobile('src/journey/waiting-moments.ts');
+  const { signOutEverywhereConsequence, signOutConsequence, signOutEverywhereWords } = await importMobile('src/journey/waiting-moments.ts');
+  const SIGN_OUT_EVERYWHERE_CONSEQUENCE = signOutEverywhereWords();
   assert.deepEqual(signOutEverywhereConsequence(0), { title: 'Sign out everywhere?', consequence: 'Every device signed in to this account, this one included, will need to sign in again. Nothing in your journeys is deleted.', confirmLabel: 'Sign out everywhere', destructive: false });
-  assert.deepEqual(signOutEverywhereConsequence(1), { title: 'Sign out everywhere with moments waiting?', consequence: `${SIGN_OUT_EVERYWHERE_CONSEQUENCE} ${signOutConsequence(1).consequence}`, confirmLabel: 'Sign out everywhere and remove it', destructive: true });
-  assert.equal(signOutEverywhereConsequence(3).consequence, `${SIGN_OUT_EVERYWHERE_CONSEQUENCE} 3 moments you held haven’t been sent yet. Signing out removes them from this phone, and they can’t be sent later.`);
+  const one = signOutEverywhereConsequence(1);
+  assert.deepEqual({ ...one, consequence: unmarked(one.consequence) }, { title: 'Sign out everywhere with moments waiting?', consequence: `${SIGN_OUT_EVERYWHERE_CONSEQUENCE} ${signOutConsequence(1).consequence}`, confirmLabel: 'Sign out everywhere and remove it', destructive: true });
+  assert.equal(unmarked(signOutEverywhereConsequence(3).consequence), `${SIGN_OUT_EVERYWHERE_CONSEQUENCE} 3 moments you held haven’t been sent yet. Signing out removes them from this phone, and they can’t be sent later.`);
   assert.equal(signOutEverywhereConsequence(3).confirmLabel, 'Sign out everywhere and remove them');
   const web = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
   assert.ok(web.includes(`const SIGN_OUT_EVERYWHERE_CONSEQUENCE = '${SIGN_OUT_EVERYWHERE_CONSEQUENCE}';`), 'the web asks in the same words');
@@ -354,10 +378,10 @@ test('leaving and signing out everywhere each warn about waiting moments in thei
 
 test('the account screen offers Sign out everywhere behind the consequence dialog, and Change password only with a password', async () => {
   const account = await readFile(new URL('app/account.tsx', mobile), 'utf8');
-  assert.match(account, /label="Sign out everywhere"[^\n]*onPress=\{async \(\) => \{\s*const held = waiting\.moments\.length;\s*if \(!await shell\.confirmConsequence\(signOutEverywhereConsequence\(held\)\)\) return;/);
+  assert.match(account, /label=\{t\('common\.account\.signOutEverywhere'\)\}[^\n]*onPress=\{async \(\) => \{\s*const held = waiting\.moments\.length;\s*if \(!await shell\.confirmConsequence\(signOutEverywhereConsequence\(held\)\)\) return;/);
   // The moments go only after the service has signed everything out.
   assert.match(account, /await session\.client\.logoutEverywhere\(\);\s*if \(held\) await waiting\.clear\(\);\s*session\.setUser\(null\);\s*return ACCOUNT_NOTICES\.signedOutEverywhere;/);
-  assert.match(account, /\{user\.hasPassword !== false \? <Button kind="quiet" label="Change password" onPress=\{\(\) => router\.push\('\/change-password'\)\} \/> : null\}/);
+  assert.match(account, /\{user\.hasPassword !== false \? <Button kind="quiet" label=\{t\('common\.account\.changePassword'\)\} onPress=\{\(\) => router\.push\('\/change-password'\)\} \/> : null\}/);
   const change = await readFile(new URL('app/change-password.tsx', mobile), 'utf8');
   assert.match(change, /if \(session\.status !== 'signed-in' \|\| session\.user\.hasPassword === false\) return <Redirect href="\/account" \/>;/);
   assert.match(change, /session\.client\.changePassword\(currentPassword, newPassword\)/);
@@ -367,7 +391,7 @@ test('the account screen offers Sign out everywhere behind the consequence dialo
   const lead = /lead="([^"]+)"/.exec(change)[1];
   assert.ok(index.includes(`<p>${lead}</p>`), 'the phone says what the web says above the form');
   const layout = await readFile(new URL('app/_layout.tsx', mobile), 'utf8');
-  assert.match(layout, /<Stack\.Screen name="change-password" options=\{\{ title: 'Change password' \}\} \/>/);
+  assert.match(layout, /<Stack\.Screen name="change-password" options=\{\{ title: screenTitle\('change-password'\) \}\} \/>/);
 });
 
 test('a refused sign-in takes the person to sign in, and says why, from whatever screen was open', async () => {

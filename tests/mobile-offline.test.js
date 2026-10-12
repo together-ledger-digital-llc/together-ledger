@@ -198,6 +198,8 @@ async function checkListing(store, file, change) {
     // The App Store check holds its notes to the code, so it reads these from the repository.
     await symlink(join(repo, 'apps'), join(root, 'apps'));
     await symlink(join(repo, 'server'), join(root, 'server'));
+    // And the English the phone's Settings rows read in (locales/en.json).
+    await symlink(join(repo, 'locales'), join(root, 'locales'));
     const path = join(root, 'store', store, file);
     await writeFile(path, change(await readFile(path, 'utf8')));
     return await run(process.execPath, [join(root, 'store', store, 'check-listing.mjs')]).then(() => 'passed', (error) => error.stdout);

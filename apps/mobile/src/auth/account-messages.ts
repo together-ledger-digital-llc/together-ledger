@@ -41,7 +41,6 @@ export function accountMessage(error: unknown, area?: string): string {
  */
 export const TRANSLATED_ERRORS = Object.freeze([
   'error.server.authenticationRequired',
-  'error.server.invalidToken',
   'error.server.rateLimitExceeded',
   'error.server.accountExists',
   'error.server.emailInUse',

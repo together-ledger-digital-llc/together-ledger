@@ -160,7 +160,7 @@ test('registering and signing in only set who is signed in; the watch above ever
   const providerAt = layout.indexOf('<PendingInvitationProvider>');
   const watchAt = layout.indexOf('<PendingInvitationWatch />');
   assert.ok(sessionAt > 0 && providerAt > sessionAt && watchAt > providerAt, 'inside the session, so it sees every way of signing in');
-  assert.match(layout, /<Stack\.Screen name="invite" options=\{\{ title: 'Invitation' \}\} \/>/);
+  assert.match(layout, /<Stack\.Screen name="invite" options=\{\{ title: screenTitle\('invite'\) \}\} \/>/);
   for (const path of ['app/account.tsx', 'app/register.tsx', 'src/components/social-sign-in.tsx']) {
     assert.match(await read(path), /session\.setUser\(/, `${path} signs in through the session, which the watch follows`);
   }

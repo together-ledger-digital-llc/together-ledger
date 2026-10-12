@@ -131,7 +131,7 @@ const scanned = [
   'index.html',
   ...collectFiles(join(root, 'src')).map((path) => relative(root, path)).filter((path) => path.endsWith('.js') && !path.startsWith('src/vendor/')),
   ...collectFiles(join(root, 'apps/mobile/app')).map((path) => relative(root, path)),
-  ...collectFiles(join(root, 'apps/mobile/src')).map((path) => relative(root, path)).filter((path) => /\.tsx?$/.test(path)),
+  ...collectFiles(join(root, 'apps/mobile/src')).map((path) => relative(root, path)).filter((path) => /\.(tsx?|js)$/.test(path)),
 ];
 
 test('every key in use is in English, and every English key is in use', () => {
@@ -216,7 +216,7 @@ test('the phone\'s History reads word for word as it did before it moved to keys
     ['Sign in and open a journey to see its history.', unmarked('history.screen.signedOut')],
     ['Home in Fall history', unmarked('history.screen.title', { journey: 'Home in Fall' })],
     ['Server-authoritative, account-attributed history. HMAC chaining makes database changes detectable; deleted records retain privacy-bounded tombstones.', unmarked('history.screen.lead')],
-    ['Return-to conversations', unmarked('history.concerns.heading')],
+    ['Return-to conversations', unmarked('common.concerns.heading')],
     ['Start a return-to conversation', unmarked('history.concerns.start')],
     ['Open', unmarked('history.concern.status', { status: 'open' })],
     ['Resolved', unmarked('history.concern.status', { status: 'resolved' })],

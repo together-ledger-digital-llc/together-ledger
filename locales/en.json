@@ -718,10 +718,6 @@
   "@common.moment.kind": {
     "description": "Heading over the kinds of moment to choose from, and what a screen reader calls that list."
   },
-  "common.moment.kindName": "Name this kind of moment",
-  "@common.moment.kindName": {
-    "description": "Label of the field for a kind of moment of the person's own."
-  },
   "common.moment.kindNameExample": "e.g. A small win",
   "@common.moment.kindNameExample": {
     "description": "Example inside the empty field for a kind of moment of one's own."
@@ -921,10 +917,6 @@
   "error.server.authenticationRequired": "Sign in to continue.",
   "@error.server.authenticationRequired": {
     "description": "From the service: the person must sign in before this can be done."
-  },
-  "error.server.invalidToken": "Sign in again to continue.",
-  "@error.server.invalidToken": {
-    "description": "From the service: a sign-in ran out or was refused, so the person signs in again."
   },
   "error.server.rateLimitExceeded": "Too many requests. Wait and try again.",
   "@error.server.rateLimitExceeded": {
@@ -1276,9 +1268,9 @@
   "@mobile.settings.open": {
     "description": "The button that opens Settings, on the welcome and in the ledger's top bar. A gear is drawn before it and is never read aloud. The screen's own title is mobile.screen.settings.title."
   },
-  "mobile.settings.openWaiting": "Settings · {count, number} to answer",
+  "mobile.settings.openWaiting": "Settings · {count, number}",
   "@mobile.settings.openWaiting": {
-    "description": "The Settings button in the ledger's top bar while there are questions about who joins a journey waiting for this person's answer.",
+    "description": "The Settings button in the ledger's top bar while there are questions about who joins a journey waiting for this person's answer: the word, then how many. Keep it short; it sits in the top bar.",
     "placeholders": {
       "count": { "type": "int", "example": "2", "description": "How many questions wait for an answer, at least 1." }
     }

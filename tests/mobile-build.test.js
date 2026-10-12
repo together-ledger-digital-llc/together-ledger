@@ -95,8 +95,9 @@ test('every request from the phone says which build sent it, the image loader\'s
 test('Settings shows the build at its foot, plainly and copyable', async () => {
   const settings = await read('app/settings.tsx');
   const foot = settings.lastIndexOf('{thisBuild.label}');
-  assert.ok(foot > settings.indexOf('ledger-support@together-ledger.com'), 'below everything else');
-  assert.match(settings, /<Text selectable accessibilityLabel=\{`This build: \$\{thisBuild\.label\}`\}[^>]*>\{thisBuild\.label\}<\/Text>\s*<\/View>\s*<\/Screen>/);
+  assert.ok(foot > settings.indexOf("t('mobile.settings.helpText')"), 'below everything else');
+  assert.equal(JSON.parse(await readFile(new URL('../locales/en.json', import.meta.url), 'utf8'))['mobile.settings.build'], 'This build: {build}');
+  assert.match(settings, /<Text selectable accessibilityLabel=\{t\('mobile\.settings\.build', \{ build: thisBuild\.label \}\)\}[^>]*>\{thisBuild\.label\}<\/Text>\s*<\/View>\s*<\/Screen>/);
 });
 
 test('no crash reporting comes with it', async () => {

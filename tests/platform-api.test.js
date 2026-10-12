@@ -2076,8 +2076,8 @@ test('the phone reads a shared journey through this server, and never another pe
   assert.deepEqual(recent.map(({ title }) => title), ['The road near Marlow'], 'another person\'s private and share-later moments never reach this phone');
   assert.equal(view.visibilityCue(recent[0].visibility).label, 'Shared now');
   assert.equal(recent[0].createdBy, 'ledger-alice');
-  assert.equal(view.journeyPeriod(snapshot.journey), 'Marlow · Began May 14 · No end date planned');
-  assert.equal(view.moneyContext(recent[0]), '$12.50 is held here as context, not a score.');
+  assert.equal(view.journeyPeriod(snapshot.journey).replace(/[\u2068\u2069]/g, ''), 'Marlow · Began May 14 · No end date planned');
+  assert.equal(view.moneyContext(recent[0]).replace(/[\u2068\u2069]/g, ''), '$12.50 is held here as context, not a score.');
 });
 
 test('the phone begins a journey through this server, and owns it', async (t) => {

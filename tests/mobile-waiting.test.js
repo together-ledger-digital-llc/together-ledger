@@ -135,7 +135,7 @@ test('the words the person reads, for the owner to approve', () => {
   assert.equal(waiting.onceSent('shared-now'), 'Once it’s sent, everyone in this journey will see it.');
   assert.equal(waiting.onceSent('share-later'), 'Once it’s sent, it stays with you until you share it.');
   assert.equal(waiting.onceSent('private'), 'Once it’s sent, it stays with you.');
-  assert.equal(waiting.KEPT_ON_PHONE, 'Kept on this phone. It will be sent when the connection returns.');
+  assert.equal(waiting.keptOnPhone(), 'Kept on this phone. It will be sent when the connection returns.');
   assert.equal(waiting.sentFromPhone(1), 'Your waiting moment was sent.');
   assert.equal(waiting.sentFromPhone(3), '3 waiting moments were sent.');
   assert.deepEqual(waiting.signOutConsequence(1), { title: 'Sign out with moments waiting?', consequence: 'One moment you held hasn’t been sent yet. Signing out removes it from this phone, and it can’t be sent later.', confirmLabel: 'Sign out and remove it', destructive: true });
@@ -145,7 +145,7 @@ test('the words the person reads, for the owner to approve', () => {
   assert.equal(waiting.removedWithAccount(0), '');
   assert.equal(waiting.removedWithAccount(1), 'One moment waiting on this phone was never sent, and is removed too.');
   assert.equal(waiting.removedWithAccount(4), '4 moments waiting on this phone were never sent, and are removed too.');
-  for (const words of [waiting.WAITING_HELP, waiting.KEPT_ON_PHONE, waiting.onceSent('shared-now')]) {
+  for (const words of [waiting.WAITING_HELP, waiting.keptOnPhone(), waiting.onceSent('shared-now')]) {
     assert.doesNotMatch(words, /\b(seat|seats|license|slot|removed for)\b/i);
   }
 });
@@ -194,7 +194,7 @@ test('signing out on purpose asks first; a sign-in that ends by itself keeps wha
 test('a new moment waits when the service is out of reach; changing one still needs the connection', async () => {
   const actions = await read('src/journey/moment-actions.ts');
   assert.match(actions, /const held = await waiting\.hold\(journeyId, journeyName, payload\)/);
-  assert.match(actions, /if \(held === 'waiting'\) \{\s*router\.back\(\);\s*shell\.showToast\(KEPT_ON_PHONE\);/);
+  assert.match(actions, /if \(held === 'waiting'\) \{\s*router\.back\(\);\s*shell\.showToast\(keptOnPhone\(\)\);/);
   assert.match(actions, /client\.updateMoment\(journeyId, before\.id, payload\)/, 'an edit is sent as before');
   assert.doesNotMatch(actions, /client\.createMoment/, 'a new moment only ever goes through the waiting store');
 });
