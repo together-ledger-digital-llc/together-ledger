@@ -6,10 +6,10 @@ import { t } from './sentences.js';
 
 /** @type {Readonly<Record<string, string>>} */
 const THEME_NAMES = Object.freeze({
-  light: 'common.theme.name.light',
-  dark: 'common.theme.name.dark',
-  green: 'common.theme.name.green',
-  flexoki: 'common.theme.name.flexoki',
+  light: 'common.themeName.light',
+  dark: 'common.themeName.dark',
+  green: 'common.themeName.green',
+  flexoki: 'common.themeName.flexoki',
 });
 
 /**
@@ -30,5 +30,5 @@ export function themeName(id, label = id) {
  */
 export function momentThemeName(theme) {
   const id = normalizeMomentTheme(theme);
-  return id ? themeName(id, momentThemeLabel(id)) : t('common.moment.useMyTheme');
+  return id ? themeName(id, momentThemeLabel(id)) : t('common.momentTheme.own');
 }

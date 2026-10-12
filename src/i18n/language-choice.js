@@ -61,12 +61,12 @@ export function matchDeviceLanguages(deviceLanguages, offered) {
 
 /**
  * The language to read in. A choice the product no longer offers is treated as no choice, so
- * nobody is ever shown a language that isn't approved, or in preview and chosen by hand.
+ * nobody is ever shown a language that isn't approved or in preview.
  *
- * `offered` is what a device may be matched to: approved languages only. `choosable` is what a
- * person may choose by hand, which adds each language in preview (decision 145); it defaults to
- * `offered`. A device set to a preview language is never switched to it: it reads in English, or
- * in the next of its languages that is approved.
+ * offered are the languages a device's own may be matched to (approved ones); choosable are the
+ * ones a person may pick by hand (approved ones and previews), and default to offered. A preview
+ * is reached only by choosing it: a browser or phone set to it reads in the next match, or in the
+ * source, until the language is approved (owner, Oct 12, 2026, decision 145).
  *
  * @param {{ choice: string | null | undefined, deviceLanguages: readonly string[], offered: string[], choosable?: string[], source: string }} input
  */

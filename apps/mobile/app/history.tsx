@@ -57,7 +57,7 @@ function History({ snapshot }: { snapshot: SharingSnapshot }) {
   return (
     <Screen title={t('history.screen.title', { journey: snapshot.journey.name })} lead={t('history.screen.lead')} refresh={{ refreshing, onRefresh: refresh }}>
       <Button kind="quiet" label={t('common.historyGuide.title')} onPress={() => router.push('/history-guide')} />
-      <Text accessibilityRole="header" style={[styles.section, { color: theme.colors.fg }]}>{t('common.concerns.heading')}</Text>
+      <Text accessibilityRole="header" style={[styles.section, { color: theme.colors.fg }]}>{t('history.concerns.heading')}</Text>
       <Button label={t('history.concerns.start')} onPress={() => router.push('/concern')} />
       {concerns.length ? concerns.map((concern) => (
         <View key={concern.id} style={[styles.card, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface, borderRadius: theme.radius.m }]}>

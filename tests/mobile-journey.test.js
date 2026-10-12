@@ -136,7 +136,7 @@ test('a themed card wears its theme without naming it; the form and History stil
   assert.ok(!web.includes('moment-theme-chip') && !css.includes('moment-theme-chip'), 'the web card has dropped it too, with the style only it used');
 
   const form = await read('app/moment.tsx');
-  assert.match(form, /\[\{ id: '', label: t\('common\.moment\.useMyTheme'\) \}, \.\.\.MOMENT_THEMES\.map\(\(\{ id, label \}\) => \(\{ id, label: themeName\(id, label\) \}\)\)\]/, 'the form still offers each theme by name');
+  assert.match(form, /\[\{ id: '', label: t\('common\.momentTheme\.own'\) \}, \.\.\.MOMENT_THEMES\.map\(\(\{ id, label \}\) => \(\{ id, label: themeName\(id, label\) \}\)\)\]/, 'the form still offers each theme by name');
   assert.match(form, /help=\{t\('common\.moment\.previewHelp', \{ theme: momentThemeName\(draft\.theme\) \}\)\}/, 'and the live preview still says which');
   assert.equal(english['common.moment.previewHelp'], '{theme} · exactly as this moment will appear in the ledger.');
   for (const theme of ['', 'light', 'dark', 'green', 'flexoki', 'rose-pine']) assert.equal(view.momentThemeName(theme), momentThemes.momentThemeLabel(theme), `${theme || 'none'}: the web's name, word for word`);
@@ -185,11 +185,11 @@ test('pull to refresh re-reads the snapshot, and the list only draws what is on 
   assert.match(ledger, /\{listing\.seeAll \? <Button kind="quiet" label=\{expanded \? 'Show recent' : seeAllLabel\(recent\.length\)\}/, '"See all" only when there is more to see (#337)');
   assert.match(await read('src/journey/journey-view.ts'), /seeAll: !compact && seeAllShown\(recent\.length, expanded\)/, 'still the web\'s own rule, in the full view');
   assert.match(ledger, /<RefreshControl refreshing=\{journey\.refreshing\} onRefresh=\{journey\.refresh\}/);
-  assert.match(ledger, /<EmptyState title=\{t\('common\.ledger\.emptyTitle'\)\} body=\{t\('common\.ledger\.emptyBody'\)\} \/>/);
-  assert.deepEqual([english['common.ledger.emptyTitle'], english['common.ledger.emptyBody']], ['No moments here yet', 'A small truth is enough to begin.']);
+  assert.match(ledger, /<EmptyState title=\{t\('home\.moments\.emptyTitle'\)\} body=\{t\('home\.moments\.emptyBody'\)\} \/>/);
+  assert.deepEqual([english['home.moments.emptyTitle'], english['home.moments.emptyBody']], ['No moments here yet', 'A small truth is enough to begin.']);
   assert.ok(web.includes("emptyState('No moments here yet', 'A small truth is enough to begin.')"));
   assert.doesNotMatch(ledger + web, /choose another filter to see more/, 'no sentence that asks for a filter that is gone (#405)');
   assert.ok(web.includes("emptyState('No open threads', 'That can be a good place to rest.', { compact: true })"));
-  assert.match(ledger, /<EmptyState compact title=\{t\('common\.threads\.emptyTitle'\)\} body=\{t\('common\.threads\.emptyBody'\)\} \/>/);
-  assert.deepEqual([english['common.threads.emptyTitle'], english['common.threads.emptyBody']], ['No open threads', 'That can be a good place to rest.']);
+  assert.match(ledger, /<EmptyState compact title=\{t\('home\.threads\.emptyTitle'\)\} body=\{t\('home\.threads\.emptyBody'\)\} \/>/);
+  assert.deepEqual([english['home.threads.emptyTitle'], english['home.threads.emptyBody']], ['No open threads', 'That can be a good place to rest.']);
 });

@@ -88,7 +88,7 @@ export default function LedgerScreen() {
           const cardColors = momentColors(item, colors);
           const cardActions = (
             <>
-              {item.visibility === 'share-later' ? <CardAction label={t('common.action.shareNow')} colors={cardColors} onPress={() => actions.share(item as EditableMoment)} /> : null}
+              {item.visibility === 'share-later' ? <CardAction label={t('moment.card.shareNow')} colors={cardColors} onPress={() => actions.share(item as EditableMoment)} /> : null}
               <CardAction label={t('common.action.edit')} colors={cardColors} onPress={() => router.push({ pathname: '/moment', params: { id: item.id } })} />
             </>
           );
@@ -103,7 +103,7 @@ export default function LedgerScreen() {
           <View style={styles.header}>
             <ScreenStatusRegion />
             <View>
-              <Text style={[styles.small, { color: colors.muted }]}>{t('common.ledger.yourSpace')}</Text>
+              <Text style={[styles.small, { color: colors.muted }]}>{t('home.trip.label')}</Text>
               <Text accessibilityRole="header" style={[styles.journeyName, fonts.serif, { color: colors.fg }]}>{snapshot.journey.name}</Text>
               <Text style={[styles.body, { color: colors.muted }]}>{journeyPeriod(snapshot.journey)}</Text>
             </View>
@@ -114,9 +114,9 @@ export default function LedgerScreen() {
             {/* The open journey stays while another is asked for; offline, it opens once the connection is back (#352). */}
             {next && nextName ? <Text accessibilityLiveRegion="polite" style={[styles.body, { color: colors.muted }]}>{nextJourneyWords(nextName, next.when)}</Text> : null}
             <View style={styles.section}>
-              <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('common.ledger.eyebrow')}</Text>
+              <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('home.sharedJourney.eyebrow')}</Text>
               <Text accessibilityRole="header" style={[styles.sectionTitle, fonts.serif, { color: colors.fg }]}>{momentListHeading(compact)}</Text>
-              <Text style={[styles.body, { color: colors.muted }]}>{t('common.ledger.lead')}</Text>
+              <Text style={[styles.body, { color: colors.muted }]}>{t('home.moments.copy')}</Text>
             </View>
             <Button label="＋ Hold a moment" onPress={() => router.push('/moment')} />
             <WaitingMoments activeJourneyId={activeId} />
@@ -130,7 +130,7 @@ export default function LedgerScreen() {
             {listing.seeAll ? <Button kind="quiet" label={expanded ? 'Show recent' : seeAllLabel(recent.length)} onPress={() => setExpanded(!expanded)} /> : null}
           </View>
         }
-        ListEmptyComponent={<EmptyState title={t('common.ledger.emptyTitle')} body={t('common.ledger.emptyBody')} />}
+        ListEmptyComponent={<EmptyState title={t('home.moments.emptyTitle')} body={t('home.moments.emptyBody')} />}
         ListFooterComponent={<Threads threads={threads} />}
       />
     </SafeAreaView>
@@ -157,16 +157,16 @@ function Threads({ threads }: { threads: Concern[] }) {
   const colors = theme.colors;
   return (
     <View style={[styles.threads, { borderColor: colors.border, borderRadius: theme.radius.l, backgroundColor: colors.surface }]}>
-      <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('common.threads.eyebrow')}</Text>
-      <Text accessibilityRole="header" style={[styles.sectionTitle, fonts.serif, { color: colors.fg }]}>{t('common.concerns.heading')}</Text>
-      <Text style={[styles.body, { color: colors.muted }]}>{t('common.threads.lead')}</Text>
+      <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('home.threads.eyebrow')}</Text>
+      <Text accessibilityRole="header" style={[styles.sectionTitle, fonts.serif, { color: colors.fg }]}>{t('history.concerns.heading')}</Text>
+      <Text style={[styles.body, { color: colors.muted }]}>{t('home.threads.lead')}</Text>
       {threads.length ? threads.map((thread) => (
         <View key={thread.id} style={[styles.thread, { borderTopColor: colors.border }]}>
           <Text style={[styles.openChip, { color: colors.caution, borderColor: colors.caution, borderRadius: theme.radius.pill }]}>{t('history.concern.status', { status: 'open' })}</Text>
           <Text style={[styles.threadTitle, { color: colors.fg }]}>{thread.title}</Text>
           {thread.detail ? <Text style={[styles.body, { color: colors.muted }]}>{thread.detail}</Text> : null}
         </View>
-      )) : <EmptyState compact title={t('common.threads.emptyTitle')} body={t('common.threads.emptyBody')} />}
+      )) : <EmptyState compact title={t('home.threads.emptyTitle')} body={t('home.threads.emptyBody')} />}
     </View>
   );
 }
@@ -178,11 +178,11 @@ function EmptyStart({ signedIn }: { signedIn: boolean }) {
   const kinds = momentKinds().filter(([value]) => value !== 'other');
   return (
     <Screen title={t('common.ledger.title')}>
-      <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('common.start.eyebrow')}</Text>
-      <Text accessibilityRole="header" style={[styles.sectionTitle, fonts.serif, { color: colors.fg }]}>{t('common.start.title')}</Text>
-      <Body>{t('common.start.lead')}</Body>
+      <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('home.moments.beginEyebrow')}</Text>
+      <Text accessibilityRole="header" style={[styles.sectionTitle, fonts.serif, { color: colors.fg }]}>{t('home.moments.beginTitle')}</Text>
+      <Body>{t('home.moments.beginCopy')}</Body>
       <View style={[styles.types, { backgroundColor: colors.metaBg, borderColor: colors.border, borderRadius: theme.radius.l }]}>
-        <Text style={[styles.body, { color: colors.muted }]}>{t('common.start.kinds')}</Text>
+        <Text style={[styles.body, { color: colors.muted }]}>{t('home.moments.possibilities')}</Text>
         <View style={styles.kinds}>
           {kinds.map(([value, label]) => (
             <Text key={value} style={[styles.type, { color: colors.fg, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: theme.radius.pill }]}>{label}</Text>
@@ -191,13 +191,13 @@ function EmptyStart({ signedIn }: { signedIn: boolean }) {
       </View>
       {signedIn ? (
         <>
-          <Body>{t('common.start.accountReady')}</Body>
+          <Body>{t('signIn.toast.accountReady')}</Body>
           <Button label={t('common.ledger.newJourney')} onPress={() => router.push('/new-journey')} />
         </>
       ) : (
         <>
           <Body>{t('mobile.start.signedOut')}</Body>
-          <Button label={t('common.account.signIn')} onPress={() => router.push('/account')} />
+          <Button label={t('common.action.signIn')} onPress={() => router.push('/account')} />
         </>
       )}
       {/* Joining someone else's journey begins with their invitation (#266). */}

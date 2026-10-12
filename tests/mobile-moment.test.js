@@ -109,8 +109,8 @@ test('a shared moment cannot be taken back, and the form says so in the web\'s w
 test('sharing and deleting go through the consequence dialog; the currencies are the web\'s', async () => {
   const actions = await read('src/journey/moment-actions.ts');
   assert.ok(web.includes("confirmConsequence({ title: 'Share this moment now?', consequence: 'Everyone in this journey will be able to see it, including anyone who joins later. That access cannot be undone.', confirmLabel: 'Share this moment' })"));
-  assert.match(actions, /title: t\('common\.moment\.shareTitle'\),\s*consequence: t\('common\.moment\.shareConsequence'\),\s*confirmLabel: t\('common\.moment\.shareAction'\),/);
-  assert.deepEqual([english['common.moment.shareTitle'], english['common.moment.shareConsequence'], english['common.moment.shareAction']], ['Share this moment now?', 'Everyone in this journey will be able to see it, including anyone who joins later. That access cannot be undone.', 'Share this moment'], 'the web\'s words');
+  assert.match(actions, /title: t\('moment\.share\.title'\),\s*consequence: t\('moment\.share\.consequence'\),\s*confirmLabel: t\('moment\.share\.confirm'\),/);
+  assert.deepEqual([english['moment.share.title'], english['moment.share.consequence'], english['moment.share.confirm']], ['Share this moment now?', 'Everyone in this journey will be able to see it, including anyone who joins later. That access cannot be undone.', 'Share this moment'], 'the web\'s words');
   assert.match(actions, /if \(before && before\.visibility !== 'shared-now' && draft\.visibility === 'shared-now' && !await shell\.confirmConsequence\(shareNow\(\)\)\) return false;/, 'turning an existing moment shared asks first');
   assert.match(actions, /confirmConsequence\(\{ title: t\('mobile\.moment\.deleteQuestion'\), consequence: deleteConsequence\(moment\), confirmLabel: t\('mobile\.moment\.delete'\), destructive: true \}\)/);
   assert.deepEqual([english['mobile.moment.deleteQuestion'], english['mobile.moment.delete']], ['Delete this moment?', 'Delete moment']);
@@ -147,11 +147,11 @@ test('the currency is one compact drop-down, and "No currency" reads as nothing 
 test('an empty name is told at its own field, and the form takes the person there (#354)', async () => {
   const form = await read('app/moment.tsx');
   assert.equal(draft.MOMENT_NAME_MISSING, 'Give this moment a short name.');
-  assert.match(form, /<Field\s+ref=\{titleInput\}\s+label=\{t\('common\.moment\.name'\)\}/, 'the field the message names');
-  assert.equal(english['common.moment.name'], 'A short name');
-  assert.equal(english['common.moment.nameMissing'], draft.MOMENT_NAME_MISSING, 'the field says the web\'s words, in the active language');
+  assert.match(form, /<Field\s+ref=\{titleInput\}\s+label=\{t\('moment\.form\.name'\)\}/, 'the field the message names');
+  assert.equal(english['moment.form.name'], 'A short name');
+  assert.equal(english['moment.form.nameMissing'], draft.MOMENT_NAME_MISSING, 'the field says the web\'s words, in the active language');
   assert.match(form, /problem=\{titleProblem\}/, 'the field itself is marked');
-  assert.match(form, /if \(problem === MOMENT_NAME_MISSING\) \{[\s\S]*?setTitleProblem\(t\('common\.moment\.nameMissing'\)\);\s*scroll\.current\?\.scrollTo\(\{ y: Math\.max\(0, titleTop\.current - 16\), animated: true \}\);\s*titleInput\.current\?\.focus\(\);\s*return;/, 'saving scrolls to the field and focuses it');
+  assert.match(form, /if \(problem === MOMENT_NAME_MISSING\) \{[\s\S]*?setTitleProblem\(t\('moment\.form\.nameMissing'\)\);\s*scroll\.current\?\.scrollTo\(\{ y: Math\.max\(0, titleTop\.current - 16\), animated: true \}\);\s*titleInput\.current\?\.focus\(\);\s*return;/, 'saving scrolls to the field and focuses it');
   assert.match(form, /<Screen scrollRef=\{scroll\}/);
   const ui = await read('src/components/ui.tsx');
   assert.match(ui, /accessibilityHint=\{problem \|\| undefined\}/, 'a screen reader hears the problem on the field');
@@ -211,7 +211,7 @@ test('the calendar picks a day, not a moment in time: what is chosen is what is 
   assert.equal((field.match(/timeZoneName(=|: )['"]UTC['"]/g) || []).length, 2, 'both platforms\' calendars work in UTC, so the phone\'s own zone never shifts the day');
   assert.match(field, /mode(=|: )['"]date['"]/);
   assert.match(field, /<Field label=\{label\}[^>]*onChangeText=\{onChange\}/, 'typing the day still works');
-  assert.match(await read('app/moment.tsx'), /<DateField label=\{t\('common\.moment\.when'\)\}/);
+  assert.match(await read('app/moment.tsx'), /<DateField label=\{t\('moment\.form\.when'\)\}/);
   const app = JSON.parse(await read('app.json'));
   assert.ok(app.expo.plugins.includes('@react-native-community/datetimepicker'));
   // Only the network and what Play Billing needs are granted (tests/mobile-permissions.test.js), and iOS asks for nothing.

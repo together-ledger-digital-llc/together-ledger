@@ -377,7 +377,7 @@ the phone's sign-in reads `error.signIn.invalidCredentials`, the moment form `er
 On the phone, `accountMessage(error, area)` (`apps/mobile/src/auth/account-messages.ts`) does this;
 `TRANSLATED_ERRORS` there lists every one, and `tests/mobile-account.test.js` holds each
 `error.server.*` sentence word for word to the server's one message for its code. The account
-client's own codes read under `mobile.error.*` (no connection, no answer) and `error.client.*`
+client's own codes read under `mobile.error.*` (no connection, no answer), `error.server.accountsUnavailable` and `error.client.fallback`
 (the web's words too).
 
 ## Dates, numbers and money

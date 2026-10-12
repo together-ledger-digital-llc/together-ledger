@@ -163,7 +163,7 @@ function publicUser(row) {
 }
 
 // The languages manifest the web and the phone read (docs/TRANSLATION.md). Only a language it
-// marks approved may be chosen, here as everywhere.
+// marks approved or in preview may be chosen, here as everywhere.
 const LANGUAGES = JSON.parse(readFileSync(new URL('../locales/languages.json', import.meta.url), 'utf8'));
 
 // A date the server accepts is a real day on the calendar (#367), not only one shaped like it:
@@ -2425,8 +2425,8 @@ export class PlatformService {
   }
 
   // The Language preference (101B): a language chosen by hand, or null to follow the device again.
-  // Only ever the signed-in person's own, and only a language the manifest marks approved, or in
-  // preview, which a person may choose by hand (decision 145). With
+  // Only ever the signed-in person's own, and only a language the manifest marks approved or in
+  // preview: a preview is only ever chosen by hand, and this is where a hand-made choice lands. With
   // unlessChosen, it is set only while the account has no choice of its own: that is how a choice
   // made on a device before signing in carries into the account without overwriting one the
   // account already holds, decided in one statement so two devices signing in at once can't both

@@ -6,7 +6,7 @@ import { serverError, t } from '../i18n/sentences.js';
  * language (docs/TRANSLATION.md, "Server errors"); a code with no sentence yet is said in the
  * server's own words, exactly as the web does, with one exception below.
  */
-export const accountFallbackMessage = () => t('common.account.fallbackError');
+export const accountFallbackMessage = () => t('status.banner.accountService');
 
 /**
  * The one place the phone does not use the server's words. When a moment has no room for another
@@ -47,25 +47,25 @@ export const TRANSLATED_ERRORS = Object.freeze([
   'error.server.identityInUse',
   'error.signIn.invalidCredentials',
   'error.moment.conflict',
-  'error.client.accountsUnavailable',
+  'error.server.accountsUnavailable',
   'error.client.fallback',
   'mobile.error.offline',
   'mobile.error.unreachable',
 ] as const);
 
 const NOTICE_KEYS = {
-  registered: 'common.account.registered',
-  registeredEmailDelayed: 'common.account.registeredEmailDelayed',
+  registered: 'register.form.created',
+  registeredEmailDelayed: 'register.form.createdDelayed',
   verificationResent: 'common.account.verificationResent',
   verificationDelayed: 'common.account.verificationDelayed',
-  verified: 'common.account.verified',
+  verified: 'signIn.toast.emailVerified',
   recoverySent: 'common.account.recoverySent',
   passwordChanged: 'common.account.passwordChanged',
   passwordsDiffer: 'common.account.passwordsDiffer',
-  signedOut: 'common.account.signedOut',
+  signedOut: 'signIn.toast.signedOut',
   // #194, in the web's words (src/app.js).
   signedOutEverywhere: 'common.account.signedOutEverywhere',
-  signedOutHere: 'common.account.signedOutHere',
+  signedOutHere: 'signIn.status.signedOutHere',
   passwordChangedHere: 'common.account.passwordChangedHere',
   deleted: 'common.account.deleted',
 } as const;

@@ -51,13 +51,13 @@ export default function AccountScreen() {
     }
   }
 
-  if (session.status === 'loading') return <Screen title={t('mobile.screen.account.title')}><Body>{t('mobile.account.checking')}</Body></Screen>;
+  if (session.status === 'loading') return <Screen title={t('common.account.settings')}><Body>{t('mobile.account.checking')}</Body></Screen>;
 
   // Signed in, but the service could not be asked (#352). The password form would ask for
   // something this phone does not need.
   if (session.status === 'offline') {
     return (
-      <Screen title={t('mobile.screen.account.title')}>
+      <Screen title={t('common.account.settings')}>
         <Body>{ACCOUNT_WHILE_OFFLINE[session.reason]}</Body>
         <Button kind="quiet" label={t('mobile.action.tryAgain')} pending={pending === 'refresh'} onPress={() => run('refresh', async () => {
           await session.refresh();
@@ -70,7 +70,7 @@ export default function AccountScreen() {
   if (session.status === 'signed-in') {
     const { user } = session;
     return (
-      <Screen title={t('mobile.screen.account.title')} lead={t('common.account.passwordsPrivate')}>
+      <Screen title={t('common.account.settings')} lead={t('account.dialog.copy')}>
         {/* An Apple account with no email shows plain words, not the placeholder it holds (#217). */}
         <Body>{t('mobile.account.who', { name: user.displayName || user.username, email: accountEmailLabel(user.email) })}</Body>
         <Body>{user.emailVerified ? t('mobile.account.emailVerified') : t('mobile.account.emailNotVerified')}</Body>
@@ -131,18 +131,18 @@ export default function AccountScreen() {
   }
 
   return (
-    <Screen title={t('common.account.signInTitle')} lead={t('common.account.passwordsPrivate')}>
+    <Screen title={t('common.action.signIn')} lead={t('account.dialog.copy')}>
       {/* Continue with Google and Apple (#217): only once the server says they work on this phone. */}
       <SocialSignIn />
-      <Field label={t('common.account.identifier')} value={identifier} onChangeText={setIdentifier} autoCapitalize="none" autoComplete="username" textContentType="username" />
-      <Field label={t('common.account.password')} value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" />
+      <Field label={t('signIn.form.identifier')} value={identifier} onChangeText={setIdentifier} autoCapitalize="none" autoComplete="username" textContentType="username" />
+      <Field label={t('signIn.form.password')} value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" />
       <Notice message={notice} tone={problem ? 'problem' : 'info'} />
-      <Button label={t('common.account.signIn')} pending={pending === 'sign-in'} pendingLabel={t('common.account.signingIn')} disabled={!identifier || !password} onPress={() => run('sign-in', async () => {
+      <Button label={t('common.action.signIn')} pending={pending === 'sign-in'} pendingLabel={t('signIn.form.pending')} disabled={!identifier || !password} onPress={() => run('sign-in', async () => {
         session.setUser(await session.client.login({ identifier: identifier.trim(), password }));
         setPassword('');
         return null;
       }, 'error.signIn')} />
-      <Button kind="quiet" label={t('common.account.forgotPassword')} onPress={() => router.push('/recovery')} />
+      <Button kind="quiet" label={t('signIn.form.forgot')} onPress={() => router.push('/recovery')} />
       <Button kind="quiet" label={t('common.account.createAccount')} onPress={() => router.push('/register')} />
       {/* Kept through signing in: once signed in, the invitation opens again by itself (#266). */}
       <Button kind="quiet" label={INVITATION_WORDS.haveOne} onPress={() => router.push('/invite')} />

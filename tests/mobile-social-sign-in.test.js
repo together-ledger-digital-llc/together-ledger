@@ -370,7 +370,7 @@ test('with those clients set, the phone offers Google on both platforms and Appl
 test('the buttons sit on the same screens as email sign-in, equal in size and over the 44-point minimum', async () => {
   const account = await read('app/account.tsx');
   const register = await read('app/register.tsx');
-  assert.match(account, /<Screen title=\{t\('common\.account\.signInTitle'\)\}[^>]*>\s*\{\/\*[^]*?\*\/\}\s*<SocialSignIn \/>/);
+  assert.match(account, /<Screen title=\{t\('common\.action\.signIn'\)\}[^>]*>\s*\{\/\*[^]*?\*\/\}\s*<SocialSignIn \/>/);
   assert.match(register, /<SocialSignIn onSignedIn=\{\(\) => router\.replace\('\/account'\)\} \/>/);
   const component = await read('src/components/social-sign-in.tsx');
   const size = /const PROVIDER_BUTTON = \{ width: '100%', maxWidth: 400, height: (\d+), alignSelf: 'center' \} as const;/.exec(component);
@@ -666,7 +666,7 @@ test('under the buttons, and only with them, the phone says a new account starts
   const linking = component.indexOf('if (link) {');
   const google = component.indexOf('<GoogleButton ');
   const said = component.indexOf('<Text style={[styles.hint, { color: theme.colors.muted }]}>{newAccountName()}</Text>');
-  const or = component.indexOf(">{t('common.signIn.or')}</Text>");
+  const or = component.indexOf(">{t('signIn.social.or')}</Text>");
   assert.ok(nothing > 0 && linking > nothing, 'no buttons offered, or a password being asked for, returns before it');
   assert.ok(component.indexOf('<AppleAuthentication.AppleAuthenticationButton') < google && google < said && said < or, 'below both buttons, above "or"');
   // On Android, below Apple's browser sign-in too (#400), so it is said wherever Apple is offered.

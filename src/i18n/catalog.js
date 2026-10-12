@@ -5,9 +5,9 @@
 // "key": "ICU message", where "@key" holds the notes for translators and "@@locale" names the
 // language. Crowdin, Lokalise and Weblate each import it, ICU plurals and notes included.
 
-// A language moves draft → in-review → approved. A preview is a language the owner lets people
-// choose by hand before it is approved (decision 145): offered with the word Preview beside it,
-// never matched from a device, and always falling back to English for what it lacks.
+// A language moves draft → in-review → approved. A preview is a language people may try before it
+// is approved: it is offered by hand only, marked "Preview", and never chosen for anyone from their
+// browser or phone (owner, Oct 12, 2026, decision 145).
 export const STATUSES = Object.freeze(['draft', 'in-review', 'preview', 'approved']);
 
 /** area.thing.element, each part lowerCamelCase: journey.leave.confirm, common.theme.label. */
@@ -153,37 +153,25 @@ export function manifestProblems(manifest) {
 }
 
 /**
- * The languages that may be offered to people without their asking: approved ones, and only
- * those. These are the only ones a device's own languages are ever matched to.
+ * The languages a device's own languages may be matched to: approved ones, and only those. A
+ * preview is never among them, so nobody is moved into one because of what their browser or
+ * phone speaks.
  */
 export function offeredLanguages(manifest) {
   return (manifest?.languages || []).filter((language) => language.status === 'approved');
 }
 
 /**
- * The languages a person may choose by hand: the approved ones, then each preview, which says
- * so (preview: true). A preview is never matched from a device (decision 145): someone whose
- * phone is in it stays in English until it is approved, unless they choose it themselves.
+ * The languages a person may choose by hand, in the manifest's order: every approved one, and
+ * every one in preview. Draft and in-review languages are never among them.
  */
 export function choosableLanguages(manifest) {
-  return (manifest?.languages || [])
-    .filter((language) => language.status === 'approved' || language.status === 'preview')
-    .map((language) => ({ ...language, preview: language.status === 'preview' }));
+  return (manifest?.languages || []).filter((language) => language.status === 'approved' || language.status === 'preview');
 }
 
-/**
- * The gate on every preview language: what its file holds must parse and keep English's
- * placeholders, as an approved language's must. Only a missing key is allowed, which reads in
- * English. A preview needs its file, since there is nothing else to show.
- */
-export function previewLanguageProblems(manifest, source, translations, MessageFormat) {
-  return choosableLanguages(manifest)
-    .filter((language) => language.preview)
-    .flatMap((language) => (translations[language.tag]
-      ? translationProblems(source, translations[language.tag], language.tag, MessageFormat)
-        .filter((problem) => !problem.endsWith(' is missing'))
-        .map((problem) => `${language.tag}: ${problem}`)
-      : [`${language.tag}: in preview, but it has no translation file`]));
+/** True when a language is offered as a preview: chosen by hand only, and marked so. */
+export function isPreview(language) {
+  return language?.status === 'preview';
 }
 
 /**
@@ -196,6 +184,21 @@ export function approvedLanguageProblems(manifest, source, translations, Message
     .flatMap((language) => (translations[language.tag]
       ? translationProblems(source, translations[language.tag], language.tag, MessageFormat).map((problem) => `${language.tag}: ${problem}`)
       : [`${language.tag}: approved, but it has no translation file`]));
+}
+
+/**
+ * The gate on every preview: each must have its file, and every sentence in it must pass
+ * translationProblems against the source. A preview may lack sentences, which read in English;
+ * it may not have one the source lacks, or a broken one.
+ */
+export function previewLanguageProblems(manifest, source, translations, MessageFormat) {
+  return (manifest?.languages || [])
+    .filter(isPreview)
+    .flatMap((language) => (translations[language.tag]
+      ? translationProblems(source, translations[language.tag], language.tag, MessageFormat)
+        .filter((problem) => !problem.endsWith(' is missing'))
+        .map((problem) => `${language.tag}: ${problem}`)
+      : [`${language.tag}: in preview, but it has no translation file`]));
 }
 
 /** One language's entry, or undefined. */

@@ -6,7 +6,7 @@ import { dirname, join, relative } from 'node:path';
 import test from 'node:test';
 import { IntlMessageFormat } from 'intl-messageformat';
 import {
-  approvedLanguageProblems, choosableLanguages, glossaryToTbx, KEY_PATTERN, languageOf, manifestProblems, messagesOf, notesOf, offeredLanguages,
+  approvedLanguageProblems, choosableLanguages, glossaryToTbx, isPreview, KEY_PATTERN, languageOf, manifestProblems, messagesOf, notesOf, offeredLanguages,
   previewLanguageProblems, sourceProblems, translationProblems,
 } from '../src/i18n/catalog.js';
 import { collectFiles } from '../scripts/check-public-safety.mjs';
@@ -34,7 +34,7 @@ test('the gate: every approved language has every key, no key English lacks, and
     .map((language) => [language.tag, existsSync(join(root, `locales/${language.tag}.json`)) ? json(`locales/${language.tag}.json`) : undefined]));
   assert.deepEqual(approvedLanguageProblems(manifest, source, translations, IntlMessageFormat), []);
   const previews = Object.fromEntries(choosableLanguages(manifest)
-    .filter((language) => language.preview)
+    .filter(isPreview)
     .map((language) => [language.tag, existsSync(join(root, `locales/${language.tag}.json`)) ? json(`locales/${language.tag}.json`) : undefined]));
   assert.deepEqual(previewLanguageProblems(manifest, source, previews, IntlMessageFormat), [], 'a language in preview keeps English\'s placeholders in what it holds');
 });
@@ -90,7 +90,7 @@ test('a language in preview may be chosen by hand, says so, and is never offered
   const withPreview = { ...manifest, languages: manifest.languages.map((language) => (statuses[language.tag] ? { ...language, status: statuses[language.tag] } : language)) };
   assert.deepEqual(manifestProblems(withPreview), [], 'a preview needs no reviewer or approval date');
   assert.deepEqual(offeredLanguages(withPreview).map((language) => language.tag), ['en'], 'never matched from a device');
-  assert.deepEqual(choosableLanguages(withPreview).map(({ tag, preview }) => [tag, preview]), [['en', false], ['hi', true], ['hi-Latn', true]], 'draft and in-review are never shown');
+  assert.deepEqual(choosableLanguages(withPreview).map((language) => [language.tag, isPreview(language)]), [['en', false], ['hi', true], ['hi-Latn', true]], 'draft and in-review are never shown');
   const datedPreview = { ...withPreview, languages: withPreview.languages.map((language) => (language.tag === 'hi' ? { ...language, approvedOn: '2026-10-12' } : language)) };
   assert.deepEqual(manifestProblems(datedPreview), ['hi has an approval date but is preview']);
   assert.deepEqual(choosableLanguages(manifest).map((language) => language.tag), ['en'], 'today: English only, so no choice is shown');
@@ -216,7 +216,7 @@ test('the phone\'s History reads word for word as it did before it moved to keys
     ['Sign in and open a journey to see its history.', unmarked('history.screen.signedOut')],
     ['Home in Fall history', unmarked('history.screen.title', { journey: 'Home in Fall' })],
     ['Server-authoritative, account-attributed history. HMAC chaining makes database changes detectable; deleted records retain privacy-bounded tombstones.', unmarked('history.screen.lead')],
-    ['Return-to conversations', unmarked('common.concerns.heading')],
+    ['Return-to conversations', unmarked('history.concerns.heading')],
     ['Start a return-to conversation', unmarked('history.concerns.start')],
     ['Open', unmarked('history.concern.status', { status: 'open' })],
     ['Resolved', unmarked('history.concern.status', { status: 'resolved' })],

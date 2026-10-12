@@ -11,7 +11,7 @@ import { getLocales } from 'expo-localization';
 import { IntlMessageFormat } from 'intl-messageformat';
 import source from '../../../../locales/en.json';
 import manifest from '../../../../locales/languages.json';
-import { choosableLanguages, languageOf, messagesOf, offeredLanguages } from '../../../../src/i18n/catalog.js';
+import { choosableLanguages, isPreview, languageOf, messagesOf, offeredLanguages } from '../../../../src/i18n/catalog.js';
 import { createFormatter, deviceLocale } from '../../../../src/i18n/format.js';
 import { readChoice, resolveLanguage, speechLanguage } from '../../../../src/i18n/language-choice.js';
 import { createTranslator } from '../../../../src/i18n/translator.js';
@@ -49,7 +49,7 @@ export type OfferedLanguage = { tag: string; nativeName: string; preview: boolea
  */
 export const OFFERED_LANGUAGES: readonly OfferedLanguage[] = choosableLanguages(manifest)
   .filter((language: { tag: string }) => language.tag in catalogs)
-  .map(({ tag, nativeName, preview }: OfferedLanguage) => ({ tag, nativeName, preview }));
+  .map((language: { tag: string; nativeName: string; status: string }) => ({ tag: language.tag, nativeName: language.nativeName, preview: isPreview(language) }));
 const choosableTags = OFFERED_LANGUAGES.map((language) => language.tag);
 // What the phone's own languages may be matched to: approved languages only. A preview is never
 // reached from the phone, only chosen by hand.

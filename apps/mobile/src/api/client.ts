@@ -105,7 +105,7 @@ export const offlineMessage = () => t('mobile.error.offline');
 /** The service answered a renewal, but without a pair: the phone has a connection, so it is not "offline". */
 export const unreachableMessage = () => t('mobile.error.unreachable');
 // The web client's own words (src/api.js), not new ones.
-export const unavailableMessage = () => t('error.client.accountsUnavailable');
+export const unavailableMessage = () => t('error.server.accountsUnavailable');
 export const fallbackMessage = () => t('error.client.fallback');
 const signInAgainMessage = () => t('error.server.authenticationRequired');
 

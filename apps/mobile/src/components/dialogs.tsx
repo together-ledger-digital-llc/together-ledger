@@ -33,7 +33,7 @@ export function ShellDialog({ request, onClose }: { request: DialogRequest | nul
             <ScrollView contentContainerStyle={styles.content}>
               <StatusRegion place="dialog" />
               <Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.signature, fonts.serifBold, { color: theme.colors.muted }]}>Together Ledger</Text>
-              {request.kind === 'consequence' ? <Text style={[styles.eyebrow, { color: theme.colors.accent }]}>{t('common.dialog.eyebrow')}</Text> : null}
+              {request.kind === 'consequence' ? <Text style={[styles.eyebrow, { color: theme.colors.accent }]}>{t('common.consequence.eyebrow')}</Text> : null}
               <Text accessibilityRole="header" style={[styles.title, fonts.serif, { color: theme.colors.fg }]}>{request.title}</Text>
               <Text style={[styles.message, { color: request.kind === 'consequence' ? theme.colors.muted : theme.colors.fg }]}>{request.message}</Text>
               <View style={styles.actions}>

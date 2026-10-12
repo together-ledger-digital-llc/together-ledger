@@ -190,7 +190,7 @@ export function SocialSignIn({ onSignedIn }: { onSignedIn?: (user: AccountUser) 
   }
 
   return (
-    <View style={styles.group} accessibilityLabel={t('common.signIn.providers')}>
+    <View style={styles.group} accessibilityLabel={t('signIn.social.label')}>
       {offer.apple && phonePlatform === 'android' ? (
         <AppleButton dark={dark} disabled={busy} style={PROVIDER_BUTTON} onPress={continueWithAppleInBrowser} />
       ) : null}
@@ -208,7 +208,7 @@ export function SocialSignIn({ onSignedIn }: { onSignedIn?: (user: AccountUser) 
       ) : null}
       <Text style={[styles.hint, { color: theme.colors.muted }]}>{newAccountName()}</Text>
       <Notice message={notice} tone="problem" />
-      <Text style={[styles.or, { color: theme.colors.muted }]}>{t('common.signIn.or')}</Text>
+      <Text style={[styles.or, { color: theme.colors.muted }]}>{t('signIn.social.or')}</Text>
     </View>
   );
 }

@@ -12,7 +12,7 @@ import { Button } from './ui';
 
 /**
  * The language choice (103A), the same as the web's Language row (101B): "Follow my device", then
- * each language in its own name and script. A language in preview carries the word Preview beside
+ * each language in its own name and script. A language in preview carries the word Preview after
  * its name (decision 145); an approved one doesn't. A change takes effect at once, and is saved to
  * the account when someone is signed in (src/i18n/language-provider.tsx).
  *
@@ -87,17 +87,20 @@ export function LanguageControl() {
   );
 }
 
-/** One language: its own name, read in its own language, and Preview beside it if it is in preview. */
+/**
+ * One language: its own name, read in its own language. A language in preview reads "हिन्दी ·
+ * Preview" in the web's own sentence (common.language.preview), so the two say it the same way.
+ */
 function LanguageRow({ option, chosen, onPress, rowRef }: { option: LanguageOption; chosen: boolean; onPress: () => void; rowRef?: React.Ref<View> }) {
   const { theme } = useTheme();
   const colors = theme.colors;
-  const preview = t('common.language.preview');
+  const label = option.preview ? t('common.language.preview', { language: option.label }) : option.label;
   return (
     <Pressable
       ref={rowRef}
       accessibilityRole="radio"
       accessibilityState={{ checked: chosen }}
-      accessibilityLabel={option.preview ? t('common.language.previewSpoken', { language: option.label }) : option.label}
+      accessibilityLabel={label}
       accessibilityLanguage={option.lang}
       onPress={onPress}
       style={({ pressed }) => [styles.option, targetSize, {
@@ -108,10 +111,7 @@ function LanguageRow({ option, chosen, onPress, rowRef }: { option: LanguageOpti
       }]}
     >
       <Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.mark, { color: chosen ? colors.accent : colors.muted }]}>{chosen ? '●' : '○'}</Text>
-      <Text style={[styles.label, { color: colors.fg }]}>{option.label}</Text>
-      {option.preview ? (
-        <Text style={[styles.preview, { color: colors.textSecondary, borderColor: colors.border, borderRadius: theme.radius.pill }]}>{preview}</Text>
-      ) : null}
+      <Text style={[styles.label, { color: colors.fg }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -140,6 +140,5 @@ const styles = scriptStyles(() => StyleSheet.create({
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10 },
   mark: { fontSize: 16 },
   label: { fontSize: 16, flex: 1 },
-  preview: { borderWidth: 1, fontSize: 13, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 3, overflow: 'hidden' },
   note: { fontSize: 14, lineHeight: 20 },
 }));

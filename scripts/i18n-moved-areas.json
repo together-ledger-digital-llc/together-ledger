@@ -157,7 +157,7 @@
       "file": "apps/mobile/src/auth/account-messages.ts",
       "kind": "script",
       "allow": [
-        "common.account.signedOut"
+        "signIn.toast.signedOut"
       ]
     },
     {
@@ -228,9 +228,9 @@
       "kind": "script",
       "statements": [
         "export const keptOnPhone =",
-        "export function signOutConsequence(",
+        "function signOutConsequence(",
         "export const signOutEverywhereWords =",
-        "export function signOutEverywhereConsequence("
+        "function signOutEverywhereConsequence("
       ]
     },
     {
@@ -239,8 +239,8 @@
       "file": "apps/mobile/src/journey/sharing-view.ts",
       "kind": "script",
       "statements": [
-        "export function valueLabel(",
-        "export function historyEvents("
+        "function valueLabel(",
+        "function historyEvents("
       ]
     },
     {

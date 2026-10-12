@@ -27,7 +27,7 @@ export type Status = { message: string; tone: StatusTone; source: string; inDial
  * caller says otherwise (#244 decides those).
  */
 export function connectionMessages(): readonly string[] {
-  return [t('mobile.error.offline'), t('mobile.error.unreachable'), t('error.client.accountsUnavailable')];
+  return [t('mobile.error.offline'), t('mobile.error.unreachable'), t('error.server.accountsUnavailable')];
 }
 
 /**

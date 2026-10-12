@@ -30,7 +30,7 @@ test('the support page only describes steps the web and the phone really have', 
   const offers = read('apps/mobile/src/components/store-offers.tsx');
 
   assert.ok(support.includes('I forgot my password'));
-  assert.ok(web.includes('I forgot my password') && says(account, 'common.account.forgotPassword', 'I forgot my password'));
+  assert.ok(web.includes('I forgot my password') && says(account, 'signIn.form.forgot', 'I forgot my password'));
 
   assert.ok(support.includes('choose Restore purchases in the app\'s Settings'));
   assert.ok(settings.includes('<RestorePurchases key="restore" row />') && says(offers, 'mobile.store.restore', 'Restore purchases'));

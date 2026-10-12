@@ -79,6 +79,7 @@ test('the phone walks its whole list of languages, and offers only what is appro
   assert.match(i18n, /import \{ getLocales \} from 'expo-localization';/);
   assert.match(i18n, /getLocales\(\)\.map\(\(locale\) => locale\.languageTag\)/, 'every language, in the phone\'s order');
   assert.match(i18n, /choosableLanguages\(manifest\)\s*\.filter\(\(language: \{ tag: string \}\) => language\.tag in catalogs\)/, 'chosen by hand: approved, or in preview');
+  assert.match(i18n, /preview: isPreview\(language\)/, 'marked as a preview where it is one');
   assert.match(i18n, /const offeredTags = offeredLanguages\(manifest\)\.map\(\(language: \{ tag: string \}\) => language\.tag\)\.filter\(\(tag: string\) => tag in catalogs\);/, 'matched from the phone: approved only (decision 145)');
   assert.match(i18n, /resolveLanguage\(\{ choice, deviceLanguages: devices, offered: offeredTags, choosable: choosableTags, source: manifest\.source \}\)/);
   assert.match(i18n, /from '\.\.\/\.\.\/\.\.\/\.\.\/src\/i18n\/language-choice\.js'/, 'the web\'s own rules, never a second copy');
@@ -104,12 +105,13 @@ test('the app opens in the saved language, read at once, so its first screen and
 // (decision 145), and type that follows the language without the app starting again.
 
 const manifest = JSON.parse(await readFile(new URL('../locales/languages.json', import.meta.url), 'utf8'));
-const { choosableLanguages } = await import('../src/i18n/catalog.js');
+const { choosableLanguages, isPreview } = await import('../src/i18n/catalog.js');
 const screens = await importMobile('src/shell/screens.ts');
 const withStatus = (statuses) => ({ ...manifest, languages: manifest.languages.map((language) => (statuses[language.tag] ? { ...language, status: statuses[language.tag] } : language)) });
 
 test('the choice lists "Follow my device", then each language in its own name and script; Preview only beside one in preview', () => {
-  const offered = choosableLanguages(withStatus({ hi: 'preview', bn: 'approved', 'es-419': 'in-review', 'hi-Latn': 'preview' }));
+  const offered = choosableLanguages(withStatus({ hi: 'preview', bn: 'approved', 'es-419': 'in-review', 'hi-Latn': 'preview' }))
+    .map((language) => ({ ...language, preview: isPreview(language) }));
   assert.deepEqual(screens.languageOptions(offered), [
     { choice: null, label: 'Follow my device', preview: false },
     { choice: 'en', label: 'English', lang: 'en', preview: false },
@@ -125,7 +127,7 @@ test('the choice appears only once there is more than English: today nothing cha
   assert.equal(screens.languageChoiceShown(choosableLanguages(withStatus({ bn: 'draft', hi: 'in-review' }))), false);
   const welcome = await read('app/index.tsx');
   assert.match(welcome, /\{languageChoiceShown\(offered\) \? <LanguageControl \/> : null\}/);
-  assert.ok(welcome.indexOf('<LanguageControl />') < welcome.indexOf("t('common.welcome.eyebrow')"), 'small, at the top of the welcome, before anything to read');
+  assert.ok(welcome.indexOf('<LanguageControl />') < welcome.indexOf("t('welcome.hero.eyebrow')"), 'small, at the top of the welcome, before anything to read');
   const settings = await read('app/settings.tsx');
   assert.match(settings, /languages: languageChoiceShown\(offered\)/);
   assert.match(settings, /<SettingsHeading>\{t\('common\.language\.title'\)\}<\/SettingsHeading>\s*<LanguageList \/>\s*<Body>\{t\('common\.language\.note'\)\}<\/Body>/, 'a Language section, under its own word, with the web\'s note');
@@ -134,13 +136,13 @@ test('the choice appears only once there is more than English: today nothing cha
 test('each language is read in its own language, a preview is said as one, and choosing saves through the provider', async () => {
   const choice = await read('src/components/language-choice.tsx');
   assert.match(choice, /accessibilityLanguage=\{option\.lang\}/, 'a screen reader says हिन्दी in Hindi');
-  assert.match(choice, /accessibilityLabel=\{option\.preview \? t\('common\.language\.previewSpoken', \{ language: option\.label \}\) : option\.label\}/);
-  assert.match(choice, /\{option\.preview \? \(\s*<Text[^>]*>\{preview\}<\/Text>\s*\) : null\}/, 'the word Preview is drawn only beside a language in preview');
+  assert.match(choice, /const label = option\.preview \? t\('common\.language\.preview', \{ language: option\.label \}\) : option\.label;/, 'the word Preview only after a language in preview, in the web\'s own sentence');
+  assert.match(choice, /accessibilityLabel=\{label\}/);
   assert.match(choice, /accessibilityRole="radio"\s+accessibilityState=\{\{ checked: chosen \}\}/);
   assert.match(choice, /targetSize/, 'every choice is a 44-point target');
   assert.match(choice, /choose\(next\)\.catch\(\(error: unknown\) => showStatus\(accountMessage\(error\)\)\)/, 'an account that can\'t be reached says so, and nothing changes');
   const english = JSON.parse(await readFile(new URL('../locales/en.json', import.meta.url), 'utf8'));
-  assert.equal(english['common.language.preview'], 'Preview');
+  assert.equal(english['common.language.preview'], '{language} · Preview');
 });
 
 test('a phone set to a language in preview is never switched to it; choosing it by hand is (decision 145)', async () => {

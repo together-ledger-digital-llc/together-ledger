@@ -109,8 +109,8 @@ test('the consequence dialog names the act, opens on the way out, and is destruc
   const provider = await read('src/shell/shell-provider.tsx');
   const dialog = await read('src/components/dialogs.tsx');
   assert.match(provider, /confirmConsequence: \(\{ title, consequence, confirmLabel, keepLabel = keepThingsLabel\(\), destructive = false \}\)/);
-  assert.match(dialog, /\{t\('common\.dialog\.eyebrow'\)\}/);
-  assert.equal(JSON.parse(await readFile(new URL('../locales/en.json', import.meta.url), 'utf8'))['common.dialog.eyebrow'], 'Before this happens');
+  assert.match(dialog, /\{t\('common\.consequence\.eyebrow'\)\}/);
+  assert.equal(JSON.parse(await readFile(new URL('../locales/en.json', import.meta.url), 'utf8'))['common.consequence.eyebrow'], 'Before this happens');
   const keep = dialog.indexOf('ref={keep}');
   const accept = dialog.indexOf("kind={request.destructive ? 'destructive' : 'primary'}");
   assert.ok(keep > 0 && accept > keep, 'keep comes first, accept second, destructive only on request');
