@@ -25,6 +25,7 @@
  *
  * Kept free of runtime imports so the tests can run it directly (tests/mobile-account.test.js).
  */
+import { t } from '../i18n/sentences.js';
 export type AccountUser = {
   id: string;
   email: string;
@@ -95,18 +96,18 @@ export class ApiError extends Error {
 }
 
 /**
- * On the phone, being offline is said once, in the connection notice's words (OFFLINE_NOTICE,
+ * On the phone, being offline is said once, in the connection notice's words (offlineNotice,
  * src/shell/connection.ts), whichever noticed first: the connection watch or a request that could
- * not be sent (#300, #352). Repeated because this file has no runtime imports; the tests hold the
- * two copies the same. The web keeps its own words (src/api.js).
+ * not be sent (#300, #352). Each is read in the active language when the error is made. The web
+ * keeps its own offline words (src/api.js).
  */
-export const OFFLINE_MESSAGE = 'You’re offline. A moment you hold now waits on this phone and is sent when you reconnect. Your journeys will be back then; until then, nothing else can be changed.';
+export const offlineMessage = () => t('mobile.error.offline');
 /** The service answered a renewal, but without a pair: the phone has a connection, so it is not "offline". */
-export const UNREACHABLE_MESSAGE = 'Together Ledger can’t be reached right now. You’re still signed in. Try again in a moment.';
+export const unreachableMessage = () => t('mobile.error.unreachable');
 // The web client's own words (src/api.js), not new ones.
-export const UNAVAILABLE_MESSAGE = 'Private accounts are being connected. No account details were sent.';
-export const FALLBACK_MESSAGE = 'The service could not complete that request.';
-const SIGN_IN_AGAIN_MESSAGE = 'Sign in to continue.';
+export const unavailableMessage = () => t('error.client.accountsUnavailable');
+export const fallbackMessage = () => t('error.client.fallback');
+const signInAgainMessage = () => t('error.server.authenticationRequired');
 
 type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body?: string }) => Promise<{
   ok: boolean;
@@ -136,7 +137,7 @@ export function createAccountClient({ base, fetch, tokens, build }: {
     try {
       root = base();
     } catch {
-      throw new ApiError(UNAVAILABLE_MESSAGE, { code: 'accounts_unavailable' });
+      throw new ApiError(unavailableMessage(), { code: 'accounts_unavailable' });
     }
     const headers: Record<string, string> = { Accept: 'application/json', ...appHeaders };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
@@ -145,7 +146,7 @@ export function createAccountClient({ base, fetch, tokens, build }: {
     try {
       response = await fetch(`${root}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
     } catch {
-      throw new ApiError(OFFLINE_MESSAGE, { code: 'offline' });
+      throw new ApiError(offlineMessage(), { code: 'offline' });
     }
     const payload = (response.status === 204 ? null : await response.json().catch(() => null)) as Payload;
     return { response, payload };
@@ -153,7 +154,7 @@ export function createAccountClient({ base, fetch, tokens, build }: {
 
   function failure(status: number, payload: Payload) {
     const details = payload?.error?.details;
-    return new ApiError(payload?.error?.message || FALLBACK_MESSAGE, { code: payload?.error?.code, status, details: details && typeof details === 'object' ? details : null });
+    return new ApiError(payload?.error?.message || fallbackMessage(), { code: payload?.error?.code, status, details: details && typeof details === 'object' ? details : null });
   }
 
   // One refresh at a time: two requests that expire together must not spend the same refresh
@@ -174,20 +175,20 @@ export function createAccountClient({ base, fetch, tokens, build }: {
         await tokens.write({ token: fresh.token, tokenExpiresAt: fresh.tokenExpiresAt, refreshToken: fresh.refreshToken, refreshTokenExpiresAt: fresh.refreshTokenExpiresAt });
         return fresh;
       }
-      throw new ApiError(UNREACHABLE_MESSAGE, { code: 'unreachable', status: response.status });
+      throw new ApiError(unreachableMessage(), { code: 'unreachable', status: response.status });
     })().finally(() => { refreshing = null; });
     return refreshing;
   }
 
   async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
     const held = options.signedIn ? await tokens.read() : null;
-    if (options.signedIn && !held) throw new ApiError(SIGN_IN_AGAIN_MESSAGE, { code: 'authentication_required', status: 401 });
+    if (options.signedIn && !held) throw new ApiError(signInAgainMessage(), { code: 'authentication_required', status: 401 });
     let { response, payload } = await send(path, options, held?.token);
     // Only an expired or unknown token is worth a refresh. A wrong password is also a 401, and
     // refreshing for it would rotate the tokens for nothing and retry a request that will fail.
     if (options.signedIn && response.status === 401 && payload?.error?.code === 'authentication_required') {
       const fresh = await refresh();
-      if (!fresh) throw new ApiError(SIGN_IN_AGAIN_MESSAGE, { code: 'authentication_required', status: 401 });
+      if (!fresh) throw new ApiError(signInAgainMessage(), { code: 'authentication_required', status: 401 });
       ({ response, payload } = await send(path, options, fresh.token));
     }
     if (!response.ok) throw failure(response.status, payload);
@@ -324,14 +325,14 @@ export function createAccountClient({ base, fetch, tokens, build }: {
      */
     async imageSource(journeyId: string, momentId: string, imageId: string, now = Date.now()) {
       let held = await tokens.read();
-      if (!held) throw new ApiError(SIGN_IN_AGAIN_MESSAGE, { code: 'authentication_required', status: 401 });
+      if (!held) throw new ApiError(signInAgainMessage(), { code: 'authentication_required', status: 401 });
       if (Date.parse(held.tokenExpiresAt) - now < 60_000) held = await refresh();
-      if (!held) throw new ApiError(SIGN_IN_AGAIN_MESSAGE, { code: 'authentication_required', status: 401 });
+      if (!held) throw new ApiError(signInAgainMessage(), { code: 'authentication_required', status: 401 });
       let root: string;
       try {
         root = base();
       } catch {
-        throw new ApiError(UNAVAILABLE_MESSAGE, { code: 'accounts_unavailable' });
+        throw new ApiError(unavailableMessage(), { code: 'accounts_unavailable' });
       }
       return {
         uri: `${root}/journeys/${encodeURIComponent(journeyId)}/moments/${encodeURIComponent(momentId)}/images/${encodeURIComponent(imageId)}`,

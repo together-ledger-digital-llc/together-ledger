@@ -7,6 +7,7 @@ import { Body, Button, Field, Screen } from '../src/components/ui';
 import { CONCERN_STATUSES, type SharingSnapshot } from '../src/journey/sharing-view';
 import { useJourney } from '../src/journey/use-journey';
 import { useShell } from '../src/shell/shell-provider';
+import { useLanguage } from '../src/i18n/language-provider';
 
 /**
  * Start or change a conversation to return to: the web's #concern-dialog (TL-M-09, #184). An edit
@@ -14,6 +15,8 @@ import { useShell } from '../src/shell/shell-provider';
  * than something quietly overwritten.
  */
 export default function ConcernScreen() {
+  // Redrawn when the language changes, so its words and its type follow at once.
+  useLanguage();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const session = useSession();
   const { state, reload } = useJourney();

@@ -4,10 +4,14 @@ import { accountMessage } from '../src/auth/account-messages';
 import { useSession } from '../src/auth/session';
 import { SocialSignIn } from '../src/components/social-sign-in';
 import { Button, Field, Notice, Screen } from '../src/components/ui';
+import { t } from '../src/i18n';
+import { useLanguage } from '../src/i18n/language-provider';
 
 /** Create an account from the phone. The hints are the web form's, word for word. */
 export default function RegisterScreen() {
   const session = useSession();
+  // Its words are read again when the language changes.
+  useLanguage();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,14 +33,14 @@ export default function RegisterScreen() {
   }
 
   return (
-    <Screen title="Create account">
+    <Screen title={t('mobile.screen.register.title')}>
       {/* The same buttons as Sign in (#217): a Google or Apple account opens here as well as there. */}
       <SocialSignIn onSignedIn={() => router.replace('/account')} />
-      <Field label="Choose a username" hint="3–30 lowercase letters, numbers, or single hyphens. It is for signing in and is not shown to your journeyer. You can choose the names used together when a journey calls for them." value={username} onChangeText={setUsername} autoCapitalize="none" autoComplete="username-new" textContentType="username" />
-      <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" textContentType="emailAddress" />
-      <Field label="Password" hint="Use at least 12 characters. We send a verification link before invitations can be accepted." value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" textContentType="newPassword" />
+      <Field label={t('common.register.username')} hint={t('common.register.usernameHint')} value={username} onChangeText={setUsername} autoCapitalize="none" autoComplete="username-new" textContentType="username" />
+      <Field label={t('common.register.email')} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" textContentType="emailAddress" />
+      <Field label={t('common.account.password')} hint={t('common.register.passwordHint')} value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" textContentType="newPassword" />
       <Notice message={notice} tone="problem" />
-      <Button label="Create secure account" pending={pending} pendingLabel="Creating account…" disabled={!username || !email || !password} onPress={register} />
+      <Button label={t('common.register.submit')} pending={pending} pendingLabel={t('common.register.creating')} disabled={!username || !email || !password} onPress={register} />
     </Screen>
   );
 }

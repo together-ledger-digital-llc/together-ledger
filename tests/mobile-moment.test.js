@@ -9,7 +9,7 @@ const web = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const server = await readFile(new URL('../server/platform.js', import.meta.url), 'utf8');
 // The web's English is in locales/en.json since 102A (tests/fixtures/web-english.js).
-const { english, webSays } = await import('./fixtures/web-english.js');
+const { webSays } = await import('./fixtures/web-english.js');
 
 // The phone's own TypeScript, compiled on the spot, its imports of the web's modules pointed
 // at the real files.
@@ -21,6 +21,10 @@ async function importMobile(path) {
 }
 
 const draft = await importMobile('src/journey/moment-draft.ts');
+// The form's sentences are keys; English is in locales/en.json, and a moment's own words inside a
+// sentence are isolated with invisible marks (docs/TRANSLATION.md).
+const english = JSON.parse(await readFile(new URL('../locales/en.json', import.meta.url), 'utf8'));
+const unmarked = (text) => text.replace(/[\u2068\u2069]/g, '');
 const existing = { id: 'm1', journeyId: 'j', kind: 'memory', kindLabel: '', occurredOn: '2026-06-02', title: 'The road near Marlow', detail: 'We missed the turn.', visibility: 'share-later', theme: 'rose-pine', moneyCents: 1250, moneyCurrency: 'USD', locations: [{ label: 'Marlow', latitude: null, longitude: null, accuracyMeters: null }], version: 3, updatedAt: '' };
 
 test('a new moment starts as the web\'s does, and an edit starts from the moment as it is', () => {
@@ -77,7 +81,8 @@ test('places are added in the person\'s words, removed one at a time, and never 
 test('places carry no price on the phone, and a moment with no room says so without one (#268)', async () => {
   const form = await read('app/moment.tsx');
   assert.equal(Object.hasOwn(draft, 'placeNote'), false, 'the web\'s per-place price note stays on the web');
-  assert.match(form, /<Section title="Places \(Optional\)" help="Add only what helps tell the story\.">/);
+  assert.match(form, /<Section title=\{t\('mobile\.moment\.placesTitle'\)\} help=\{t\('mobile\.moment\.placesHelp'\)\}>/);
+  assert.deepEqual([english['mobile.moment.placesTitle'], english['mobile.moment.placesHelp']], ['Places (Optional)', 'Add only what helps tell the story.']);
   assert.ok(web.includes("index === 0 ? t('moment.form.placeIncluded') : t('moment.form.placePrice')") && english['moment.form.placePrice'] === '$1/month', 'the web form is not touched');
   const { accountMessage, NO_ROOM_ADDED_HERE } = await importMobile('src/auth/account-messages.ts');
   const serverWords = 'Hold the first place, then add another through its monthly place add-on.';
@@ -105,25 +110,27 @@ test('a shared moment cannot be taken back, and the form says so in the web\'s w
 
 test('sharing and deleting go through the consequence dialog; the currencies are the web\'s', async () => {
   const actions = await read('src/journey/moment-actions.ts');
+  assert.match(actions, /title: t\('common\.moment\.shareTitle'\),\s*consequence: t\('common\.moment\.shareConsequence'\),\s*confirmLabel: t\('common\.moment\.shareAction'\),/);
+  assert.deepEqual([english['common.moment.shareTitle'], english['common.moment.shareConsequence'], english['common.moment.shareAction']], ['Share this moment now?', 'Everyone in this journey will be able to see it, including anyone who joins later. That access cannot be undone.', 'Share this moment'], 'the web\'s words');
+  assert.match(actions, /if \(before && before\.visibility !== 'shared-now' && draft\.visibility === 'shared-now' && !await shell\.confirmConsequence\(shareNow\(\)\)\) return false;/, 'turning an existing moment shared asks first');
+  assert.match(actions, /confirmConsequence\(\{ title: t\('mobile\.moment\.deleteQuestion'\), consequence: deleteConsequence\(moment\), confirmLabel: t\('mobile\.moment\.delete'\), destructive: true \}\)/);
+  assert.deepEqual([english['mobile.moment.deleteQuestion'], english['mobile.moment.delete']], ['Delete this moment?', 'Delete moment']);
+  assert.equal(unmarked(draft.deleteConsequence({ ...existing, visibility: 'shared-now' })), '“The road near Marlow” will be removed for everyone in this journey. The journey’s history will still show that it was deleted, and who deleted it.', 'plain words for the tombstone (#338)');
   assert.ok(web.includes("confirmConsequence({ title: t('moment.share.title'), consequence: t('moment.share.consequence'), confirmLabel: t('moment.share.confirm') })"));
   assert.deepEqual(['moment.share.title', 'moment.share.consequence', 'moment.share.confirm'].map((key) => english[key]), ['Share this moment now?', 'Everyone in this journey will be able to see it, including anyone who joins later. That access cannot be undone.', 'Share this moment']);
-  assert.match(actions, /title: 'Share this moment now\?',\s*consequence: 'Everyone in this journey will be able to see it, including anyone who joins later\. That access cannot be undone\.',\s*confirmLabel: 'Share this moment',/);
-  assert.match(actions, /if \(before && before\.visibility !== 'shared-now' && draft\.visibility === 'shared-now' && !await shell\.confirmConsequence\(SHARE_NOW\)\) return false;/, 'turning an existing moment shared asks first');
-  assert.match(actions, /confirmConsequence\(\{ title: 'Delete this moment\?', consequence: deleteConsequence\(moment\), confirmLabel: 'Delete moment', destructive: true \}\)/);
-  assert.equal(draft.deleteConsequence({ ...existing, visibility: 'shared-now' }), '“The road near Marlow” will be removed for everyone in this journey. The journey’s history will still show that it was deleted, and who deleted it.', 'plain words for the tombstone (#338)');
   assert.doesNotMatch(draft.deleteConsequence({ ...existing, visibility: 'shared-now' }), /tombstone|attributable/);
   assert.ok(server.includes("action: 'moment_deleted', entityType: 'moment', entityId: momentId, summary: `Deleted moment: ${before.title}`"), 'the history does keep that a shared moment was deleted, and by whom');
   assert.doesNotMatch(draft.deleteConsequence(existing), /tombstone|history/);
-  for (const [value, label] of draft.CURRENCIES) assert.ok(html.includes(`<option value="${value}">${label}</option>`), label);
+  for (const [value, label] of draft.currencies()) assert.ok(html.includes(`<option value="${value}">${label}</option>`), label);
 });
 
 test('the currency is one compact drop-down, and "No currency" reads as nothing chosen (#351)', async () => {
   const form = await read('app/moment.tsx');
-  assert.match(form, /<DropDown label=\{CURRENCY_LABEL\} options=\{CURRENCIES\} selected=\{draft\.moneyCurrency\} onSelect=\{\(value\) => set\(\{ moneyCurrency: value \}\)\} \/>/);
+  assert.match(form, /<DropDown label=\{currencyLabel\(\)\} options=\{currencies\(\)\} selected=\{draft\.moneyCurrency\} onSelect=\{\(value\) => set\(\{ moneyCurrency: value \}\)\} \/>/);
   assert.doesNotMatch(form, /<Choices label="Currency"/, 'no longer a row of eight chips');
-  assert.equal(draft.CURRENCY_LABEL, 'Currency (optional)');
-  assert.deepEqual(draft.CURRENCIES.map(([value]) => value), ['', 'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'INR'], 'the same values as before, in the same order');
-  assert.deepEqual(draft.CURRENCIES[0], ['', 'No currency'], 'the empty choice is worded as no currency, not as the field\'s name');
+  assert.equal(draft.currencyLabel(), 'Currency (optional)');
+  assert.deepEqual(draft.currencies().map(([value]) => value), ['', 'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'INR'], 'the same values as before, in the same order');
+  assert.deepEqual(draft.currencies()[0], ['', 'No currency'], 'the empty choice is worded as no currency, not as the field\'s name');
   assert.ok(html.includes('<select name="moneyCurrency"><option value="">No currency</option>'), 'and the web\'s empty option says the same (the owner, on #351)');
   assert.ok(html.includes('<span class="sr-only" data-i18n="moment.form.currency"></span><select name="moneyCurrency">') && english['moment.form.currency'] === 'Currency', 'the web\'s field keeps its own name for a screen reader');
   for (const currency of ['', 'INR']) assert.equal(draft.payloadFrom({ ...draft.draftFrom(null), title: 'x', moneyCurrency: currency }, null).moneyCurrency, currency, 'what is saved is unchanged');
@@ -137,15 +144,17 @@ test('the currency is one compact drop-down, and "No currency" reads as nothing 
   assert.match(dropDown, /accessibilityRole="radio"\s+accessibilityState=\{\{ checked: active \}\}/, 'in the list, the chosen one is checked');
   assert.match(dropDown, /\{active \? '● ' : ''\}\{words\}/, 'and marked by a shape as well as colour');
   assert.match(dropDown, /onRequestClose=\{\(\) => setOpen\(false\)\}/, 'Android\'s back gesture keeps things as they are');
-  assert.match(dropDown, /label=\{KEEP_LABEL\}/);
+  assert.match(dropDown, /label=\{keepThingsLabel\(\)\}/);
 });
 
 test('an empty name is told at its own field, and the form takes the person there (#354)', async () => {
   const form = await read('app/moment.tsx');
   assert.equal(draft.MOMENT_NAME_MISSING, 'Give this moment a short name.');
-  assert.match(form, /<Field\s+ref=\{titleInput\}\s+label="A short name"/, 'the field the message names');
+  assert.match(form, /<Field\s+ref=\{titleInput\}\s+label=\{t\('common\.moment\.name'\)\}/, 'the field the message names');
+  assert.equal(english['common.moment.name'], 'A short name');
+  assert.equal(english['common.moment.nameMissing'], draft.MOMENT_NAME_MISSING, 'the field says the web\'s words, in the active language');
   assert.match(form, /problem=\{titleProblem\}/, 'the field itself is marked');
-  assert.match(form, /if \(problem === MOMENT_NAME_MISSING\) \{[\s\S]*?setTitleProblem\(problem\);\s*scroll\.current\?\.scrollTo\(\{ y: Math\.max\(0, titleTop\.current - 16\), animated: true \}\);\s*titleInput\.current\?\.focus\(\);\s*return;/, 'saving scrolls to the field and focuses it');
+  assert.match(form, /if \(problem === MOMENT_NAME_MISSING\) \{[\s\S]*?setTitleProblem\(t\('common\.moment\.nameMissing'\)\);\s*scroll\.current\?\.scrollTo\(\{ y: Math\.max\(0, titleTop\.current - 16\), animated: true \}\);\s*titleInput\.current\?\.focus\(\);\s*return;/, 'saving scrolls to the field and focuses it');
   assert.match(form, /<Screen scrollRef=\{scroll\}/);
   const ui = await read('src/components/ui.tsx');
   assert.match(ui, /accessibilityHint=\{problem \|\| undefined\}/, 'a screen reader hears the problem on the field');
@@ -157,16 +166,16 @@ test('an empty name is told at its own field, and the form takes the person ther
 
 test('deleting a moment sits in its own marked zone, apart from Save and Cancel (#338)', async () => {
   const form = await read('app/moment.tsx');
-  assert.equal(draft.DELETE_ZONE_TITLE, 'Delete this moment');
-  assert.equal(draft.DELETE_ZONE_NOTE, 'Deleting removes this moment from the ledger, and it can’t be undone. You’ll be asked once more before anything is deleted.');
-  const cancel = form.indexOf('<Button kind="quiet" label="Cancel"');
+  assert.equal(draft.deleteZoneTitle(), 'Delete this moment');
+  assert.equal(draft.deleteZoneNote(), 'Deleting removes this moment from the ledger, and it can’t be undone. You’ll be asked once more before anything is deleted.');
+  const cancel = form.indexOf("<Button kind=\"quiet\" label={t('common.action.cancel')}");
   const zone = form.indexOf('styles.dangerZone');
-  const del = form.indexOf('<Button kind="destructive" label="Delete moment"');
+  const del = form.indexOf("<Button kind=\"destructive\" label={t('mobile.moment.delete')}");
   assert.ok(cancel > 0 && cancel < zone && zone < del, 'Delete comes after Cancel, inside its own box');
-  assert.equal(form.match(/label="Delete moment"/g).length, 1, 'there is one Delete button, and it is in the zone');
+  assert.equal(form.match(/label=\{t\('mobile\.moment\.delete'\)\}/g).length, 1, 'there is one Delete button, and it is in the zone');
   assert.match(form, /\{before \? \(\s*<View style=\{\[styles\.dangerZone, \{ borderColor: colors\.destructive/, 'only an existing moment has the zone, and its border marks it');
   assert.match(form, /dangerZone: \{ gap: 10, marginTop: 40, borderWidth: 1, padding: 16 \}/, 'set apart by space as well as a border');
-  assert.match(form, /<Text style=\{\[styles\.help, \{ color: colors\.muted \}\]\}>\{DELETE_ZONE_NOTE\}<\/Text>/);
+  assert.match(form, /<Text style=\{\[styles\.help, \{ color: colors\.muted \}\]\}>\{deleteZoneNote\(\)\}<\/Text>/);
   const actions = await read('src/journey/moment-actions.ts');
   assert.match(actions, /async remove\(moment: EditableMoment\) \{\s*if \(!journeyId\) return;\s*if \(!await shell\.confirmConsequence\(/, 'the second tap is the confirmation: nothing is deleted before it');
 });
@@ -205,7 +214,7 @@ test('the calendar picks a day, not a moment in time: what is chosen is what is 
   assert.equal((field.match(/timeZoneName(=|: )['"]UTC['"]/g) || []).length, 2, 'both platforms\' calendars work in UTC, so the phone\'s own zone never shifts the day');
   assert.match(field, /mode(=|: )['"]date['"]/);
   assert.match(field, /<Field label=\{label\}[^>]*onChangeText=\{onChange\}/, 'typing the day still works');
-  assert.match(await read('app/moment.tsx'), /<DateField label="When"/);
+  assert.match(await read('app/moment.tsx'), /<DateField label=\{t\('common\.moment\.when'\)\}/);
   const app = JSON.parse(await read('app.json'));
   assert.ok(app.expo.plugins.includes('@react-native-community/datetimepicker'));
   // Only the network and what Play Billing needs are granted (tests/mobile-permissions.test.js), and iOS asks for nothing.

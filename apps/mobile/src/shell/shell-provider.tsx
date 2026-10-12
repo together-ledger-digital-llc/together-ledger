@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Platform } from 'react-native';
-import { KEEP_LABEL, TOAST_MS } from './defaults';
+import { keepThingsLabel, TOAST_MS } from './defaults';
 import { clearStatus as clearFrom, closeDialog, showStatus as statusFor, type Status, type StatusTone } from './status';
 
 export type DialogRequest = {
@@ -126,7 +126,7 @@ export function ShellProvider({ initialOnboardingComplete = false, onOnboardingC
     showStatus,
     clearStatus,
     showToast,
-    confirmConsequence: ({ title, consequence, confirmLabel, keepLabel = KEEP_LABEL, destructive = false }) =>
+    confirmConsequence: ({ title, consequence, confirmLabel, keepLabel = keepThingsLabel(), destructive = false }) =>
       open({ kind: 'consequence', title, message: consequence, confirmLabel, keepLabel, destructive }),
     confirm: ({ title, message, confirmLabel, keepLabel = 'Cancel', destructive = false }) =>
       open({ kind: 'plain', title, message, confirmLabel, keepLabel, destructive }),

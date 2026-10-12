@@ -5,12 +5,14 @@
  * Dates, money and the moment types come from the web's own src/model.js, imported rather than
  * copied, so a date or an amount can never read differently on the phone.
  */
-import { countOf, dateLabel, money, MOMENT_TYPES, RECENT_MOMENTS_SHOWN, seeAllShown } from '../../../../src/model.js';
+import { dateLabel, money, MOMENT_TYPES, RECENT_MOMENTS_SHOWN, seeAllShown } from '../../../../src/model.js';
 import { MOMENT_THEMES, momentThemeLabel, normalizeMomentTheme } from '../../../../src/moment-themes.js';
+import { t } from '../i18n/sentences.js';
+import { momentThemeName, themeName } from '../i18n/theme-names.js';
 import type { MomentView } from '../storage/ledger-store';
 import type { Grace } from './sharing-view';
 
-export { dateLabel, money, MOMENT_THEMES, MOMENT_TYPES, momentThemeLabel, normalizeMomentTheme, seeAllShown };
+export { dateLabel, money, MOMENT_THEMES, MOMENT_TYPES, momentThemeLabel, momentThemeName, normalizeMomentTheme, seeAllShown, themeName };
 
 export type Visibility = 'private' | 'share-later' | 'shared-now';
 
@@ -59,10 +61,11 @@ export type ShownMoment = Moment & { images: MomentImage[]; removedImages: Momen
 
 // Visibility is carried by shape as well as colour and word: an empty ring holds nothing
 // out, a half ring is meant for later, a full ring is out. The web's exact cues.
+// Each word is read in the active language as it is drawn.
 export const VISIBILITY_CUES: Readonly<Record<Visibility, { glyph: string; label: string }>> = Object.freeze({
-  private: { glyph: '○', label: 'Private' },
-  'share-later': { glyph: '◐', label: 'Share later' },
-  'shared-now': { glyph: '●', label: 'Shared now' },
+  private: { glyph: '○', get label() { return t('common.visibility.private'); } },
+  'share-later': { glyph: '◐', get label() { return t('common.visibility.shareLater'); } },
+  'shared-now': { glyph: '●', get label() { return t('common.visibility.sharedNow'); } },
 });
 
 /**
@@ -80,12 +83,34 @@ export function visibilityRole(visibility: string): 'private' | 'sharedNow' | 's
   return 'private';
 }
 
-const momentTypes = MOMENT_TYPES as [string, string][];
+// The kinds of moment are the web's (src/model.js); their words are read in the active language.
+const KIND_KEYS: Readonly<Record<string, string>> = Object.freeze({
+  promise: 'common.momentKind.promise',
+  acknowledgment: 'common.momentKind.acknowledgment',
+  trigger: 'common.momentKind.trigger',
+  'missed-chance': 'common.momentKind.missedChance',
+  'heart-to-heart': 'common.momentKind.heartToHeart',
+  memory: 'common.momentKind.memory',
+  feeling: 'common.momentKind.feeling',
+  boundary: 'common.momentKind.boundary',
+  'repair-request': 'common.momentKind.repairRequest',
+  'learned-something': 'common.momentKind.learnedSomething',
+  'call-me': 'common.momentKind.callMe',
+  'called-you': 'common.momentKind.calledYou',
+  'practical-matter': 'common.momentKind.practicalMatter',
+  other: 'common.momentKind.other',
+});
+
+/** The kinds of moment, [value, words], in the web's order and the active language. */
+export function momentKinds(): [string, string][] {
+  return (MOMENT_TYPES as [string, string][]).map(([value, label]) => [value, KIND_KEYS[value] ? t(KIND_KEYS[value]) : label]);
+}
 
 export function momentLabel(kind: string, kindLabel?: string | null) {
-  if (kind === 'other') return kindLabel || 'A shared note';
-  return momentTypes.find(([value]) => value === kind)?.[1] || 'Moment';
+  if (kind === 'other') return kindLabel || t('common.moment.sharedNote');
+  return momentKinds().find(([value]) => value === kind)?.[1] || t('common.moment.kindFallback');
 }
+
 
 /** The choice above the moment list (Oct 9), in the words the owner approves. */
 export const MOMENT_VIEW_LABEL = 'Show moments';
@@ -107,8 +132,8 @@ export function compactRowLabel(moment: Moment) {
 export function journeyPeriod(journey: Journey) {
   const pieces: string[] = [];
   if (journey.location) pieces.push(journey.location);
-  pieces.push(journey.startDateStatus === 'unknown' ? 'Began at an unknown time' : `Began ${dateLabel(journey.startDate)}`);
-  pieces.push(journey.endDateStatus === 'forever' ? 'No end date planned' : journey.endDateStatus === 'unsure' ? 'Ending not decided yet' : `Ends ${dateLabel(journey.endDate)}`);
+  pieces.push(journey.startDateStatus === 'unknown' ? t('common.journey.beganUnknown') : t('common.journey.began', { date: dateLabel(journey.startDate) }));
+  pieces.push(journey.endDateStatus === 'forever' ? t('common.journey.noEnd') : journey.endDateStatus === 'unsure' ? t('common.journey.endUnsure') : t('common.journey.ends', { date: dateLabel(journey.endDate) }));
   return pieces.join(' · ');
 }
 
@@ -126,7 +151,7 @@ export function recentMoments(snapshot: Snapshot): ShownMoment[] {
 
 /** The web's "See all" button, with a singular for one moment (#337). */
 export function seeAllLabel(count: number) {
-  return `See all ${countOf(count, 'moment', 'moments')}`;
+  return t('common.ledger.seeAll', { count });
 }
 
 /** Three recent moments until the person asks for all, then every moment. */
@@ -155,7 +180,7 @@ export function openThreads(snapshot: Snapshot) {
 }
 
 export function moneyContext(moment: Moment) {
-  return moment.moneyCents == null ? null : `${money(moment.moneyCents, moment.moneyCurrency)} is held here as context, not a score.`;
+  return moment.moneyCents == null ? null : t('common.moment.moneyContext', { amount: money(moment.moneyCents, moment.moneyCurrency) });
 }
 
 export function locationContext(moment: Moment) {

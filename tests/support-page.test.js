@@ -5,6 +5,9 @@ import { renderSupportPage } from '../scripts/render-privacy-page.mjs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const support = read('SUPPORT.md');
+// The phone's sentences live in English's translation file (docs/TRANSLATION.md); a screen names their keys.
+const english = JSON.parse(read('locales/en.json'));
+const says = (source, key, words) => source.includes(`t('${key}')`) && english[key] === words;
 
 test('the /support page carries every section in SUPPORT.md', () => {
   const page = renderSupportPage(support);
@@ -30,13 +33,13 @@ test('the support page only describes steps the web and the phone really have', 
   const offers = read('apps/mobile/src/components/store-offers.tsx');
 
   assert.ok(support.includes('I forgot my password'));
-  assert.ok(webSays('I forgot my password') && account.includes('I forgot my password'));
+  assert.ok(webSays('I forgot my password') && says(account, 'common.account.forgotPassword', 'I forgot my password'));
 
   assert.ok(support.includes('choose Restore purchases in the app\'s Settings'));
-  assert.ok(settings.includes('<RestorePurchases key="restore" row />') && offers.includes("label: 'Restore purchases'"));
+  assert.ok(settings.includes('<RestorePurchases key="restore" row />') && says(offers, 'mobile.store.restore', 'Restore purchases'));
 
   assert.ok(support.includes('open Settings, then Delete account'));
-  assert.ok(settings.includes('label="Delete account"'));
+  assert.ok(settings.includes("label={t('common.account.delete')}") && english['common.account.delete'] === 'Delete account');
   assert.ok(support.includes('open Account settings, then Delete account'));
   assert.ok(read('src/app.js').includes("signedIn ? t('common.account.settings')") && webSays('Account settings'), 'the signed-in web button reads Account settings');
   assert.ok(web.includes('<h3>Delete account</h3>'));

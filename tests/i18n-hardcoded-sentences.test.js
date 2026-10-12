@@ -21,11 +21,17 @@ const texts = (found) => found.map((finding) => `${finding.file}:${finding.text}
 
 test('the moved areas are listed in one place, and none has a sentence written straight in', () => {
   const areas = movedAreas();
-  assert.deepEqual(areas.map((area) => area.file), [
+  // The web's (101A, 101B, 102A), then 101's two on the phone, then the phone's most-seen screens (103A).
+  assert.deepEqual(areas.slice(0, 20).map((area) => area.file), [
     'index.html', 'src/app.js', 'src/app.js',
     ...Array(14).fill('index.html'), 'src/app.js',
     'apps/mobile/src/i18n/language-provider.tsx', 'apps/mobile/app/history.tsx',
   ]);
+  const phone = areas.filter((area) => area.movedIn === '103A').map((area) => area.file);
+  for (const file of ['apps/mobile/app/index.tsx', 'apps/mobile/app/ledger.tsx', 'apps/mobile/app/settings.tsx', 'apps/mobile/app/account.tsx', 'apps/mobile/app/register.tsx', 'apps/mobile/app/moment.tsx', 'apps/mobile/app/_layout.tsx', 'apps/mobile/src/components/moment-card.tsx', 'apps/mobile/src/components/language-choice.tsx', 'apps/mobile/src/auth/account-messages.ts', 'apps/mobile/src/journey/sharing-view.ts']) {
+    assert.ok(phone.includes(file), `${file} is guarded`);
+  }
+  assert.equal(new Set(areas.map((area) => `${area.file} ${area.element || ''} ${(area.statements || []).join()}`)).size, areas.length, 'no area is listed twice');
   for (const area of areas) assert.ok(area.name && area.movedIn && ['html', 'script'].includes(area.kind), area.name);
   assert.deepEqual(hardcodedSentences(areas), []);
   assert.match(read('package.json'), /node scripts\/check-hardcoded-sentences\.mjs/, 'npm run check runs it');
@@ -132,4 +138,21 @@ test('an area\'s allow list lets through words that are never translated', () =>
   const areas = movedAreas().map((area) => (area.file === 'apps/mobile/app/history.tsx' ? { ...area, allow: ['Together Ledger'] } : area));
   const found = hardcodedSentences(areas, planted({ 'apps/mobile/app/history.tsx': [["{t('history.events.heading')}", 'Together Ledger']] }));
   assert.deepEqual(found, []);
+});
+
+test('a sentence not moved yet is listed as pending, with the prompt that moves it, and a stale one fails', () => {
+  const ledger = movedAreas().find((area) => area.file === 'apps/mobile/app/ledger.tsx');
+  assert.ok(ledger.pending.every((entry) => entry.text && entry.until), 'each names what moves it');
+  const without = { ...ledger, pending: [] };
+  assert.deepEqual(texts(hardcodedSentences([without])).sort(), ledger.pending.map((entry) => `apps/mobile/app/ledger.tsx:${entry.text}`).sort(), 'without the list they are found');
+  const stale = { ...ledger, pending: [...ledger.pending, { text: 'A sentence that is not there', until: 'never' }] };
+  assert.match(texts(hardcodedSentences([stale])).join('\n'), /"A sentence that is not there" is listed as pending but is no longer written/);
+});
+
+test('a function a statement list names ends at its own closing brace, not at the next semicolon', () => {
+  const area = movedAreas().find((entry) => entry.file === 'apps/mobile/src/journey/waiting-moments.ts');
+  // unsentWhenLeaving follows signOutEverywhereConsequence and still writes its sentences in English.
+  assert.deepEqual(hardcodedSentences([area]), []);
+  const plantedSentence = planted({ 'apps/mobile/src/journey/waiting-moments.ts': [["title: t('mobile.signOutEverywhere.waitingTitle'),", "title: 'Sign out everywhere with moments waiting?',"]] });
+  assert.deepEqual(texts(hardcodedSentences([area], plantedSentence)), ['apps/mobile/src/journey/waiting-moments.ts:Sign out everywhere with moments waiting?']);
 });

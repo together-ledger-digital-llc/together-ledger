@@ -2,7 +2,9 @@ import { useRef } from 'react';
 import { AccessibilityInfo, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShell, type DialogRequest } from '../shell/shell-provider';
-import { fonts, leading, tracking, useTheme } from '../theme';
+import { t } from '../i18n';
+import { useLanguage } from '../i18n/language-provider';
+import { fonts, leading, scriptStyles, tracking, useTheme } from '../theme';
 import { StatusRegion } from './status-region';
 import { Toast } from './toast';
 import { Button } from './ui';
@@ -14,6 +16,8 @@ import { Button } from './ui';
  */
 export function ShellDialog({ request, onClose }: { request: DialogRequest | null; onClose: (confirmed: boolean) => void }) {
   const { theme } = useTheme();
+  // Drawn above every screen, so it reads the language itself.
+  useLanguage();
   const insets = useSafeAreaInsets();
   const keep = useRef<View>(null);
   const focusKeep = () => {
@@ -29,7 +33,7 @@ export function ShellDialog({ request, onClose }: { request: DialogRequest | nul
             <ScrollView contentContainerStyle={styles.content}>
               <StatusRegion place="dialog" />
               <Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.signature, fonts.serifBold, { color: theme.colors.muted }]}>Together Ledger</Text>
-              {request.kind === 'consequence' ? <Text style={[styles.eyebrow, { color: theme.colors.accent }]}>Before this happens</Text> : null}
+              {request.kind === 'consequence' ? <Text style={[styles.eyebrow, { color: theme.colors.accent }]}>{t('common.dialog.eyebrow')}</Text> : null}
               <Text accessibilityRole="header" style={[styles.title, fonts.serif, { color: theme.colors.fg }]}>{request.title}</Text>
               <Text style={[styles.message, { color: request.kind === 'consequence' ? theme.colors.muted : theme.colors.fg }]}>{request.message}</Text>
               <View style={styles.actions}>
@@ -45,7 +49,7 @@ export function ShellDialog({ request, onClose }: { request: DialogRequest | nul
   );
 }
 
-const styles = StyleSheet.create({
+const styles = scriptStyles(() => StyleSheet.create({
   frame: { flex: 1, justifyContent: 'center' },
   card: { maxHeight: '100%', width: '100%', maxWidth: 720, alignSelf: 'center' },
   content: { padding: 24, gap: 12 },
@@ -54,7 +58,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, lineHeight: leading(28, 34) },
   message: { fontSize: 16, lineHeight: 23 },
   actions: { gap: 10, marginTop: 13 },
-});
+}));
 
 /** The dialog and the toast, drawn once, above every screen. */
 export function ShellOverlays() {

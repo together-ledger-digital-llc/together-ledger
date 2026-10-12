@@ -1,6 +1,8 @@
 import { useLocales } from 'expo-localization';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSession } from '../auth/session';
+import { loadScriptFonts, setActiveScript } from '../theme/fonts';
+import { scriptOf } from '../theme/scripts';
 import { activeLanguage, OFFERED_LANGUAGES, readLanguageChoice, resolveActiveLanguage, setActiveLanguage, speechLanguageOf } from './index';
 
 type LanguageValue = {
@@ -8,7 +10,10 @@ type LanguageValue = {
   active: string;
   /** A language chosen by hand, or null for "Follow my device". */
   choice: string | null;
-  /** What may be chosen: approved, and carried in the app. The phone's Language row comes in 103. */
+  /**
+   * What may be chosen by hand, carried in the app: approved languages, then any in preview
+   * (preview: true). Only English is offered today, and then no language choice is shown.
+   */
   offered: typeof OFFERED_LANGUAGES;
   /** iOS's accessibilityLanguage for the active language, or undefined to leave VoiceOver's own. */
   speech: string | undefined;
@@ -25,8 +30,10 @@ const LanguageContext = createContext<LanguageValue | null>(null);
  * carries into the account, unless the account already has one, which then wins; from then on the
  * account's choice is the one that counts, and this phone keeps a copy so the app opens in it.
  *
- * Read by Screen (src/components/ui.tsx) for the language VoiceOver speaks. Changing the language
- * redraws what reads this context; the screens' own sentences move onto it in 102/103.
+ * Read by Screen (src/components/ui.tsx) for the language VoiceOver speaks, and by every screen
+ * that draws sentences, so a change redraws them at once, without the app starting again. A
+ * language in another script waits, for as long as reading its serif takes, until that serif is
+ * loaded; then its words and its type change together (src/theme/fonts.ts).
  */
 export function LanguageProvider({ initialChoice, onChoiceChange, children }: {
   initialChoice: string | null;
@@ -38,10 +45,21 @@ export function LanguageProvider({ initialChoice, onChoiceChange, children }: {
   // The phone's languages, in its order, redrawn if they change while the app is open.
   const locales = useLocales();
   const devices = useMemo(() => locales.map((locale) => locale.languageTag).filter(Boolean), [locales]);
-  const active = resolveActiveLanguage(choice, devices);
-  // Set before anything below draws, so the first screen is already in the right language.
+  const wanted = resolveActiveLanguage(choice, devices);
+  // The language drawn now. It moves to the one wanted once its script's serif is loaded, which
+  // the app did before its first screen for the language it opened in.
+  const [active, setActive] = useState(wanted);
+  useEffect(() => {
+    if (wanted === active) return;
+    let live = true;
+    // A serif that fails to load leaves the type in Latin (setActiveScript); the words still change.
+    loadScriptFonts(scriptOf(wanted)).catch(() => {}).then(() => { if (live) setActive(wanted); });
+    return () => { live = false; };
+  }, [wanted, active]);
+  // Set before anything below draws, so every screen draws in the same language and type.
   // Repeating it with the same language does nothing.
   setActiveLanguage(active);
+  setActiveScript(scriptOf(active));
 
   // Signed in, the account's choice is the one that counts, and this phone follows it. Adjusted
   // here, while drawing, so nothing draws in the language it is leaving.

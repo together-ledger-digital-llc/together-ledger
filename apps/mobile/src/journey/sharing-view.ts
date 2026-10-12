@@ -9,7 +9,8 @@
  * tests/mobile-sharing.test.js can run it directly and compare it with the web's functions.
  */
 import { money, remainingLabel } from '../../../../src/model.js';
-import { momentThemeLabel } from '../../../../src/moment-themes.js';
+import { t } from '../i18n/sentences.js';
+import { momentThemeName } from '../i18n/theme-names.js';
 
 export { remainingLabel };
 
@@ -305,10 +306,11 @@ export const CONSEQUENCES = Object.freeze({
     confirmLabel: 'Remove journeyer',
     destructive: true,
   }),
+  // Asked from History, so in the active language, word for word the web's in English.
   deleteConcern: (title: string) => ({
-    title: 'Delete this conversation to return to?',
-    consequence: `“${title}” will be removed. The event history keeps a deletion tombstone, so the change stays attributable.`,
-    confirmLabel: 'Delete conversation',
+    title: t('common.concern.deleteTitle'),
+    consequence: t('common.concern.deleteConsequence', { title }),
+    confirmLabel: t('common.concern.deleteAction'),
     destructive: true,
   }),
 });
@@ -397,9 +399,9 @@ export function meaningfulChanges(before: Record<string, unknown> | null, after:
 }
 
 export function valueLabel(key: string, value: unknown) {
-  if (value == null || value === '') return 'none';
+  if (value == null || value === '') return t('common.history.none');
   if (key === 'budgetCents' || key === 'amountCents') return money(value as number);
-  if (key === 'theme') return momentThemeLabel(value as string);
+  if (key === 'theme') return momentThemeName(value as string);
   // A list of places is a list of values: each is written out, rather than read as [object Object].
   if (Array.isArray(value)) return value.map((item) => (item && typeof item === 'object' ? JSON.stringify(item) : String(item))).join(', ');
   if (typeof value === 'object') return JSON.stringify(value);
@@ -413,7 +415,7 @@ export function historyEvents(snapshot: SharingSnapshot) {
   return ordered
     .map((event, index) => ({
       ...event,
-      actorName: (event.actorUserId && names[event.actorUserId]) || 'Former journeyer',
+      actorName: (event.actorUserId && names[event.actorUserId]) || t('common.person.formerJourneyer'),
       previousEventId: ordered[index - 1]?.id || '',
       changes: meaningfulChanges(event.before, event.after),
     }))

@@ -1,4 +1,5 @@
 import type { AppleReturn, AppleSignInBody, SignInProviders } from '../api/client';
+import { t } from '../i18n/sentences.js';
 
 /**
  * Continue with Google and Apple on the phone (TL-S-04, #217): the rules, kept free of runtime
@@ -246,16 +247,16 @@ export async function appleSignInBody(credential: AppleCredential, kept: KeptApp
  * #social-sign-in): a new account opened with either starts with the first name (#401), and the
  * person can change it. Approved by the owner, Oct 12, 2026 (#399).
  */
-export const NEW_ACCOUNT_NAME = 'A new account starts with your first name. You can change it in Account settings.';
+export const newAccountName = () => t('common.account.newAccountName');
 
 /** What an account opened with Apple shows instead of the placeholder it was given for no email. */
-export const APPLE_SHARED_NO_EMAIL = 'Apple didn’t share an email address.';
+export const appleSharedNoEmailLabel = () => t('common.account.appleNoEmail');
 
 /**
  * Such an account can't be sent anything, so it isn't offered a verification email (owner, Oct 9,
  * 2026). It is told where to write instead.
  */
-export const NO_EMAIL_SUPPORT = 'For help with this account, write to ledger-support@together-ledger.com.';
+export const noEmailSupport = () => t('common.account.noEmailSupport');
 
 // server/platform.js gives an account with no usable email `<provider>-<account id>@no-email.invalid`.
 export function appleSharedNoEmail(email: string): boolean {
@@ -263,5 +264,5 @@ export function appleSharedNoEmail(email: string): boolean {
 }
 
 export function accountEmailLabel(email: string): string {
-  return appleSharedNoEmail(email) ? APPLE_SHARED_NO_EMAIL : email;
+  return appleSharedNoEmail(email) ? appleSharedNoEmailLabel() : email;
 }

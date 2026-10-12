@@ -180,8 +180,13 @@ export function hardcodedSentences(areas, read = (path) => readFileSync(join(roo
   return areas.flatMap((area) => {
     const source = read(area.file);
     const found = area.kind === 'html' ? htmlFindings(source, area) : scriptFindings(source, area);
-    const allowed = new Set(area.allow || []);
-    return found.filter((finding) => !allowed.has(finding.text)).sort((a, b) => a.line - b.line).map((finding) => ({ area: area.name, file: area.file, ...finding }));
+    // allow: words never translated. pending: a sentence not moved yet, each naming the prompt
+    // that moves it ({ text, until }); one no longer in the file fails, so the list stays true.
+    const pending = (area.pending || []).map((entry) => entry.text);
+    const allowed = new Set([...(area.allow || []), ...pending]);
+    const stale = pending.filter((text) => !found.some((finding) => finding.text === text))
+      .map((text) => ({ line: 1, text: `${JSON.stringify(text)} is listed as pending but is no longer written in ${area.file}; take it out of ${AREAS_FILE}` }));
+    return [...found.filter((finding) => !allowed.has(finding.text)), ...stale].sort((a, b) => a.line - b.line).map((finding) => ({ area: area.name, file: area.file, ...finding }));
   });
 }
 

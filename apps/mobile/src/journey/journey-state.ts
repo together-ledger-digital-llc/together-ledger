@@ -1,4 +1,5 @@
 import type { OfflineReason } from '../auth/session-state';
+import { t } from '../i18n/sentences.js';
 import type { Journey, Snapshot } from './journey-view';
 
 /**
@@ -67,16 +68,16 @@ export function offlineReason(state: JourneyState): OfflineReason | null {
 
 /** Under the journey choices, while another journey is asked for. */
 export function nextJourneyWords(name: string, when: 'opening' | 'when-back') {
-  return when === 'opening' ? `Opening “${name}”…` : `“${name}” opens once the connection is back.`;
+  return when === 'opening' ? t('mobile.journey.opening', { journey: name }) : t('mobile.journey.opensWhenBack', { journey: name });
 }
 
 /** History and Journey sharing, in place of the journey they need, while the phone is offline. */
 export function opensWhenBack(screen: string) {
-  return `${screen} opens once the connection is back.`;
+  return t('mobile.journey.screenOpensWhenBack', { screen });
 }
 
 /** A first load that failed for a reason other than the connection; the status region says why. */
-export const JOURNEYS_NOT_LOADED = 'Your journeys couldn’t be loaded just now.';
+export const journeysNotLoaded = () => t('mobile.journey.notLoaded');
 
 /** History, signed in with no journey yet. */
-export const HISTORY_WITHOUT_JOURNEY = 'Your account is ready. Create a private journey, and its history will be here.';
+export const historyWithoutJourney = () => t('mobile.history.noJourney');

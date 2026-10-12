@@ -56,8 +56,10 @@ test('Gelasio is three faces: Regular, Italic and Bold, each its own small file,
 });
 
 test('each Gelasio file draws every Spanish character, every English sentence and the pseudo-language, and no Devanagari or Bangla', async () => {
-  const sentences = Object.values(english).join(' ');
-  const pseudo = Object.values(pseudoMessages(english)).join(' ');
+  // ＋ (U+FF0B) only ever begins a button's label ("＋ New journey"), which is set in the system
+  // sans on the web and the phone alike, never in the serif.
+  const sentences = Object.values(english).join(' ').replaceAll('＋', '');
+  const pseudo = Object.values(pseudoMessages(english)).join(' ').replaceAll('＋', '');
   for (const face of faces) {
     const file = face.match(/fonts\/([\w-]+\.woff2)/)[1];
     const mapped = await drawn(file);

@@ -13,15 +13,17 @@ import { MomentRow } from '../src/components/moment-row';
 import { ScreenStatusRegion } from '../src/components/status-region';
 import { Body, Button, Screen } from '../src/components/ui';
 import { INVITATION_WORDS } from '../src/invitations/invitation-words';
-import { journeyPeriod, momentListHeading, momentListing, MOMENT_TYPES, MOMENT_VIEW_LABEL, MOMENT_VIEWS, openThreads, recentMoments, seeAllLabel, type Concern } from '../src/journey/journey-view';
+import { journeyPeriod, momentKinds, momentListHeading, momentListing, MOMENT_VIEW_LABEL, MOMENT_VIEWS, openThreads, recentMoments, seeAllLabel, type Concern } from '../src/journey/journey-view';
 import { useMomentActions } from '../src/journey/moment-actions';
 import type { EditableMoment } from '../src/journey/moment-draft';
-import { JOURNEYS_NOT_LOADED, nextJourneyWords } from '../src/journey/journey-state';
+import { journeysNotLoaded, nextJourneyWords } from '../src/journey/journey-state';
 import { useJourney } from '../src/journey/use-journey';
 import { useMomentView } from '../src/journey/use-moment-view';
 import { WaitingMoments } from '../src/components/waiting-moments';
 import type { MomentView } from '../src/storage/ledger-store';
-import { fonts, leading, tracking, useTheme } from '../src/theme';
+import { t } from '../src/i18n';
+import { useLanguage } from '../src/i18n/language-provider';
+import { fonts, leading, scriptStyles, tracking, useTheme } from '../src/theme';
 import { showsJourneyRow } from '../../../src/journey-row.js';
 
 // The list's own padding; the journey row runs on past it to the screen's edge (#404).
@@ -36,24 +38,27 @@ export default function LedgerScreen() {
   const journey = useJourney();
   const actions = useMomentActions();
   const { theme } = useTheme();
+  // Its words and type are read again when the language changes; the list redraws with them,
+  // since each drawing hands it a new renderItem.
+  useLanguage();
   const [expanded, setExpanded] = useState(false);
   const momentView = useMomentView();
   // The compact rows opened to their full card; folded again on a second tap.
   const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
   const { state } = journey;
 
-  if (state.phase === 'loading') return <Screen title="Our ledger"><Body>Loading…</Body></Screen>;
+  if (state.phase === 'loading') return <Screen title={t('common.ledger.title')}><Body>{t('common.status.loading')}</Body></Screen>;
   // Signed in, but the service could not be asked (#352): never the sign-in prompt below. A first
   // load the connection stopped is drawn the same, and no failure is ever a bare Try again.
   if (state.phase === 'offline') return <LedgerWhileOffline reason={state.reason} onRetry={session.refresh} />;
   if (state.phase === 'failed') {
     if (state.reason) return <LedgerWhileOffline reason={state.reason} onRetry={journey.retry} />;
     return (
-      <Screen title="Our ledger">
+      <Screen title={t('common.ledger.title')}>
         {/* Why is in the status region above, in the service's own words. */}
-        <Body>{JOURNEYS_NOT_LOADED}</Body>
+        <Body>{journeysNotLoaded()}</Body>
         <WaitingMoments activeJourneyId={null} />
-        <Button kind="quiet" label="Try again" onPress={journey.retry} />
+        <Button kind="quiet" label={t('mobile.action.tryAgain')} onPress={journey.retry} />
       </Screen>
     );
   }
@@ -83,8 +88,8 @@ export default function LedgerScreen() {
           const cardColors = momentColors(item, colors);
           const cardActions = (
             <>
-              {item.visibility === 'share-later' ? <CardAction label="Share now" colors={cardColors} onPress={() => actions.share(item as EditableMoment)} /> : null}
-              <CardAction label="Edit" colors={cardColors} onPress={() => router.push({ pathname: '/moment', params: { id: item.id } })} />
+              {item.visibility === 'share-later' ? <CardAction label={t('common.action.shareNow')} colors={cardColors} onPress={() => actions.share(item as EditableMoment)} /> : null}
+              <CardAction label={t('common.action.edit')} colors={cardColors} onPress={() => router.push({ pathname: '/moment', params: { id: item.id } })} />
             </>
           );
           return compact
@@ -98,20 +103,20 @@ export default function LedgerScreen() {
           <View style={styles.header}>
             <ScreenStatusRegion />
             <View>
-              <Text style={[styles.small, { color: colors.muted }]}>Your shared space</Text>
+              <Text style={[styles.small, { color: colors.muted }]}>{t('common.ledger.yourSpace')}</Text>
               <Text accessibilityRole="header" style={[styles.journeyName, fonts.serif, { color: colors.fg }]}>{snapshot.journey.name}</Text>
               <Text style={[styles.body, { color: colors.muted }]}>{journeyPeriod(snapshot.journey)}</Text>
             </View>
             <GraceBanner journeyId={snapshot.journey.id} grace={snapshot.capacity?.grace} peopleHere={snapshot.capacity?.peopleHere ?? 0} />
             {/* One row that scrolls sideways, and New journey on its own line directly below it (#404). */}
-            {showsJourneyRow(journeys) ? <JourneyRow label="Journey" journeys={journeys} activeId={activeId} inset={LIST_INSET} onSelect={(id) => { setExpanded(false); setOpened(new Set()); journey.select(id); }} /> : null}
-            <Button kind="quiet" label="＋ New journey" onPress={() => router.push('/new-journey')} />
+            {showsJourneyRow(journeys) ? <JourneyRow label={t('mobile.ledger.journeys')} journeys={journeys} activeId={activeId} inset={LIST_INSET} onSelect={(id) => { setExpanded(false); setOpened(new Set()); journey.select(id); }} /> : null}
+            <Button kind="quiet" label={t('common.ledger.newJourney')} onPress={() => router.push('/new-journey')} />
             {/* The open journey stays while another is asked for; offline, it opens once the connection is back (#352). */}
             {next && nextName ? <Text accessibilityLiveRegion="polite" style={[styles.body, { color: colors.muted }]}>{nextJourneyWords(nextName, next.when)}</Text> : null}
             <View style={styles.section}>
-              <Text style={[styles.eyebrow, { color: colors.accent }]}>Our shared journey</Text>
+              <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('common.ledger.eyebrow')}</Text>
               <Text accessibilityRole="header" style={[styles.sectionTitle, fonts.serif, { color: colors.fg }]}>{momentListHeading(compact)}</Text>
-              <Text style={[styles.body, { color: colors.muted }]}>Hold what happened in words that feel true.</Text>
+              <Text style={[styles.body, { color: colors.muted }]}>{t('common.ledger.lead')}</Text>
             </View>
             <Button label="＋ Hold a moment" onPress={() => router.push('/moment')} />
             <WaitingMoments activeJourneyId={activeId} />
@@ -125,7 +130,7 @@ export default function LedgerScreen() {
             {listing.seeAll ? <Button kind="quiet" label={expanded ? 'Show recent' : seeAllLabel(recent.length)} onPress={() => setExpanded(!expanded)} /> : null}
           </View>
         }
-        ListEmptyComponent={<EmptyState title="No moments here yet" body="A small truth is enough to begin." />}
+        ListEmptyComponent={<EmptyState title={t('common.ledger.emptyTitle')} body={t('common.ledger.emptyBody')} />}
         ListFooterComponent={<Threads threads={threads} />}
       />
     </SafeAreaView>
@@ -138,11 +143,11 @@ export default function LedgerScreen() {
  */
 function LedgerWhileOffline({ reason, onRetry }: { reason: OfflineReason; onRetry: () => void }) {
   return (
-    <Screen title="Our ledger">
+    <Screen title={t('common.ledger.title')}>
       <Body>{LEDGER_WHILE_OFFLINE[reason]}</Body>
       {/* What this account held and the service doesn't have yet: kept, not lost (#352). */}
       <WaitingMoments activeJourneyId={null} />
-      <Button kind="quiet" label="Try again" onPress={onRetry} />
+      <Button kind="quiet" label={t('mobile.action.tryAgain')} onPress={onRetry} />
     </Screen>
   );
 }
@@ -152,16 +157,16 @@ function Threads({ threads }: { threads: Concern[] }) {
   const colors = theme.colors;
   return (
     <View style={[styles.threads, { borderColor: colors.border, borderRadius: theme.radius.l, backgroundColor: colors.surface }]}>
-      <Text style={[styles.eyebrow, { color: colors.accent }]}>What wants care</Text>
-      <Text accessibilityRole="header" style={[styles.sectionTitle, fonts.serif, { color: colors.fg }]}>Return-to conversations</Text>
-      <Text style={[styles.body, { color: colors.muted }]}>A place to hold something you want to come back to together.</Text>
+      <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('common.threads.eyebrow')}</Text>
+      <Text accessibilityRole="header" style={[styles.sectionTitle, fonts.serif, { color: colors.fg }]}>{t('history.concerns.heading')}</Text>
+      <Text style={[styles.body, { color: colors.muted }]}>{t('common.threads.lead')}</Text>
       {threads.length ? threads.map((thread) => (
         <View key={thread.id} style={[styles.thread, { borderTopColor: colors.border }]}>
-          <Text style={[styles.openChip, { color: colors.caution, borderColor: colors.caution, borderRadius: theme.radius.pill }]}>open</Text>
+          <Text style={[styles.openChip, { color: colors.caution, borderColor: colors.caution, borderRadius: theme.radius.pill }]}>{t('history.concern.status', { status: 'open' })}</Text>
           <Text style={[styles.threadTitle, { color: colors.fg }]}>{thread.title}</Text>
           {thread.detail ? <Text style={[styles.body, { color: colors.muted }]}>{thread.detail}</Text> : null}
         </View>
-      )) : <EmptyState compact title="No open threads" body="That can be a good place to rest." />}
+      )) : <EmptyState compact title={t('common.threads.emptyTitle')} body={t('common.threads.emptyBody')} />}
     </View>
   );
 }
@@ -170,14 +175,14 @@ function Threads({ threads }: { threads: Concern[] }) {
 function EmptyStart({ signedIn }: { signedIn: boolean }) {
   const { theme } = useTheme();
   const colors = theme.colors;
-  const kinds = (MOMENT_TYPES as [string, string][]).filter(([value]) => value !== 'other');
+  const kinds = momentKinds().filter(([value]) => value !== 'other');
   return (
-    <Screen title="Our ledger">
-      <Text style={[styles.eyebrow, { color: colors.accent }]}>A place to begin</Text>
-      <Text accessibilityRole="header" style={[styles.sectionTitle, fonts.serif, { color: colors.fg }]}>What can live here?</Text>
-      <Body>A ledger can hold the things you want to remember, name, or return to. It begins empty.</Body>
+    <Screen title={t('common.ledger.title')}>
+      <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('common.start.eyebrow')}</Text>
+      <Text accessibilityRole="header" style={[styles.sectionTitle, fonts.serif, { color: colors.fg }]}>{t('common.start.title')}</Text>
+      <Body>{t('common.start.lead')}</Body>
       <View style={[styles.types, { backgroundColor: colors.metaBg, borderColor: colors.border, borderRadius: theme.radius.l }]}>
-        <Text style={[styles.body, { color: colors.muted }]}>There are no examples here—only possibilities:</Text>
+        <Text style={[styles.body, { color: colors.muted }]}>{t('common.start.kinds')}</Text>
         <View style={styles.kinds}>
           {kinds.map(([value, label]) => (
             <Text key={value} style={[styles.type, { color: colors.fg, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: theme.radius.pill }]}>{label}</Text>
@@ -186,13 +191,13 @@ function EmptyStart({ signedIn }: { signedIn: boolean }) {
       </View>
       {signedIn ? (
         <>
-          <Body>Account ready. Create your first private journey.</Body>
-          <Button label="＋ New journey" onPress={() => router.push('/new-journey')} />
+          <Body>{t('common.start.accountReady')}</Body>
+          <Button label={t('common.ledger.newJourney')} onPress={() => router.push('/new-journey')} />
         </>
       ) : (
         <>
-          <Body>Your private journeys appear here once you sign in on this phone.</Body>
-          <Button label="Sign in" onPress={() => router.push('/account')} />
+          <Body>{t('mobile.start.signedOut')}</Body>
+          <Button label={t('common.account.signIn')} onPress={() => router.push('/account')} />
         </>
       )}
       {/* Joining someone else's journey begins with their invitation (#266). */}
@@ -201,7 +206,7 @@ function EmptyStart({ signedIn }: { signedIn: boolean }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = scriptStyles(() => StyleSheet.create({
   fill: { flex: 1 },
   list: { padding: LIST_INSET, gap: 0 },
   gap: { height: 14 },
@@ -221,4 +226,4 @@ const styles = StyleSheet.create({
   types: { borderWidth: 1, padding: 22, gap: 16 },
   kinds: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   type: { borderWidth: 1, fontSize: 14, fontWeight: '800', paddingHorizontal: 12, paddingVertical: 9, overflow: 'hidden' },
-});
+}));

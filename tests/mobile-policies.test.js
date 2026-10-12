@@ -42,10 +42,12 @@ test('Settings opens the Privacy screen for everyone, signed in or not', async (
 
 test('the addresses on the phone are the ones PRIVACY.md gives', async () => {
   const policy = await readFile(join(root, 'PRIVACY.md'), 'utf8');
-  const settings = await read('app/settings.tsx');
+  // Settings' Help says it in its own sentence, kept in English's translation file.
+  assert.match(await read('app/settings.tsx'), /<Body selectable>\{t\('mobile\.settings\.helpText'\)\}<\/Body>/);
+  const help = JSON.parse(await readFile(join(root, 'locales/en.json'), 'utf8'))['mobile.settings.helpText'];
   for (const address of ['ledger-support@together-ledger.com', 'legal@together-ledger.com']) {
     assert.ok(policy.includes(address), `PRIVACY.md names ${address}`);
-    assert.ok(settings.includes(address), `Settings names ${address}`);
+    assert.ok(help.includes(address), `Settings names ${address}`);
   }
 });
 

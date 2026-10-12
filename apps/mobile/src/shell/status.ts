@@ -1,3 +1,5 @@
+import { t } from '../i18n/sentences.js';
+
 /**
  * The persistent status region's rules, ported from the web (src/app.js: STATUS_TONES,
  * showStatus, clearStatus). Kept free of React so the rules can be tested as they are.
@@ -18,17 +20,15 @@ export type Status = { message: string; tone: StatusTone; source: string; inDial
 
 /**
  * Being offline, or the service being out of reach, loses nothing, so it is a caution (▲), never
- * the destructive colour (#300, #352). These are the account client's OFFLINE_MESSAGE,
- * UNREACHABLE_MESSAGE and UNAVAILABLE_MESSAGE (src/api/client.ts), repeated because this file has
- * no runtime imports; tests/mobile-shell.test.js holds the copies the same. The first is the
- * connection notice's own words (src/shell/connection.ts, OFFLINE_NOTICE). Every other message is
- * still a problem unless its caller says otherwise (#244 decides those).
+ * the destructive colour (#300, #352). These are the account client's offline, unreachable and
+ * unavailable messages (src/api/client.ts), read in the active language, so a message is known
+ * by its words in whatever language it was said. The first is the connection notice's own words
+ * (src/shell/connection.ts, offlineNotice). Every other message is still a problem unless its
+ * caller says otherwise (#244 decides those).
  */
-export const CONNECTION_MESSAGES: readonly string[] = Object.freeze([
-  'You’re offline. A moment you hold now waits on this phone and is sent when you reconnect. Your journeys will be back then; until then, nothing else can be changed.',
-  'Together Ledger can’t be reached right now. You’re still signed in. Try again in a moment.',
-  'Private accounts are being connected. No account details were sent.',
-]);
+export function connectionMessages(): readonly string[] {
+  return [t('mobile.error.offline'), t('mobile.error.unreachable'), t('error.client.accountsUnavailable')];
+}
 
 /**
  * Being offline is one notice, whoever noticed it (#352): a request that could not be sent says
@@ -38,8 +38,9 @@ export const CONNECTION_MESSAGES: readonly string[] = Object.freeze([
 export const OFFLINE_SOURCE = 'connection';
 
 export function showStatus(message: string, { tone, source = 'action', inDialog = false }: { tone?: StatusTone; source?: string; inDialog?: boolean } = {}): Status {
-  const chosen = tone ?? (CONNECTION_MESSAGES.includes(message) ? 'caution' : 'problem');
-  const from = message === CONNECTION_MESSAGES[0] ? OFFLINE_SOURCE : source;
+  const connection = connectionMessages();
+  const chosen = tone ?? (connection.includes(message) ? 'caution' : 'problem');
+  const from = message === connection[0] ? OFFLINE_SOURCE : source;
   return { message, tone: chosen in STATUS_TONES ? chosen : 'problem', source: from, inDialog };
 }
 

@@ -11,7 +11,8 @@ import { closedInvitationMessage, invitationDate, INVITATION_WORDS as WORDS, isS
 import { usePendingInvitation } from '../src/invitations/use-pending-invitation';
 import { useJourney } from '../src/journey/use-journey';
 import { useShell } from '../src/shell/shell-provider';
-import { fonts, leading, tracking, useTheme } from '../src/theme';
+import { fonts, leading, scriptStyles, tracking, useTheme } from '../src/theme';
+import { useLanguage } from '../src/i18n/language-provider';
 
 type Read = { code: string; answer: InvitationPreview };
 
@@ -25,6 +26,8 @@ type Read = { code: string; answer: InvitationPreview };
  * decision, and the phone never says they joined until the server says so. Looking spends nothing.
  */
 export default function InviteScreen() {
+  // Redrawn when the language changes, so its words and its type follow at once.
+  useLanguage();
   const session = useSession();
   const pending = usePendingInvitation();
   const journey = useJourney();
@@ -233,7 +236,7 @@ export default function InviteScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = scriptStyles(() => StyleSheet.create({
   eyebrow: { fontSize: 12, fontWeight: '900', letterSpacing: tracking(1.9), textTransform: 'uppercase' },
   headline: { fontSize: 28, lineHeight: leading(28, 34) },
-});
+}));
