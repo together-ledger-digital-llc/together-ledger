@@ -34,12 +34,38 @@ test('the welcome has one Settings door, beside Begin your ledger and Have an in
   assert.equal(buttons.length, 3);
   assert.match(buttons[0], /^label="Begin your ledger →"/);
   assert.match(buttons[1], /^kind="quiet" label=\{INVITATION_WORDS\.haveOne\}/);
-  assert.match(buttons[2], /^kind="quiet" label="Settings" onPress=\{\(\) => router\.push\('\/settings'\)\} \/>/);
+  assert.match(buttons[2], /^kind="quiet" glyph=\{SETTINGS_GLYPH\} label="Settings" onPress=\{\(\) => router\.push\('\/settings'\)\} \/>/);
   assert.doesNotMatch(welcome, /label="Account"/, 'no second door beside it');
   assert.doesNotMatch(welcome, /router\.push\('\/account'\)/, 'the account is reached through Settings');
   // The ledger keeps its one Settings button in the top bar.
   assert.equal(layout.match(/router\.push\('\/settings'\)/g).length, 1);
   assert.match(layout, /<Stack\.Screen name="ledger" options=\{\{ title: 'Ledger', headerRight: \(\) => <SettingsButton \/> \}\} \/>/);
+});
+
+test('the Settings door shows a gear before the word, and is read as "Settings" alone', async () => {
+  // The platform's own gear symbol, drawn as text so it takes the word's size and colour on every
+  // theme (owner, Oct 12, 2026; #399). No icon font: the app bundles none.
+  assert.equal(screens.SETTINGS_GLYPH, '\u2699\uFE0E');
+  const pkg = JSON.parse(await read('package.json'));
+  assert.ok(!Object.keys(pkg.dependencies).some((name) => /vector-icons|expo-symbols|react-native-svg/.test(name)), 'no icon library added for it');
+
+  // The welcome: the gear is the shared button's glyph, before the label, never the icon alone.
+  assert.match(welcome, /import \{ SETTINGS_GLYPH \} from '\.\.\/src\/shell\/screens';/);
+  const ui = await read('src/components/ui.tsx');
+  assert.match(ui, /accessibilityLabel=\{glyph \? words : undefined\}/, 'a button with a glyph is named by its words alone');
+  const glyph = ui.indexOf('<Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.buttonText, { color: text }]}>{glyph}</Text>');
+  const words = ui.indexOf('<Text style={[styles.buttonText, { color: text }]}>{words}</Text>');
+  assert.ok(glyph > 0 && words > glyph, 'the glyph is hidden from screen readers, in the label\'s size and colour, before it');
+  assert.match(ui, /styles\.button, targetSize/, 'the 44-point target is unchanged');
+
+  // The ledger's top bar: the same gear, in the word's own style, before it.
+  const button = layout.slice(layout.indexOf('function SettingsButton()'), layout.indexOf('function BackButton('));
+  assert.match(button, /accessibilityLabel=\{waiting \? `Settings, \$\{waiting\} to answer` : 'Settings'\}/, 'read as "Settings", with what waits, and never the gear');
+  const gear = button.indexOf('<Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.headerButtonText, { color: theme.colors.accent }]}>{SETTINGS_GLYPH}</Text>');
+  const label = button.indexOf("<Text style={[styles.headerButtonText, { color: theme.colors.accent }]}>Settings{waiting ? ` · ${waiting}` : ''}</Text>");
+  assert.ok(gear > 0 && label > gear, 'the gear sits before the word, sized and coloured with it');
+  assert.match(button, /styles\.headerButton, targetSize/, 'the 44-point target is unchanged');
+  assert.match(layout, /headerButton: \{ flexDirection: 'row', alignItems: 'center'/);
 });
 
 test('Settings is Appearance, the open journey, then Account settings', () => {
