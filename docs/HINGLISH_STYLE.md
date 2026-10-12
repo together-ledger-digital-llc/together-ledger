@@ -351,15 +351,26 @@ So:
 
 | English | Hinglish | Why |
 |---|---|---|
-| another person | ek aur insaan | "insaan" is a human being, warm and everyday. "vyakti" reads as a government form, and "person" as a count. |
+| another person | ek aur saathi | The same warm word as for a journeyer, so a person already in the journey and one who may join are named alike. One word for one idea keeps the vocabulary small and easy to follow, which serves cognitive accessibility. Never "insaan" (clinical here), "vyakti" (a government form) or "person" (a count). *Owner's decision, 12 October 2026.* |
 | another place, room | ek aur jagah, jagah | "jagah" is a place at a table, which is the glossary's own picture of "another place" (`locales/glossary.json`). Like English "place", it can also mean a location, and the sentence decides which. |
 | rests, resting | aaraam karta/karti hai, aaraam par | A pause with no blame in it. Never "hataana" or "nikaalna" (remove), "band" (shut) or "block". |
 | journeyer | saathi | "journeyer" is not a word any Hinglish reader knows. "saathi" (companion) is exact, warm, and fits every kind of two-person relationship. |
-| propose (a person) | sujhaav dena | In Indian English and Hinglish, "propose karna" means a romantic proposal. In a couples app that must never be the reading. |
+| propose (a person) | saathi ka sujhaav dena (suggest a saathi) | In Indian English and Hinglish, "propose karna" means a romantic proposal. In a couples app that must never be the reading. Naming the person a saathi keeps the same warm word throughout. *Owner's decision, 12 October 2026.* |
+
+**Where and why "aaraam" is used.** In the app, "rests" is what happens when a journey's
+payment lapses: the saathi it reaches stays in the journey, keeps reading everything and loses
+nothing, and only pauses adding until the payment returns. The owner chooses who rests first
+("Who rests first, if it isn't paid", "Resting now", "Rest earlier", "Rest later"). Nobody is
+removed (CLAUDE.md, Language). The word also appears in its everyday sense, as in an empty
+state: "That can be a good place to rest." Either way, the owner's rule for every translation:
+it must always read as a peaceful, human pause, someone taking a breath, never a technical
+state such as "system idle" or "sleep mode", and never a penalty, a lock or a removal.
 
 The table is *judgement*, except the meaning of "propose": that is everyday Indian usage.
-*Decided (O4):* the owner accepted all five. These are the values prompt 109 enters as the
-`hi-Latn` translations in `locales/glossary.json`.
+*Decided (O4):* the owner accepted all five, then on 12 October 2026 changed two: "another
+person" is "ek aur saathi" (not "ek aur insaan"), and "propose" is "saathi ka sujhaav dena".
+These are the values prompt 109 enters as the `hi-Latn` translations in
+`locales/glossary.json`.
 
 **C6. Feelings, reassurance and consequences are said in Hindi.**
 
@@ -766,7 +777,7 @@ script)". Prompt 109 should bring the two together (O12).
 
 **Words with a second meaning in Indian English**
 
-- **"propose"** means a romantic proposal; use "sujhaav dena".
+- **"propose"** means a romantic proposal; use "saathi ka sujhaav dena".
 - **"order"** is used for a sequence: "usi order mein". In many Indian apps an "order" is a
   purchase, but this app never calls a purchase an order, so here it can only mean a
   sequence. The draft used the formal "kram"; the owner chose the everyday word (§6.9).
@@ -816,13 +827,13 @@ lists variants seen in the wild that we do not use.
 | aaraam | rest (m) | aram, araam, aaram |
 | aaraam karna | to rest | hataana, nikaalna, block karna, band karna |
 | aaraam par | resting | aaraam mein, rest par |
-| ek aur insaan | another person | ek aur seat, ek aur slot, ek aur member, ek aur vyakti, ek aur person |
-| insaan | person (m/f) | insan, insaaan |
+| ek aur saathi | another person | ek aur insaan, ek aur seat, ek aur slot, ek aur member, ek aur vyakti, ek aur person |
+| insaan | a human being, in its everyday sense only (m/f); never for "another person" | insan, insaaan |
 | ek aur jagah | another place | ek aur seat, ek aur slot, ek aur spot, ek aur sthaan |
 | jagah | place, room (f) | jaga, jageh, jaghah |
 | jagahein | places | jagahen, jagahain, jaghein |
 | sujhaav | proposal of a person (m) | sujhav, sujhaw, proposal |
-| sujhaav dena | to propose a person | propose karna |
+| saathi ka sujhaav dena | to propose a person (suggest a saathi) | propose karna, sujhaav dena on its own |
 | lautna | to return to (a conversation) | loutna, lotna |
 | sambhalna | to hold (a moment); T9 | sambhaalna, sambhal na |
 | sambhalein | hold (aap); T9 | sambhaalein, sambhalen |
@@ -1097,7 +1108,7 @@ product team would use. Each change:
 
 Some words were kept because they read as everyday:
 
-- **The careful words the owner accepted (O4):** insaan, saathi, aaraam, jagah, sujhaav.
+- **The careful words the owner accepted (O4):** saathi, aaraam, jagah, sujhaav.
 - **Others:** raazi, istemaal, zaroori, taiyaar, turant, hisaab.
 
 That is 241 rows across the first eight tables. Many rows carry several forms of one word,
@@ -1122,7 +1133,7 @@ line tests.
 | 4 | `apps/mobile/app/account.tsx:58` | Try again | Phir se koshish karein | Hindi for everyday words (C1, C7) |
 | 5 | `apps/mobile/app/journey-settings.tsx:296` | Rest earlier · Rest later | Pehle aaraam · Baad mein aaraam | careful word "rest" (C5) |
 | 6 | `apps/mobile/app/account.tsx:113` | Sign out everywhere | Har device se sign out karein | phone words stay English (C2) |
-| 7 | `apps/mobile/app/journey-settings.tsx:199` | Propose this person | Is insaan ka sujhaav dein | never "propose karna" (C5) |
+| 7 | `apps/mobile/app/journey-settings.tsx:199` | Propose this person | Is saathi ka sujhaav dein | never "propose karna" (C5) |
 
 ### 7.2 Errors
 
@@ -1160,7 +1171,7 @@ line tests.
 | # | Where | English | Hinglish | Tests |
 |---|---|---|---|---|
 | 24 | `server/mailer.js:68` (email subject) | You have been invited to a Together Ledger journey | Aapko ek Together Ledger journey mein invite kiya gaya hai | brand never translated |
-| 25 | `server/mailer.js:80` (email subject) | Someone has been proposed for your Together Ledger journey | Aapki Together Ledger journey ke liye kisi ka sujhaav diya gaya hai | "sujhaav" (C5) |
+| 25 | `server/mailer.js:80` (email subject) | Someone has been proposed for your Together Ledger journey | Aapki Together Ledger journey ke liye ek saathi ka sujhaav diya gaya hai | "saathi ka sujhaav" (C5) |
 | 26 | `server/mailer.js:90` (email subject) | Reset your Together Ledger password | Apna Together Ledger password reset karein | |
 | 27 | `apps/mobile/src/journey/moment-actions.ts:81` | Moment shared with your journeyer. | Moment aapke saathi ke saath share ho gaya. | |
 | 28 | `apps/mobile/src/journey/sharing-view.ts:318` | Everyone agreed. The invitation is on its way to them. | Sab raazi hain. Invitation unhein bheja ja raha hai. | "raazi" needs no gender |
@@ -1196,9 +1207,9 @@ line tests.
 
 | # | Where | English | Hinglish | Tests |
 |---|---|---|---|---|
-| 46 | `apps/mobile/src/journey/sharing-view.ts:148` | There is room to add another person, and everybody here has to agree to them. · There is no open place right now. | Ek aur insaan ke liye jagah hai, aur yahan sabka raazi hona zaroori hai. · Abhi koi jagah khaali nahi hai. | "ek aur insaan", "jagah" |
+| 46 | `apps/mobile/src/journey/sharing-view.ts:148` | There is room to add another person, and everybody here has to agree to them. · There is no open place right now. | Ek aur saathi ke liye jagah hai, aur yahan sabka raazi hona zaroori hai. · Abhi koi jagah khaali nahi hai. | "ek aur saathi", "jagah" |
 | 47 | `apps/mobile/src/journey/sharing-view.ts:278` | Their link stops working, and the place it held is free again straight away. The journey’s history keeps a record that it was withdrawn. | Unka link kaam karna band kar deta hai, aur jo jagah wo rok raha tha, wo turant phir se khaali ho jaati hai. Journey ki history mein ye record rehta hai ki invitation wapas liya gaya tha. | |
-| 48 | `apps/mobile/src/journey/sharing-view.ts:283` | The question is taken back, and nothing is sent to them. Nobody is recorded as having refused, and this person can be proposed again later. | Sawaal wapas le liya jaata hai, aur unhein kuch nahi bheja jaata. Kisi ke naam mana karna record nahi hota, aur is insaan ka sujhaav baad mein phir se diya ja sakta hai. | |
+| 48 | `apps/mobile/src/journey/sharing-view.ts:283` | The question is taken back, and nothing is sent to them. Nobody is recorded as having refused, and this person can be proposed again later. | Sawaal wapas le liya jaata hai, aur unhein kuch nahi bheja jaata. Kisi ke naam mana karna record nahi hota, aur is saathi ka sujhaav baad mein phir se diya ja sakta hai. | |
 | 49 | `src/app.js:1670` | Check-in complete. It can rest until tomorrow. | Check-in ho gaya. Ab ye kal tak aaraam kar sakta hai. | |
 
 ### 7.9 Writing hints in the moment editor: aap
@@ -1431,7 +1442,7 @@ This takes about fifteen minutes and needs an iPhone, an Android phone, and a co
 <h1 lang="en">Tag: hi-Latn</h1>
 <div lang="hi-Latn">
   <p>Ye moment abhi share karein?</p>
-  <p>Ek aur insaan ke liye jagah hai, aur yahan sabka raazi hona zaroori hai.</p>
+  <p>Ek aur saathi ke liye jagah hai, aur yahan sabka raazi hona zaroori hai.</p>
   <p>Agar payment nahi hua, to aaraam ki baari kiski pehle aayegi.</p>
   <p>Aap offline hain. Ye journey yahin hai.</p>
   <p>Renew hone se kam se kam 24 ghante pehle Apple se ise cancel karein.</p>
@@ -1439,7 +1450,7 @@ This takes about fifteen minutes and needs an iPhone, an Android phone, and a co
 <h1 lang="en">Tag: hi</h1>
 <div lang="hi">
   <p>Ye moment abhi share karein?</p>
-  <p>Ek aur insaan ke liye jagah hai, aur yahan sabka raazi hona zaroori hai.</p>
+  <p>Ek aur saathi ke liye jagah hai, aur yahan sabka raazi hona zaroori hai.</p>
   <p>Agar payment nahi hua, to aaraam ki baari kiski pehle aayegi.</p>
   <p>Aap offline hain. Ye journey yahin hai.</p>
   <p>Renew hone se kam se kam 24 ghante pehle Apple se ise cancel karein.</p>
@@ -1447,7 +1458,7 @@ This takes about fifteen minutes and needs an iPhone, an Android phone, and a co
 <h1 lang="en">Tag: en-IN</h1>
 <div lang="en-IN">
   <p>Ye moment abhi share karein?</p>
-  <p>Ek aur insaan ke liye jagah hai, aur yahan sabka raazi hona zaroori hai.</p>
+  <p>Ek aur saathi ke liye jagah hai, aur yahan sabka raazi hona zaroori hai.</p>
   <p>Agar payment nahi hua, to aaraam ki baari kiski pehle aayegi.</p>
   <p>Aap offline hain. Ye journey yahin hai.</p>
   <p>Renew hone se kam se kam 24 ghante pehle Apple se ise cancel karein.</p>
@@ -1510,9 +1521,9 @@ added supports this for journey.
 
 - saathi (journeyer)
 - aaraam (rest)
-- ek aur insaan (another person)
+- ek aur saathi (another person; changed from "ek aur insaan" by the owner on 12 October 2026)
 - jagah (place and room)
-- sujhaav dena (propose)
+- saathi ka sujhaav dena (propose; changed from "sujhaav dena" on the same day)
 
 These are the `hi-Latn` values prompt 109 enters in `locales/glossary.json`.
 
@@ -1538,7 +1549,7 @@ formatting locale.
 
 **O9. The Bangalore caution: noted, no change.**
 
-**O10. "propose": settled with O4.** Accepting "sujhaav dena" keeps "propose karna" and its
+**O10. "propose": settled with O4.** Accepting "saathi ka sujhaav dena" keeps "propose karna" and its
 romantic reading out of the app.
 
 **Still for prompt 109 to raise:**
