@@ -124,36 +124,29 @@ export function recentMoments(snapshot: Snapshot): ShownMoment[] {
     .sort((a, b) => `${b.occurredOn}-${b.updatedAt}`.localeCompare(`${a.occurredOn}-${a.updatedAt}`));
 }
 
-/** "All moments", then only the types this journey actually holds, in the web's order. */
-export function momentFilters(recent: Moment[]): [string, string][] {
-  const inUse = new Set(recent.map((moment) => moment.kind));
-  return [['all', 'All moments'], ...momentTypes.filter(([value]) => inUse.has(value))];
-}
-
 /** The web's "See all" button, with a singular for one moment (#337). */
 export function seeAllLabel(count: number) {
   return `See all ${countOf(count, 'moment', 'moments')}`;
 }
 
-/** Three recent moments until the person asks for all, then every moment the filter allows. */
-export function shownMoments(recent: ShownMoment[], { expanded, filter }: { expanded: boolean; filter: string }) {
-  if (!expanded) return recent.slice(0, RECENT_MOMENTS_SHOWN);
-  return recent.filter((moment) => filter === 'all' || moment.kind === filter);
+/** Three recent moments until the person asks for all, then every moment. */
+export function shownMoments(recent: ShownMoment[], { expanded }: { expanded: boolean }) {
+  return expanded ? recent : recent.slice(0, RECENT_MOMENTS_SHOWN);
 }
 
 /**
- * What the moment list holds in each view (Oct 9, #379). In full is the web's ledger, unchanged:
- * three recent moments until "See all", and the "Moment types" filter only after it. Compact
- * fits ten or so to a screen, so it holds every moment from the start: no "See all" or "Show
- * recent", and the filter always there. The filter is the same one in both, so switching views
- * keeps it.
+ * What the moment list holds in each view (Oct 9, #379). In full is the web's ledger: three
+ * recent moments until "See all". Compact fits ten or so to a screen, so it holds every moment
+ * from the start: no "See all" or "Show recent".
+ *
+ * There is no filter in either view (Oct 12, #405): the view is In full or Compact and nothing
+ * else, so nothing can narrow the list and leave a moment out of reach. A way to narrow a long
+ * list may come back later as one control (#406).
  */
-export function momentListing(recent: ShownMoment[], { compact, expanded, filter }: { compact: boolean; expanded: boolean; filter: string }) {
-  const everyMoment = compact || expanded;
+export function momentListing(recent: ShownMoment[], { compact, expanded }: { compact: boolean; expanded: boolean }) {
   return {
-    shown: shownMoments(recent, { expanded: everyMoment, filter }),
+    shown: shownMoments(recent, { expanded: compact || expanded }),
     seeAll: !compact && seeAllShown(recent.length, expanded),
-    filter: everyMoment && recent.length > 0,
   };
 }
 

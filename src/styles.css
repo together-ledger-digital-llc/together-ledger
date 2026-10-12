@@ -622,7 +622,6 @@ dialog::backdrop { background: color-mix(in srgb, var(--fg) 72%, transparent); }
 .section-heading h2, .privacy-boundary h2 { font-family: Georgia, serif; font-size: clamp(32px, 4vw, 46px); font-weight: 500; line-height: 1.05; margin: 0; }
 .section-heading p, .privacy-boundary p:not(.eyebrow) { color: var(--muted); margin: 9px 0 0; max-width: 650px; }
 .moments-section, .threads-section, .privacy-boundary { overflow: hidden; }
-.moments-section .filters { border-top: 1px solid var(--line); padding: 17px 28px 0; }
 .moment-timeline { display: grid; gap: 12px; padding: 18px 28px 28px; }
 .log-types { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius-l); padding: 22px; }
 .log-types p { color: var(--muted); margin: 0 0 16px; }
@@ -764,7 +763,6 @@ footer p { color: var(--on-accent); margin-bottom: 0; opacity: .8; }
   .today-card, .insight { padding: 24px 19px; }
   .section-heading { align-items: stretch; display: grid; padding: 22px 19px 9px; }
   .section-heading .button { width: 100%; }
-  .moments-section .filters { padding: 14px 19px 0; }
   .moment-timeline, #open-threads { padding-left: 19px; padding-right: 19px; }
   summary { padding: 21px 18px; }
   summary strong { font-size: 27px; }

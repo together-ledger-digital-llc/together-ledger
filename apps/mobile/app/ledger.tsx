@@ -13,7 +13,7 @@ import { MomentRow } from '../src/components/moment-row';
 import { ScreenStatusRegion } from '../src/components/status-region';
 import { Body, Button, Screen } from '../src/components/ui';
 import { INVITATION_WORDS } from '../src/invitations/invitation-words';
-import { journeyPeriod, momentFilters, momentListHeading, momentListing, MOMENT_TYPES, MOMENT_VIEW_LABEL, MOMENT_VIEWS, openThreads, recentMoments, seeAllLabel, type Concern } from '../src/journey/journey-view';
+import { journeyPeriod, momentListHeading, momentListing, MOMENT_TYPES, MOMENT_VIEW_LABEL, MOMENT_VIEWS, openThreads, recentMoments, seeAllLabel, type Concern } from '../src/journey/journey-view';
 import { useMomentActions } from '../src/journey/moment-actions';
 import type { EditableMoment } from '../src/journey/moment-draft';
 import { JOURNEYS_NOT_LOADED, nextJourneyWords } from '../src/journey/journey-state';
@@ -37,7 +37,6 @@ export default function LedgerScreen() {
   const actions = useMomentActions();
   const { theme } = useTheme();
   const [expanded, setExpanded] = useState(false);
-  const [filter, setFilter] = useState('all');
   const momentView = useMomentView();
   // The compact rows opened to their full card; folded again on a second tap.
   const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
@@ -63,10 +62,8 @@ export default function LedgerScreen() {
   const { snapshot, journeys, activeId, next } = state;
   const nextName = next ? journeys.find((item) => item.id === next.journeyId)?.name : null;
   const recent = recentMoments(snapshot);
-  const filters = momentFilters(recent);
-  const currentFilter = filters.some(([value]) => value === filter) ? filter : 'all';
   const compact = momentView.view === 'compact';
-  const listing = momentListing(recent, { compact, expanded, filter: currentFilter });
+  const listing = momentListing(recent, { compact, expanded });
   const shown = listing.shown;
   const threads = openThreads(snapshot);
   const colors = theme.colors;
@@ -107,7 +104,7 @@ export default function LedgerScreen() {
             </View>
             <GraceBanner journeyId={snapshot.journey.id} grace={snapshot.capacity?.grace} peopleHere={snapshot.capacity?.peopleHere ?? 0} />
             {/* One row that scrolls sideways, and New journey on its own line directly below it (#404). */}
-            {showsJourneyRow(journeys) ? <JourneyRow label="Journey" journeys={journeys} activeId={activeId} inset={LIST_INSET} onSelect={(id) => { setExpanded(false); setFilter('all'); setOpened(new Set()); journey.select(id); }} /> : null}
+            {showsJourneyRow(journeys) ? <JourneyRow label="Journey" journeys={journeys} activeId={activeId} inset={LIST_INSET} onSelect={(id) => { setExpanded(false); setOpened(new Set()); journey.select(id); }} /> : null}
             <Button kind="quiet" label="＋ New journey" onPress={() => router.push('/new-journey')} />
             {/* The open journey stays while another is asked for; offline, it opens once the connection is back (#352). */}
             {next && nextName ? <Text accessibilityLiveRegion="polite" style={[styles.body, { color: colors.muted }]}>{nextJourneyWords(nextName, next.when)}</Text> : null}
@@ -118,7 +115,7 @@ export default function LedgerScreen() {
             </View>
             <Button label="＋ Hold a moment" onPress={() => router.push('/moment')} />
             <WaitingMoments activeJourneyId={activeId} />
-            {/* Above "See all" and the filter, so it stays put under the thumb when Compact brings the filter in. */}
+            {/* Only In full and Compact here, no filter (#405): "＋ Hold a moment" above is the way in for any kind. */}
             {recent.length ? (
               <View style={styles.viewChoice}>
                 <Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.small, { color: colors.muted }]}>{MOMENT_VIEW_LABEL}</Text>
@@ -126,10 +123,9 @@ export default function LedgerScreen() {
               </View>
             ) : null}
             {listing.seeAll ? <Button kind="quiet" label={expanded ? 'Show recent' : seeAllLabel(recent.length)} onPress={() => setExpanded(!expanded)} /> : null}
-            {listing.filter ? <Choices label="Moment types" options={filters} selected={currentFilter} onSelect={setFilter} /> : null}
           </View>
         }
-        ListEmptyComponent={<EmptyState title="No moments in this view" body="A small truth is enough to begin, or choose another filter to see more." />}
+        ListEmptyComponent={<EmptyState title="No moments here yet" body="A small truth is enough to begin." />}
         ListFooterComponent={<Threads threads={threads} />}
       />
     </SafeAreaView>
