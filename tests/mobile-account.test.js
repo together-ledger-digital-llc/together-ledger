@@ -9,7 +9,7 @@ const mobile = new URL('../apps/mobile/', import.meta.url);
 export async function importMobile(path) {
   const source = await readFile(new URL(path, mobile), 'utf8');
   const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
-  return import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+  return import(`data:text/javascript;base64,${Buffer.from(outputText.replace(/from '(\.[^']+\.js)'/g, (_, specifier) => `from '${new URL(specifier, new URL(path, mobile)).href}'`)).toString('base64')}`);
 }
 
 const { createAccountClient, OFFLINE_MESSAGE, UNREACHABLE_MESSAGE, UNAVAILABLE_MESSAGE } = await importMobile('src/api/client.ts');

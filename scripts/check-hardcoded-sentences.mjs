@@ -111,12 +111,15 @@ export function lexScript(source) {
 export function statementExtent(source, code, opening) {
   const start = source.indexOf(opening);
   if (start === -1) return null;
+  // A function declaration has no closing semicolon: it ends with its body's closing brace.
+  const declaration = /^(?:export\s+)?(?:async\s+)?function\b/.test(opening);
   let depth = 0;
   for (let index = start; index < code.length; index += 1) {
     const character = code[index];
     if ('([{'.includes(character)) depth += 1;
     if (')]}'.includes(character)) depth -= 1;
     if (character === ';' && depth === 0) return [start, index + 1];
+    if (character === '}' && depth === 0 && declaration) return [start, index + 1];
   }
   return [start, code.length];
 }
@@ -171,8 +174,13 @@ export function hardcodedSentences(areas, read = (path) => readFileSync(join(roo
   return areas.flatMap((area) => {
     const source = read(area.file);
     const found = area.kind === 'html' ? htmlFindings(source, area) : scriptFindings(source, area);
-    const allowed = new Set(area.allow || []);
-    return found.filter((finding) => !allowed.has(finding.text)).sort((a, b) => a.line - b.line).map((finding) => ({ area: area.name, file: area.file, ...finding }));
+    // allow: words never translated. pending: a sentence not moved yet, each naming the prompt
+    // that moves it ({ text, until }); one no longer in the file fails, so the list stays true.
+    const pending = (area.pending || []).map((entry) => entry.text);
+    const allowed = new Set([...(area.allow || []), ...pending]);
+    const stale = pending.filter((text) => !found.some((finding) => finding.text === text))
+      .map((text) => ({ line: 1, text: `${JSON.stringify(text)} is listed as pending but is no longer written in ${area.file}; take it out of ${AREAS_FILE}` }));
+    return [...found.filter((finding) => !allowed.has(finding.text)), ...stale].sort((a, b) => a.line - b.line).map((finding) => ({ area: area.name, file: area.file, ...finding }));
   });
 }
 

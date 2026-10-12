@@ -8,8 +8,14 @@
       "kind": "html",
       "element": "<dialog id=\"settings-dialog\">",
       "except": [
-        { "element": "<section id=\"sharing-settings\"", "until": "102" },
-        { "element": "<section id=\"leave-journey\"", "until": "102" }
+        {
+          "element": "<section id=\"sharing-settings\"",
+          "until": "102"
+        },
+        {
+          "element": "<section id=\"leave-journey\"",
+          "until": "102"
+        }
       ]
     },
     {
@@ -45,6 +51,262 @@
       "name": "The phone's History",
       "movedIn": "101A",
       "file": "apps/mobile/app/history.tsx",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's welcome",
+      "movedIn": "103A",
+      "file": "apps/mobile/app/index.tsx",
+      "kind": "script",
+      "allow": [
+        "Together Ledger"
+      ]
+    },
+    {
+      "name": "The phone's ledger",
+      "movedIn": "103A",
+      "file": "apps/mobile/app/ledger.tsx",
+      "kind": "script",
+      "pending": [
+        {
+          "text": "Show recent",
+          "until": "after 45: tests/mobile-moment-view.test.js pins the line as written"
+        },
+        {
+          "text": "＋ Hold a moment",
+          "until": "after 45: tests/mobile-moment-view.test.js pins the line as written"
+        }
+      ]
+    },
+    {
+      "name": "The phone's Settings",
+      "movedIn": "103A",
+      "file": "apps/mobile/app/settings.tsx",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's sign-in and Account settings",
+      "movedIn": "103A",
+      "file": "apps/mobile/app/account.tsx",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's Create account",
+      "movedIn": "103A",
+      "file": "apps/mobile/app/register.tsx",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's Hold a moment",
+      "movedIn": "103A",
+      "file": "apps/mobile/app/moment.tsx",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's screen titles, Settings button and back button",
+      "movedIn": "103A",
+      "file": "apps/mobile/app/_layout.tsx",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's screen titles",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/shell/screens.ts",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's shell defaults",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/shell/defaults.ts",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's offline notice",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/shell/connection.ts",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's status region",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/shell/status.ts",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's account client's messages",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/api/client.ts",
+      "kind": "script",
+      "statements": [
+        "export const offlineMessage =",
+        "export const unreachableMessage =",
+        "export const unavailableMessage =",
+        "export const fallbackMessage =",
+        "const signInAgainMessage ="
+      ]
+    },
+    {
+      "name": "The phone's account notices and errors",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/auth/account-messages.ts",
+      "kind": "script",
+      "allow": [
+        "common.account.signedOut"
+      ]
+    },
+    {
+      "name": "The phone's words while offline",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/auth/session-state.ts",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's Google and Apple words",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/auth/social-sign-in.ts",
+      "kind": "script",
+      "allow": [
+        "com.googleusercontent.apps."
+      ]
+    },
+    {
+      "name": "The phone's journey loading words",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/journey/journey-state.ts",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's ledger words",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/journey/journey-view.ts",
+      "kind": "script",
+      "pending": [
+        {
+          "text": "Show moments",
+          "until": "after 45, which changes the moment view these name: tests/mobile-moment-view.test.js pins them as written"
+        },
+        {
+          "text": "In full",
+          "until": "after 45, which changes the moment view these name: tests/mobile-moment-view.test.js pins them as written"
+        },
+        {
+          "text": "All moments",
+          "until": "after 45, which changes the moment view these name: tests/mobile-moment-view.test.js pins them as written"
+        },
+        {
+          "text": "Recent moments",
+          "until": "after 45, which changes the moment view these name: tests/mobile-moment-view.test.js pins them as written"
+        },
+        {
+          "text": ", Visibility: ",
+          "until": "after 45, which changes the moment view these name: tests/mobile-moment-view.test.js pins them as written"
+        }
+      ]
+    },
+    {
+      "name": "The phone's moment form rules",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/journey/moment-draft.ts",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's moment actions",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/journey/moment-actions.ts",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's sign-out questions",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/journey/waiting-moments.ts",
+      "kind": "script",
+      "statements": [
+        "export const keptOnPhone =",
+        "export function signOutConsequence(",
+        "export const signOutEverywhereWords =",
+        "export function signOutEverywhereConsequence("
+      ]
+    },
+    {
+      "name": "History's words from sharing-view",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/journey/sharing-view.ts",
+      "kind": "script",
+      "statements": [
+        "export function valueLabel(",
+        "export function historyEvents("
+      ]
+    },
+    {
+      "name": "The phone's moment card",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/components/moment-card.tsx",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's compact moment row",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/components/moment-row.tsx",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's consequence dialog",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/components/dialogs.tsx",
+      "kind": "script",
+      "allow": [
+        "Together Ledger"
+      ]
+    },
+    {
+      "name": "The phone's theme choice",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/components/theme-picker.tsx",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's language choice",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/components/language-choice.tsx",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's Continue with Google or Apple",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/components/social-sign-in.tsx",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's screen that needs a journey",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/components/journey-not-open.tsx",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's date field",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/components/date-field.tsx",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's drop-down",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/components/drop-down.tsx",
+      "kind": "script"
+    },
+    {
+      "name": "The phone's Restore purchases row",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/components/store-offers.tsx",
+      "kind": "script",
+      "statements": [
+        "const restore ="
+      ]
+    },
+    {
+      "name": "The phone's theme names",
+      "movedIn": "103A",
+      "file": "apps/mobile/src/i18n/theme-names.js",
       "kind": "script"
     }
   ]

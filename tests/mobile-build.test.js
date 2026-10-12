@@ -12,7 +12,7 @@ const read = (path) => readFile(new URL(path, mobile), 'utf8');
 
 async function importMobile(path) {
   const { outputText } = ts.transpileModule(await read(path), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
-  return import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+  return import(`data:text/javascript;base64,${Buffer.from(outputText.replace(/from '(\.[^']+\.js)'/g, (_, specifier) => `from '${new URL(specifier, new URL(path, mobile)).href}'`)).toString('base64')}`);
 }
 
 const { buildName } = await importMobile('src/config/build-name.ts');

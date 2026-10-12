@@ -7,8 +7,9 @@ import { collectAppleAnswer, openAppleInBrowser } from '../auth/apple-browser';
 import { keptAppleName } from '../auth/kept-apple-name';
 import { useSession } from '../auth/session';
 import { googleIdTokenFromSheet } from '../auth/google-sheet';
-import { appleCancelled, appleCredentialFrom, appleSignInBody, NEW_ACCOUNT_NAME, NOTHING_OFFERED, offeredSignIns, type Offer } from '../auth/social-sign-in';
+import { appleCancelled, appleCredentialFrom, appleSignInBody, newAccountName, NOTHING_OFFERED, offeredSignIns, type Offer } from '../auth/social-sign-in';
 import { googleClientId, phonePlatform } from '../config/google';
+import { t } from '../i18n';
 import { useTheme } from '../theme';
 import { AppleButton } from './apple-button';
 import { GoogleButton } from './google-button';
@@ -82,7 +83,7 @@ export function SocialSignIn({ onSignedIn }: { onSignedIn?: (user: AccountUser) 
     } catch (error) {
       const code = (error as { code?: string } | null)?.code;
       const email = (error as { details?: { email?: unknown } | null } | null)?.details?.email;
-      if (code === 'link_required') setLink({ provider, body, email: typeof email === 'string' ? email : 'this email' });
+      if (code === 'link_required') setLink({ provider, body, email: typeof email === 'string' ? email : t('common.signIn.thisEmail') });
       // A sign-in that has run out, or belongs to another account, starts again from its button.
       else if (code === 'invalid_token' || code === 'identity_in_use') setLink(null);
       setNotice(accountMessage(error));
@@ -179,17 +180,17 @@ export function SocialSignIn({ onSignedIn }: { onSignedIn?: (user: AccountUser) 
   if (link) {
     return (
       <View style={styles.group}>
-        <Text accessibilityRole="header" style={[styles.heading, { color: theme.colors.fg }]}>{link.provider === 'apple' ? 'Connect Apple to your account' : 'Connect Google to your account'}</Text>
-        <Field label={`Password for ${link.email}`} value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" />
+        <Text accessibilityRole="header" style={[styles.heading, { color: theme.colors.fg }]}>{t('mobile.signIn.connectTitle', { provider: link.provider })}</Text>
+        <Field label={t('mobile.signIn.connectPassword', { email: link.email })} value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" />
         <Notice message={notice} tone="problem" />
-        <Button label="Connect and sign in" pending={pending === 'link'} pendingLabel="Connecting…" disabled={!password} onPress={connect} />
-        <Button kind="quiet" label="Not now" disabled={busy} onPress={() => { setLink(null); setPassword(''); setNotice(null); }} />
+        <Button label={t('common.signIn.connect')} pending={pending === 'link'} pendingLabel={t('common.signIn.connecting')} disabled={!password} onPress={connect} />
+        <Button kind="quiet" label={t('common.action.notNow')} disabled={busy} onPress={() => { setLink(null); setPassword(''); setNotice(null); }} />
       </View>
     );
   }
 
   return (
-    <View style={styles.group} accessibilityLabel="Continue with Google or Apple">
+    <View style={styles.group} accessibilityLabel={t('common.signIn.providers')}>
       {offer.apple && phonePlatform === 'android' ? (
         <AppleButton dark={dark} disabled={busy} style={PROVIDER_BUTTON} onPress={continueWithAppleInBrowser} />
       ) : null}
@@ -205,9 +206,9 @@ export function SocialSignIn({ onSignedIn }: { onSignedIn?: (user: AccountUser) 
       {offer.google ? (
         <GoogleButton dark={dark} disabled={busy} style={PROVIDER_BUTTON} onPress={continueWithGoogle} />
       ) : null}
-      <Text style={[styles.hint, { color: theme.colors.muted }]}>{NEW_ACCOUNT_NAME}</Text>
+      <Text style={[styles.hint, { color: theme.colors.muted }]}>{newAccountName()}</Text>
       <Notice message={notice} tone="problem" />
-      <Text style={[styles.or, { color: theme.colors.muted }]}>or</Text>
+      <Text style={[styles.or, { color: theme.colors.muted }]}>{t('common.signIn.or')}</Text>
     </View>
   );
 }

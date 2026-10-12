@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { compactRowLabel, dateLabel, momentLabel, normalizeMomentTheme, visibilityCue, visibilityRole, type ShownMoment } from '../journey/journey-view';
-import { fonts, getTheme, leading, targetSize, tracking, useTheme } from '../theme';
+import { fonts, getTheme, leading, scriptStyles, targetSize, tracking, useTheme } from '../theme';
 import { MomentCard } from './moment-card';
 
 /**
@@ -46,7 +46,7 @@ export function MomentRow({ moment, open, onToggle, actions }: { moment: ShownMo
   );
 }
 
-const styles = StyleSheet.create({
+const styles = scriptStyles(() => StyleSheet.create({
   wrap: { gap: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderLeftWidth: 5, paddingVertical: 9, paddingLeft: 12, paddingRight: 10 },
   copy: { flex: 1, minWidth: 0, gap: 2 },
@@ -56,4 +56,4 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 12, fontWeight: '800', letterSpacing: tracking(0.6), textTransform: 'uppercase' },
   glyph: { fontSize: 11 },
   fold: { fontSize: 18, fontWeight: '700', width: 14, textAlign: 'center' },
-});
+}));

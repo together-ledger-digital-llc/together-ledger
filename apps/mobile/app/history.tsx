@@ -1,30 +1,32 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { HISTORY_GUIDE_TITLE } from '../../../src/history-guide.js';
 import { accountMessage } from '../src/auth/account-messages';
 import { useSession } from '../src/auth/session';
 import { JourneyNotOpen } from '../src/components/journey-not-open';
 import { Body, Button, Screen } from '../src/components/ui';
-import { HISTORY_WITHOUT_JOURNEY } from '../src/journey/journey-state';
+import { historyWithoutJourney } from '../src/journey/journey-state';
 import { CONSEQUENCES, concernsByRecency, historyEvents, valueLabel, type ConcernRecord, type SharingSnapshot } from '../src/journey/sharing-view';
 import { useJourney, useReloadWhenShown } from '../src/journey/use-journey';
 import { format, t } from '../src/i18n';
 import { useShell } from '../src/shell/shell-provider';
-import { targetSize, tracking, useTheme } from '../src/theme';
+import { scriptStyles, targetSize, tracking, useTheme } from '../src/theme';
+import { useLanguage } from '../src/i18n/language-provider';
 
 /**
  * The web's event manager (renderEventManager): conversations to return to, then the journey's
  * append-only, account-attributed history, newest first (TL-M-09, #184). Its intro leads to "How
  * to read your history" (#349), which explains every part of it in plain words.
  *
- * Its own sentences are keys in locales/en.json (docs/TRANSLATION.md). What it draws from
- * sharing-view (valueLabel, the delete question, "Former journeyer") and the guide's title are
- * still the words the web shares word for word, and move with the web's.
+ * Its sentences are keys in locales/en.json (docs/TRANSLATION.md), what it draws from
+ * sharing-view (valueLabel, the delete question, "Former journeyer") and the guide's title
+ * included: common.* keys, the web's words word for word in English.
  */
 export default function HistoryScreen() {
+  // Redrawn when the language changes, so its words and its type follow at once.
+  useLanguage();
   const { state } = useJourney();
-  if (state.phase !== 'ready') return <JourneyNotOpen title={t('history.screen.name')} signedOut={t('history.screen.signedOut')} noJourneys={HISTORY_WITHOUT_JOURNEY} />;
+  if (state.phase !== 'ready') return <JourneyNotOpen title={t('history.screen.name')} signedOut={t('history.screen.signedOut')} noJourneys={historyWithoutJourney()} />;
   return <History snapshot={state.snapshot as unknown as SharingSnapshot} />;
 }
 
@@ -54,8 +56,8 @@ function History({ snapshot }: { snapshot: SharingSnapshot }) {
 
   return (
     <Screen title={t('history.screen.title', { journey: snapshot.journey.name })} lead={t('history.screen.lead')} refresh={{ refreshing, onRefresh: refresh }}>
-      <Button kind="quiet" label={HISTORY_GUIDE_TITLE} onPress={() => router.push('/history-guide')} />
-      <Text accessibilityRole="header" style={[styles.section, { color: theme.colors.fg }]}>{t('history.concerns.heading')}</Text>
+      <Button kind="quiet" label={t('common.historyGuide.title')} onPress={() => router.push('/history-guide')} />
+      <Text accessibilityRole="header" style={[styles.section, { color: theme.colors.fg }]}>{t('common.concerns.heading')}</Text>
       <Button label={t('history.concerns.start')} onPress={() => router.push('/concern')} />
       {concerns.length ? concerns.map((concern) => (
         <View key={concern.id} style={[styles.card, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface, borderRadius: theme.radius.m }]}>
@@ -115,7 +117,7 @@ function when(value: string | null | undefined) {
   return format.dateTime(value) ?? t('common.time.notRecorded');
 }
 
-const styles = StyleSheet.create({
+const styles = scriptStyles(() => StyleSheet.create({
   section: { fontSize: 18, fontWeight: '700', marginTop: 8 },
   card: { borderWidth: 1, padding: 14, gap: 4 },
   chip: { fontSize: 12, fontWeight: '900', letterSpacing: tracking(1), textTransform: 'uppercase' },
@@ -127,4 +129,4 @@ const styles = StyleSheet.create({
   eventText: { flex: 1, gap: 2 },
   toggle: { fontSize: 20, fontWeight: '700' },
   detail: { gap: 6, marginTop: 6 },
-});
+}));

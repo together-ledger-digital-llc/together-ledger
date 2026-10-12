@@ -9,7 +9,7 @@ const read = (path) => readFile(new URL(path, mobile), 'utf8');
 // The phone's own TypeScript, compiled on the spot, so these tests exercise the code the app runs.
 async function importMobile(path) {
   const { outputText } = ts.transpileModule(await read(path), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
-  return import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+  return import(`data:text/javascript;base64,${Buffer.from(outputText.replace(/from '(\.[^']+\.js)'/g, (_, specifier) => `from '${new URL(specifier, new URL(path, mobile)).href}'`)).toString('base64')}`);
 }
 
 const waiting = await importMobile('src/journey/waiting-moments.ts');

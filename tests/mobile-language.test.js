@@ -78,7 +78,9 @@ test('the phone walks its whole list of languages, and offers only what is appro
   const i18n = await read('src/i18n/index.ts');
   assert.match(i18n, /import \{ getLocales \} from 'expo-localization';/);
   assert.match(i18n, /getLocales\(\)\.map\(\(locale\) => locale\.languageTag\)/, 'every language, in the phone\'s order');
-  assert.match(i18n, /offeredLanguages\(manifest\)\s*\.filter\(\(language: \{ tag: string \}\) => language\.tag in catalogs\)/);
+  assert.match(i18n, /choosableLanguages\(manifest\)\s*\.filter\(\(language: \{ tag: string \}\) => language\.tag in catalogs\)/, 'chosen by hand: approved, or in preview');
+  assert.match(i18n, /const offeredTags = offeredLanguages\(manifest\)\.map\(\(language: \{ tag: string \}\) => language\.tag\)\.filter\(\(tag: string\) => tag in catalogs\);/, 'matched from the phone: approved only (decision 145)');
+  assert.match(i18n, /resolveLanguage\(\{ choice, deviceLanguages: devices, offered: offeredTags, choosable: choosableTags, source: manifest\.source \}\)/);
   assert.match(i18n, /from '\.\.\/\.\.\/\.\.\/\.\.\/src\/i18n\/language-choice\.js'/, 'the web\'s own rules, never a second copy');
   const provider = await read('src/i18n/language-provider.tsx');
   assert.match(provider, /const locales = useLocales\(\);/, 'and follows the phone if its languages change while the app is open');

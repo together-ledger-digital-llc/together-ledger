@@ -171,12 +171,15 @@ const appleName = purchases.match(/const STORE = \{ apple: '([^']+)'/)?.[1];
 const refusal = purchases.match(/'store_environment_mismatch', `(This was a test purchase[^`]*)`/)?.[1]?.replace('${STORE[store]}', appleName);
 if (!refusal || !notesText.includes(`"${refusal}"`)) fail('Review notes no longer quote the sandbox refusal exactly as server/store-purchases.js words it for Apple');
 
+// Settings' rows name their sentences by key; the English a reviewer reads is in locales/en.json.
 const settings = readRepo('apps/mobile/app/settings.tsx');
-for (const label of ['Sharing', 'History and conversations', 'Delete account']) {
-  if (!settings.includes(`label="${label}"`) && !settings.includes(`label={\`${label}`)) fail(`Review notes name Settings > ${label}, which apps/mobile/app/settings.tsx no longer shows`);
+const english = JSON.parse(readRepo('locales/en.json'));
+const shows = (key, words) => settings.includes(`t('${key}')`) && english[key] === words;
+for (const [key, label] of [['mobile.settings.sharing', 'Sharing'], ['mobile.settings.history', 'History and conversations'], ['common.account.delete', 'Delete account']]) {
+  if (!shows(key, label)) fail(`Review notes name Settings > ${label}, which apps/mobile/app/settings.tsx no longer shows`);
 }
-if (!settings.includes('label="Sign in or create an account"')) fail('Review notes name Settings > Sign in or create an account, which apps/mobile/app/settings.tsx no longer shows');
-if (!readRepo('apps/mobile/src/shell/screens.ts').includes('`Journey settings · ${name}`')) fail('Review notes name the Journey settings group, which apps/mobile/src/shell/screens.ts no longer heads that way');
+if (!shows('mobile.settings.signIn', 'Sign in or create an account')) fail('Review notes name Settings > Sign in or create an account, which apps/mobile/app/settings.tsx no longer shows');
+if (!readRepo('apps/mobile/src/shell/screens.ts').includes("t('mobile.settings.journeyHeading', { journey: name })") || english['mobile.settings.journeyHeading'] !== 'Journey settings · {journey}') fail('Review notes name the Journey settings group, which apps/mobile/src/shell/screens.ts no longer heads that way');
 if (!readRepo('apps/mobile/src/billing/store-products.ts').includes("ROOM_TITLE = 'Room for more people'")) fail('Review notes name "Room for more people", which the phone no longer titles its offers');
 
 console.log(failed ? '\nFAILED' : '\nAll checks passed');

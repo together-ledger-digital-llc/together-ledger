@@ -66,7 +66,8 @@ import { useWaitingMoments } from '../src/journey/use-waiting-moments';
 import { unsentWhenLeaving } from '../src/journey/waiting-moments';
 import { useShell } from '../src/shell/shell-provider';
 import { targetSize } from '../src/theme/metrics';
-import { fonts, leading, useTheme } from '../src/theme';
+import { fonts, leading, scriptStyles, useTheme } from '../src/theme';
+import { useLanguage } from '../src/i18n/language-provider';
 
 /**
  * Journey sharing (TL-M-09, #184): who is here, proposing someone, the questions being decided,
@@ -74,6 +75,8 @@ import { fonts, leading, useTheme } from '../src/theme';
  * #sharing-settings, #unpaid-capacity-rest and #billing-panel, in its words.
  */
 export default function JourneySettingsScreen() {
+  // Redrawn when the language changes, so its words and its type follow at once.
+  useLanguage();
   const session = useSession();
   const journey = useJourney();
   const { state } = journey;
@@ -471,7 +474,7 @@ function Row({ title, meta = [], tag, children }: { title: string; meta?: string
   );
 }
 
-const styles = StyleSheet.create({
+const styles = scriptStyles(() => StyleSheet.create({
   section: { gap: 10, marginTop: 8 },
   sectionTitle: { fontSize: 18, fontWeight: '700' },
   row: { borderWidth: 1, padding: 14, gap: 4 },
@@ -488,4 +491,4 @@ const styles = StyleSheet.create({
   dangerZone: { gap: 10, marginTop: 40, borderWidth: 1, padding: 16 },
   dangerTitle: { fontSize: 20, lineHeight: leading(20, 26) },
   help: { fontSize: 14, lineHeight: 20 },
-});
+}));

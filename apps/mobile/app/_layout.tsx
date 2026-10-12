@@ -3,7 +3,8 @@ import { router, Stack } from 'expo-router';
 import { useCallback, useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, Text } from 'react-native';
 import { SessionProvider, useSession } from '../src/auth/session';
-import { LanguageProvider } from '../src/i18n/language-provider';
+import { t } from '../src/i18n';
+import { LanguageProvider, useLanguage } from '../src/i18n/language-provider';
 import { StoreProvider } from '../src/billing/store-provider';
 import { ShellOverlays } from '../src/components/dialogs';
 import { PendingInvitationProvider, PendingInvitationWatch } from '../src/invitations/use-pending-invitation';
@@ -12,8 +13,8 @@ import { JourneyProvider, useJourney } from '../src/journey/use-journey';
 import { MomentViewProvider } from '../src/journey/use-moment-view';
 import { useWaitingMoments, WaitingMomentsProvider } from '../src/journey/use-waiting-moments';
 import { ShellProvider, useShell } from '../src/shell/shell-provider';
-import { CONNECTION_SOURCE, OFFLINE_NOTICE } from '../src/shell/connection';
-import { backAccessibilityLabel, backLabel, SETTINGS_GLYPH } from '../src/shell/screens';
+import { CONNECTION_SOURCE, offlineNotice } from '../src/shell/connection';
+import { backAccessibilityLabel, backLabel, screenTitle, SETTINGS_GLYPH } from '../src/shell/screens';
 import { useConnectionWatch } from '../src/shell/use-connection';
 import { useStoredPreferences, type SaveFailure } from '../src/storage/use-stored-preferences';
 import { fontSources, targetSize, ThemeProvider, useTheme } from '../src/theme';
@@ -30,12 +31,12 @@ function SettingsButton() {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={waiting ? `Settings, ${waiting} to answer` : 'Settings'}
+      accessibilityLabel={waiting ? t('mobile.settings.openWaitingSpoken', { count: waiting }) : t('mobile.settings.open')}
       onPress={() => router.push('/settings')}
       style={({ pressed }) => [styles.headerButton, targetSize, { opacity: pressed ? 0.7 : 1 }]}
     >
       <Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.headerButtonText, { color: theme.colors.accent }]}>{SETTINGS_GLYPH}</Text>
-      <Text style={[styles.headerButtonText, { color: theme.colors.accent }]}>Settings{waiting ? ` · ${waiting}` : ''}</Text>
+      <Text style={[styles.headerButtonText, { color: theme.colors.accent }]}>{waiting ? t('mobile.settings.openWaiting', { count: waiting }) : t('mobile.settings.open')}</Text>
     </Pressable>
   );
 }
@@ -61,6 +62,8 @@ function BackButton({ label }: { label: string }) {
 
 function ThemedStack() {
   const { theme } = useTheme();
+  // Every title and back button is read again when the language changes.
+  useLanguage();
   return (
     <Stack
       screenOptions={({ route, navigation }) => {
@@ -78,26 +81,26 @@ function ThemedStack() {
     >
       {/* The two surfaces (TL-M-06, #181). index decides which one opens. Each title here is
           the one src/shell/screens.ts gives back buttons (#411). */}
-      <Stack.Screen name="index" options={{ title: 'Welcome', headerShown: false }} />
-      <Stack.Screen name="ledger" options={{ title: 'Ledger', headerRight: () => <SettingsButton /> }} />
-      <Stack.Screen name="settings" options={{ title: 'Settings' }} />
-      <Stack.Screen name="account" options={{ title: 'Account settings' }} />
-      <Stack.Screen name="register" options={{ title: 'Create account' }} />
-      <Stack.Screen name="recovery" options={{ title: 'Account recovery' }} />
-      <Stack.Screen name="recovery-confirm" options={{ title: 'Account recovery' }} />
-      <Stack.Screen name="verify-email" options={{ title: 'Verify email' }} />
-      <Stack.Screen name="change-password" options={{ title: 'Change password' }} />
+      <Stack.Screen name="index" options={{ title: screenTitle('index'), headerShown: false }} />
+      <Stack.Screen name="ledger" options={{ title: screenTitle('ledger'), headerRight: () => <SettingsButton /> }} />
+      <Stack.Screen name="settings" options={{ title: screenTitle('settings') }} />
+      <Stack.Screen name="account" options={{ title: screenTitle('account') }} />
+      <Stack.Screen name="register" options={{ title: screenTitle('register') }} />
+      <Stack.Screen name="recovery" options={{ title: screenTitle('recovery') }} />
+      <Stack.Screen name="recovery-confirm" options={{ title: screenTitle('recovery-confirm') }} />
+      <Stack.Screen name="verify-email" options={{ title: screenTitle('verify-email') }} />
+      <Stack.Screen name="change-password" options={{ title: screenTitle('change-password') }} />
       {/* An invitation, from a tapped link or pasted (#266). */}
-      <Stack.Screen name="invite" options={{ title: 'Invitation' }} />
-      <Stack.Screen name="delete-account" options={{ title: 'Delete account' }} />
-      <Stack.Screen name="moment" options={{ title: 'Hold a moment', presentation: 'modal' }} />
-      <Stack.Screen name="new-journey" options={{ title: 'New journey', presentation: 'modal' }} />
-      <Stack.Screen name="journey-settings" options={{ title: 'Journey sharing' }} />
-      <Stack.Screen name="history" options={{ title: 'History' }} />
-      <Stack.Screen name="history-guide" options={{ title: 'How to read your history' }} />
-      <Stack.Screen name="privacy" options={{ title: 'Privacy' }} />
-      <Stack.Screen name="terms" options={{ title: 'Terms of use' }} />
-      <Stack.Screen name="concern" options={{ title: 'Return-to conversation', presentation: 'modal' }} />
+      <Stack.Screen name="invite" options={{ title: screenTitle('invite') }} />
+      <Stack.Screen name="delete-account" options={{ title: screenTitle('delete-account') }} />
+      <Stack.Screen name="moment" options={{ title: screenTitle('moment'), presentation: 'modal' }} />
+      <Stack.Screen name="new-journey" options={{ title: screenTitle('new-journey'), presentation: 'modal' }} />
+      <Stack.Screen name="journey-settings" options={{ title: screenTitle('journey-settings') }} />
+      <Stack.Screen name="history" options={{ title: screenTitle('history') }} />
+      <Stack.Screen name="history-guide" options={{ title: screenTitle('history-guide') }} />
+      <Stack.Screen name="privacy" options={{ title: screenTitle('privacy') }} />
+      <Stack.Screen name="terms" options={{ title: screenTitle('terms') }} />
+      <Stack.Screen name="concern" options={{ title: screenTitle('concern'), presentation: 'modal' }} />
     </Stack>
   );
 }
@@ -127,7 +130,7 @@ function ConnectionWatch() {
     reload();
   }, [refresh, reload, sendNow]);
   useConnectionWatch({
-    onOffline: () => showStatus(OFFLINE_NOTICE, { tone: 'caution', source: CONNECTION_SOURCE }),
+    onOffline: () => showStatus(offlineNotice(), { tone: 'caution', source: CONNECTION_SOURCE }),
     onOnline: () => {
       clearStatus(CONNECTION_SOURCE);
       recheck();

@@ -1,6 +1,7 @@
 import policy from '../src/policies/privacy.json';
 import { PolicyDocument } from '../src/components/policy-document';
 import { Body, Screen } from '../src/components/ui';
+import { useLanguage } from '../src/i18n/language-provider';
 
 /**
  * The privacy policy, on the phone itself. Both stores ask that it can be read from inside the
@@ -11,6 +12,8 @@ import { Body, Screen } from '../src/components/ui';
  * policy reads as its words. Reachable from Settings whether or not anyone is signed in.
  */
 export default function PrivacyScreen() {
+  // Redrawn when the language changes, so its words and its type follow at once.
+  useLanguage();
   return (
     <Screen title={policy.title}>
       <PolicyDocument blocks={policy.blocks} />

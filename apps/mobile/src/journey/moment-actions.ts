@@ -1,17 +1,19 @@
 import { router } from 'expo-router';
+import { t } from '../i18n/sentences.js';
 import { accountMessage } from '../auth/account-messages';
 import { useSession } from '../auth/session';
 import { useShell } from '../shell/shell-provider';
 import { deleteConsequence, payloadFrom, savedMessage, sharePayload, type Draft, type EditableMoment } from './moment-draft';
 import { useJourney } from './use-journey';
 import { useWaitingMoments } from './use-waiting-moments';
-import { KEPT_ON_PHONE } from './waiting-moments';
+import { keptOnPhone } from './waiting-moments';
 
-const SHARE_NOW = {
-  title: 'Share this moment now?',
-  consequence: 'Everyone in this journey will be able to see it, including anyone who joins later. That access cannot be undone.',
-  confirmLabel: 'Share this moment',
-};
+/** Asked before a moment is shared, in the active language. */
+const shareNow = () => ({
+  title: t('common.moment.shareTitle'),
+  consequence: t('common.moment.shareConsequence'),
+  confirmLabel: t('common.moment.shareAction'),
+});
 
 /**
  * Holding, changing, sharing and deleting a moment (TL-M-08, #183). Each one asks the server,
@@ -36,7 +38,7 @@ export function useMomentActions() {
       await work();
       return true;
     } catch (error) {
-      shell.showStatus(accountMessage(error), { source: 'moment' });
+      shell.showStatus(accountMessage(error, 'error.moment'), { source: 'moment' });
       return false;
     }
   }
@@ -49,19 +51,19 @@ export function useMomentActions() {
      */
     async save(draft: Draft, before: EditableMoment | null) {
       if (!journeyId) return false;
-      if (before && before.visibility !== 'shared-now' && draft.visibility === 'shared-now' && !await shell.confirmConsequence(SHARE_NOW)) return false;
+      if (before && before.visibility !== 'shared-now' && draft.visibility === 'shared-now' && !await shell.confirmConsequence(shareNow())) return false;
       const payload = payloadFrom(draft, before);
       if (!before) {
         const journeyName = journey.state.phase === 'ready' ? journey.state.snapshot.journey.name : '';
         shell.clearStatus('moment');
         const held = await waiting.hold(journeyId, journeyName, payload).catch((error: unknown) => {
-          shell.showStatus(accountMessage(error), { source: 'moment' });
+          shell.showStatus(accountMessage(error, 'error.moment'), { source: 'moment' });
           return null;
         });
         if (!held) return false;
         if (held === 'waiting') {
           router.back();
-          shell.showToast(KEPT_ON_PHONE);
+          shell.showToast(keptOnPhone());
           return true;
         }
       } else if (!await attempt(() => client.updateMoment(journeyId, before.id, payload).then(() => undefined))) {
@@ -75,18 +77,18 @@ export function useMomentActions() {
     /** The web's shareMoment(): a share-later moment, shared now, after its consequence is read. */
     async share(moment: EditableMoment) {
       if (!journeyId || moment.visibility !== 'share-later') return;
-      if (!await shell.confirmConsequence(SHARE_NOW)) return;
+      if (!await shell.confirmConsequence(shareNow())) return;
       if (!await attempt(() => client.updateMoment(journeyId, moment.id, sharePayload(moment)).then(() => undefined))) return;
       await journey.reload();
-      shell.showToast('Moment shared with your journeyer.');
+      shell.showToast(t('common.moment.sharedWithJourneyer'));
     },
     async remove(moment: EditableMoment) {
       if (!journeyId) return;
-      if (!await shell.confirmConsequence({ title: 'Delete this moment?', consequence: deleteConsequence(moment), confirmLabel: 'Delete moment', destructive: true })) return;
+      if (!await shell.confirmConsequence({ title: t('mobile.moment.deleteQuestion'), consequence: deleteConsequence(moment), confirmLabel: t('mobile.moment.delete'), destructive: true })) return;
       if (!await attempt(() => client.deleteMoment(journeyId, moment.id, moment.version))) return;
       await journey.reload();
       router.back();
-      shell.showToast('Moment deleted.');
+      shell.showToast(t('mobile.moment.deleted'));
     },
   };
 }

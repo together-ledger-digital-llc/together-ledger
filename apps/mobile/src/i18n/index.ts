@@ -11,19 +11,20 @@ import { getLocales } from 'expo-localization';
 import { IntlMessageFormat } from 'intl-messageformat';
 import source from '../../../../locales/en.json';
 import manifest from '../../../../locales/languages.json';
-import { languageOf, messagesOf, offeredLanguages } from '../../../../src/i18n/catalog.js';
+import { choosableLanguages, languageOf, messagesOf, offeredLanguages } from '../../../../src/i18n/catalog.js';
 import { createFormatter, deviceLocale } from '../../../../src/i18n/format.js';
 import { readChoice, resolveLanguage, speechLanguage } from '../../../../src/i18n/language-choice.js';
 import { createTranslator } from '../../../../src/i18n/translator.js';
 import { savedLanguageNow } from '../storage/phone-storage';
 import { NATIVE_INTL } from './intl-native';
+import { setTranslator, t as sentence } from './sentences.js';
 
 type Formatting = { locale: string; regionalDates: boolean; numberingSystem: string | null };
 export type MessageValues = Record<string, string | number | Date | null | undefined>;
 
 // Every language file the app carries. Metro bundles only what is imported by name, so a
 // language is added here as its file is written (105–109); it is offered only once the manifest
-// also marks it approved.
+// also marks it approved, or in preview (chosen by hand only).
 const BUNDLED: Record<string, Record<string, unknown>> = { [manifest.source]: source };
 const catalogs: Record<string, Record<string, string>> = Object.fromEntries(Object.entries(BUNDLED).map(([tag, arb]) => [tag, messagesOf(arb)]));
 
@@ -40,11 +41,19 @@ if (__DEV__ && process.env.EXPO_PUBLIC_I18N_PSEUDO === '1') {
   console.info(`[i18n] Showing the pseudo-language (${PSEUDO_LOCALE}), for testing layouts only.`);
 }
 
-/** The languages that may be chosen: approved in the manifest and carried in the app. */
-export const OFFERED_LANGUAGES: readonly { tag: string; nativeName: string }[] = offeredLanguages(manifest)
+export type OfferedLanguage = { tag: string; nativeName: string; preview: boolean };
+
+/**
+ * The languages that may be chosen by hand, carried in the app: each approved language, then each
+ * in preview (decision 145), which the Language choice marks with the word Preview.
+ */
+export const OFFERED_LANGUAGES: readonly OfferedLanguage[] = choosableLanguages(manifest)
   .filter((language: { tag: string }) => language.tag in catalogs)
-  .map(({ tag, nativeName }: { tag: string; nativeName: string }) => ({ tag, nativeName }));
-const offeredTags = OFFERED_LANGUAGES.map((language) => language.tag);
+  .map(({ tag, nativeName, preview }: OfferedLanguage) => ({ tag, nativeName, preview }));
+const choosableTags = OFFERED_LANGUAGES.map((language) => language.tag);
+// What the phone's own languages may be matched to: approved languages only. A preview is never
+// reached from the phone, only chosen by hand.
+const offeredTags = offeredLanguages(manifest).map((language: { tag: string }) => language.tag).filter((tag: string) => tag in catalogs);
 
 /**
  * The phone's own languages, in its order of preference: the whole list, not only the first.
@@ -58,29 +67,28 @@ export function deviceLanguages(): string[] {
   }
 }
 
-/** A saved or account choice, read back: an offered tag, or null for "Follow my device". */
-export const readLanguageChoice = (value: unknown): string | null => readChoice(value, offeredTags);
+/** A saved or account choice, read back: a tag that may be chosen, or null for "Follow my device". */
+export const readLanguageChoice = (value: unknown): string | null => readChoice(value, choosableTags);
 
 /** The language to read in, for a choice (a tag, or null to follow the phone's own languages). */
 export const resolveActiveLanguage = (choice: string | null, devices: readonly string[] = deviceLanguages()): string => (
-  pseudo ? manifest.source : resolveLanguage({ choice, deviceLanguages: devices, offered: offeredTags, source: manifest.source })
+  pseudo ? manifest.source : resolveLanguage({ choice, deviceLanguages: devices, offered: offeredTags, choosable: choosableTags, source: manifest.source })
 );
 
 let active: string = manifest.source;
 let ready = false;
-let translate: (key: string, values?: MessageValues) => string = () => '';
 
 /** The dates, numbers and money of the active language. */
 export let format = createFormatter((languageOf(manifest, active) as { formatting: Formatting }).formatting);
 
-/** Makes tag the active language; anything not offered is English. */
+/** Makes tag the active language; anything that may not be chosen is English. */
 export function setActiveLanguage(tag: string): string {
-  const next = offeredTags.includes(tag) ? tag : manifest.source;
+  const next = choosableTags.includes(tag) ? tag : manifest.source;
   if (ready && next === active) return active;
   ready = true;
   active = next;
   format = createFormatter((languageOf(manifest, next) as { formatting: Formatting }).formatting);
-  translate = createTranslator({
+  setTranslator(createTranslator({
     locale: next,
     messages: catalogs[next],
     fallbacks: next === manifest.source ? [] : [{ locale: manifest.source, messages: catalogs[manifest.source] }],
@@ -88,7 +96,7 @@ export function setActiveLanguage(tag: string): string {
     formatters: format.messageFormatters,
     onMissing: __DEV__ ? (key: string, locale: string) => console.warn(`[i18n] "${key}" is missing in ${locale}; showing English.`) : undefined,
     onError: __DEV__ ? (key: string, locale: string, error: unknown) => console.warn(`[i18n] "${key}" in ${locale} did not format:`, error) : undefined,
-  });
+  }));
   return active;
 }
 
@@ -108,15 +116,15 @@ export const speechLanguageOf = (tag: string): string | undefined => speechLangu
 setActiveLanguage(resolveActiveLanguage(readLanguageChoice(savedLanguageNow())));
 
 /**
- * The language the app opened in: what the theme sets type for (src/theme/fonts.ts), chosen once
- * when the app starts, so a different language's type follows at the next start. While English
- * is the only language offered it is always English.
+ * The language the app opened in: the type the app loads before its first screen
+ * (src/theme/fonts.ts). A change while the app is open loads its script's type then, and the
+ * Language preference switches the words and the type together (language-provider.tsx).
  */
 export const language = activeLanguage();
 
-/** The sentence for key in the active language, falling back to English. */
+/** The sentence for key in the active language, falling back to English (./sentences.js). */
 export function t(key: string, values?: MessageValues): string {
-  return translate(key, values);
+  return sentence(key, values);
 }
 
 const LANGUAGES = ['en', 'hi', 'bn', 'es-419', 'hi-Latn'];

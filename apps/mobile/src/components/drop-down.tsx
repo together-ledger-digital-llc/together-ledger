@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { AccessibilityInfo, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { KEEP_LABEL } from '../shell/defaults';
-import { fonts, leading, targetSize, useTheme } from '../theme';
+import { keepThingsLabel } from '../shell/defaults';
+import { fonts, leading, scriptStyles, targetSize, useTheme } from '../theme';
 import { Button } from './ui';
 
 /**
@@ -76,7 +76,7 @@ export function DropDown({ label, options, selected, onSelect }: {
                   );
                 })}
               </View>
-              <Button kind="quiet" label={KEEP_LABEL} onPress={() => setOpen(false)} />
+              <Button kind="quiet" label={keepThingsLabel()} onPress={() => setOpen(false)} />
             </ScrollView>
           </View>
         </View>
@@ -85,7 +85,7 @@ export function DropDown({ label, options, selected, onSelect }: {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = scriptStyles(() => StyleSheet.create({
   field: { gap: 6 },
   label: { fontSize: 15, fontWeight: '600' },
   control: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10 },
@@ -98,4 +98,4 @@ const styles = StyleSheet.create({
   options: { gap: 8 },
   option: { borderWidth: 1, paddingHorizontal: 14, justifyContent: 'center' },
   optionText: { fontSize: 16, fontWeight: '700' },
-});
+}));

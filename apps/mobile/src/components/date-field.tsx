@@ -2,6 +2,7 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { calendarDate, dayFrom } from '../journey/moment-draft';
+import { t } from '../i18n';
 import { useTheme } from '../theme';
 import { Button, Field } from './ui';
 
@@ -26,7 +27,7 @@ export function DateField({ label, hint, value, onChange }: { label: string; hin
   return (
     <View style={styles.field}>
       <Field label={label} hint={hint} value={value} onChangeText={onChange} autoCorrect={false} autoCapitalize="none" maxLength={10} />
-      <Button kind="quiet" label={open ? 'Done' : 'Choose on a calendar'} onPress={choose} />
+      <Button kind="quiet" label={open ? t('mobile.moment.calendarDone') : t('mobile.moment.calendar')} onPress={choose} />
       {open && Platform.OS === 'ios' ? (
         <DateTimePicker
           value={calendarDate(value)}

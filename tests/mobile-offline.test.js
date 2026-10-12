@@ -17,12 +17,16 @@ const read = (path) => readFile(new URL(path, mobile), 'utf8');
 // The phone's own TypeScript, compiled on the spot, so these tests exercise the code the app runs.
 async function importMobile(path) {
   const { outputText } = ts.transpileModule(await read(path), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
-  return import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+  return import(`data:text/javascript;base64,${Buffer.from(outputText.replace(/from '(\.[^']+\.js)'/g, (_, specifier) => `from '${new URL(specifier, new URL(path, mobile)).href}'`)).toString('base64')}`);
 }
 
 const journeyState = await importMobile('src/journey/journey-state.ts');
-const { createAccountClient, OFFLINE_MESSAGE, UNREACHABLE_MESSAGE } = await importMobile('src/api/client.ts');
-const { OFFLINE_NOTICE, CONNECTION_SOURCE } = await importMobile('src/shell/connection.ts');
+// Each is read in the active language as it is said; imported on its own, the phone reads English.
+const { createAccountClient, offlineMessage, unreachableMessage } = await importMobile('src/api/client.ts');
+const { offlineNotice, CONNECTION_SOURCE } = await importMobile('src/shell/connection.ts');
+const [OFFLINE_MESSAGE, UNREACHABLE_MESSAGE, OFFLINE_NOTICE] = [offlineMessage(), unreachableMessage(), offlineNotice()];
+// A person's or a screen's own words inside a sentence are isolated with invisible marks (docs/TRANSLATION.md).
+const unmarked = (text) => text.replace(/[\u2068\u2069]/g, '');
 const { showStatus, clearStatus } = await importMobile('src/shell/status.ts');
 const { sessionFailed, LEDGER_WHILE_OFFLINE } = await importMobile('src/auth/session-state.ts');
 const waiting = await importMobile('src/journey/waiting-moments.ts');
@@ -76,9 +80,9 @@ test('the ledger never blanks: offline it shows its words, what waits with Try s
   const whileOffline = ledger.slice(ledger.indexOf('function LedgerWhileOffline'), ledger.indexOf('function Threads'));
   assert.match(whileOffline, /<Body>\{LEDGER_WHILE_OFFLINE\[reason\]\}<\/Body>/);
   assert.match(whileOffline, /<WaitingMoments activeJourneyId=\{null\} \/>/);
-  assert.match(whileOffline, /<Button kind="quiet" label="Try again" onPress=\{onRetry\} \/>/);
+  assert.match(whileOffline, /<Button kind="quiet" label=\{t\('mobile\.action\.tryAgain'\)\} onPress=\{onRetry\} \/>/);
   const failed = ledger.slice(ledger.indexOf("if (state.phase === 'failed')"), ledger.indexOf("if (state.phase === 'signed-out'"));
-  assert.match(failed, /<Body>\{JOURNEYS_NOT_LOADED\}<\/Body>/, 'any other failure says so in words');
+  assert.match(failed, /<Body>\{journeysNotLoaded\(\)\}<\/Body>/, 'any other failure says so in words');
   assert.match(failed, /<WaitingMoments activeJourneyId=\{null\} \/>/, 'and what waits stays in sight');
   assert.match(ledger, /\{next && nextName \? <Text accessibilityLiveRegion="polite"[^>]*>\{nextJourneyWords\(nextName, next\.when\)\}<\/Text> : null\}/, 'the journey asked for is named under the choices');
 
@@ -120,15 +124,15 @@ test('one message for being offline on the phone: the connection notice\'s words
 });
 
 test('History and Journey sharing open once the connection is back, never "Sign in" or an endless "Loading…" while signed in', async () => {
-  assert.equal(journeyState.opensWhenBack('History'), 'History opens once the connection is back.');
+  assert.equal(unmarked(journeyState.opensWhenBack('History')), 'History opens once the connection is back.');
   const notOpen = await read('src/components/journey-not-open.tsx');
   assert.match(notOpen, /const offline = offlineReason\(state\);\s*if \(offline \|\| state\.phase === 'failed'\)/);
-  assert.match(notOpen, /<Body>\{offline \? opensWhenBack\(title\) : JOURNEYS_NOT_LOADED\}<\/Body>/);
-  assert.match(notOpen, /label="Try again" onPress=\{state\.phase === 'offline' \? session\.refresh : journey\.retry\}/);
-  assert.match(notOpen, /state\.phase === 'signed-out' \? signedOut : state\.phase === 'no-journeys' \? noJourneys : 'Loading…'/, '"Sign in" only while signed out, "Loading…" only while loading');
+  assert.match(notOpen, /<Body>\{offline \? opensWhenBack\(title\) : journeysNotLoaded\(\)\}<\/Body>/);
+  assert.match(notOpen, /label=\{t\('mobile\.action\.tryAgain'\)\} onPress=\{state\.phase === 'offline' \? session\.refresh : journey\.retry\}/);
+  assert.match(notOpen, /state\.phase === 'signed-out' \? signedOut : state\.phase === 'no-journeys' \? noJourneys : t\('common\.status\.loading'\)/, '"Sign in" only while signed out, "Loading…" only while loading');
 
   const history = await read('app/history.tsx');
-  assert.match(history, /if \(state\.phase !== 'ready'\) return <JourneyNotOpen title=\{t\('history\.screen\.name'\)\} signedOut=\{t\('history\.screen\.signedOut'\)\} noJourneys=\{HISTORY_WITHOUT_JOURNEY\} \/>;/);
+  assert.match(history, /if \(state\.phase !== 'ready'\) return <JourneyNotOpen title=\{t\('history\.screen\.name'\)\} signedOut=\{t\('history\.screen\.signedOut'\)\} noJourneys=\{historyWithoutJourney\(\)\} \/>;/);
   // History's words are keys now (docs/TRANSLATION.md); English reads as it did.
   const english = JSON.parse(await readFile(new URL('../locales/en.json', import.meta.url), 'utf8'));
   assert.equal(english['history.screen.name'], 'History');
@@ -143,11 +147,11 @@ test('the words, for the owner to approve', () => {
   assert.equal(UNREACHABLE_MESSAGE, 'Together Ledger can’t be reached right now. You’re still signed in. Try again in a moment.');
   assert.equal(LEDGER_WHILE_OFFLINE.offline, 'This phone is offline. You’re still signed in, and your journeys will be back here when it reconnects.');
   assert.equal(LEDGER_WHILE_OFFLINE.unreachable, 'Together Ledger can’t be reached right now. You’re still signed in on this phone. Try again in a moment.');
-  assert.equal(journeyState.nextJourneyWords('The trip', 'opening'), 'Opening “The trip”…');
-  assert.equal(journeyState.nextJourneyWords('The trip', 'when-back'), '“The trip” opens once the connection is back.');
-  assert.equal(journeyState.opensWhenBack('Journey sharing'), 'Journey sharing opens once the connection is back.');
-  assert.equal(journeyState.JOURNEYS_NOT_LOADED, 'Your journeys couldn’t be loaded just now.');
-  assert.equal(journeyState.HISTORY_WITHOUT_JOURNEY, 'Your account is ready. Create a private journey, and its history will be here.');
+  assert.equal(unmarked(journeyState.nextJourneyWords('The trip', 'opening')), 'Opening “The trip”…');
+  assert.equal(unmarked(journeyState.nextJourneyWords('The trip', 'when-back')), '“The trip” opens once the connection is back.');
+  assert.equal(unmarked(journeyState.opensWhenBack('Journey sharing')), 'Journey sharing opens once the connection is back.');
+  assert.equal(journeyState.journeysNotLoaded(), 'Your journeys couldn’t be loaded just now.');
+  assert.equal(journeyState.historyWithoutJourney(), 'Your account is ready. Create a private journey, and its history will be here.');
 });
 
 // #353: offline never signs anyone out. #366: a moment held offline is sent once.

@@ -5,7 +5,7 @@ import { withTransaction } from './db.js';
 import { identityVerifierFor } from './identity.js';
 import { appleEventFrom, appleSignInFor } from './apple.js';
 import { cleanDisplayText, clipToLimit, fitsLimit } from '../src/display-text.js';
-import { offeredLanguages } from '../src/i18n/catalog.js';
+import { choosableLanguages } from '../src/i18n/catalog.js';
 import { normalizeMomentTheme } from '../src/moment-themes.js';
 import { PhotoMetadataError, stripPhotoMetadata } from '../src/photo-metadata.js';
 import {
@@ -2425,13 +2425,14 @@ export class PlatformService {
   }
 
   // The Language preference (101B): a language chosen by hand, or null to follow the device again.
-  // Only ever the signed-in person's own, and only a language the manifest marks approved. With
+  // Only ever the signed-in person's own, and only a language the manifest marks approved, or in
+  // preview, which a person may choose by hand (decision 145). With
   // unlessChosen, it is set only while the account has no choice of its own: that is how a choice
   // made on a device before signing in carries into the account without overwriting one the
   // account already holds, decided in one statement so two devices signing in at once can't both
   // win. Either way the answer is the account as it now stands, so the device can adopt it.
   async setLanguage(userId, input) {
-    const offered = offeredLanguages(this.languages).map((language) => language.tag);
+    const offered = choosableLanguages(this.languages).map((language) => language.tag);
     const language = input?.language;
     if (language !== null && !(typeof language === 'string' && offered.includes(language))) {
       throw new PlatformError(400, 'invalid_input', 'Choose one of the languages offered, or Follow my device.');

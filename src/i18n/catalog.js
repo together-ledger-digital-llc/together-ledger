@@ -5,7 +5,10 @@
 // "key": "ICU message", where "@key" holds the notes for translators and "@@locale" names the
 // language. Crowdin, Lokalise and Weblate each import it, ICU plurals and notes included.
 
-export const STATUSES = Object.freeze(['draft', 'in-review', 'approved']);
+// A language moves draft → in-review → approved. A preview is a language the owner lets people
+// choose by hand before it is approved (decision 145): offered with the word Preview beside it,
+// never matched from a device, and always falling back to English for what it lacks.
+export const STATUSES = Object.freeze(['draft', 'in-review', 'preview', 'approved']);
 
 /** area.thing.element, each part lowerCamelCase: journey.leave.confirm, common.theme.label. */
 export const KEY_PATTERN = /^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*){2,}$/;
@@ -149,9 +152,38 @@ export function manifestProblems(manifest) {
   return problems;
 }
 
-/** The languages that may be offered to people: approved ones, and only those. */
+/**
+ * The languages that may be offered to people without their asking: approved ones, and only
+ * those. These are the only ones a device's own languages are ever matched to.
+ */
 export function offeredLanguages(manifest) {
   return (manifest?.languages || []).filter((language) => language.status === 'approved');
+}
+
+/**
+ * The languages a person may choose by hand: the approved ones, then each preview, which says
+ * so (preview: true). A preview is never matched from a device (decision 145): someone whose
+ * phone is in it stays in English until it is approved, unless they choose it themselves.
+ */
+export function choosableLanguages(manifest) {
+  return (manifest?.languages || [])
+    .filter((language) => language.status === 'approved' || language.status === 'preview')
+    .map((language) => ({ ...language, preview: language.status === 'preview' }));
+}
+
+/**
+ * The gate on every preview language: what its file holds must parse and keep English's
+ * placeholders, as an approved language's must. Only a missing key is allowed, which reads in
+ * English. A preview needs its file, since there is nothing else to show.
+ */
+export function previewLanguageProblems(manifest, source, translations, MessageFormat) {
+  return choosableLanguages(manifest)
+    .filter((language) => language.preview)
+    .flatMap((language) => (translations[language.tag]
+      ? translationProblems(source, translations[language.tag], language.tag, MessageFormat)
+        .filter((problem) => !problem.endsWith(' is missing'))
+        .map((problem) => `${language.tag}: ${problem}`)
+      : [`${language.tag}: in preview, but it has no translation file`]));
 }
 
 /**

@@ -19,7 +19,8 @@ import {
   type RoomProductId,
   type StoreProductId,
 } from '../billing/store-products';
-import { fonts, leading, useTheme } from '../theme';
+import { t } from '../i18n';
+import { fonts, leading, scriptStyles, useTheme } from '../theme';
 import { SettingsRow } from './settings-rows';
 import { Body, Button } from './ui';
 
@@ -113,7 +114,7 @@ export function MomentExtras({ journeyId, momentId, offered }: { journeyId: stri
 export function RestorePurchases({ row = false }: { row?: boolean }) {
   const store = useStore();
   if (!store.platform) return null;
-  const restore = { label: 'Restore purchases', pendingLabel: 'Checking with the store…', pending: store.restoring, disabled: !store.ready || store.buying !== null, onPress: store.restore };
+  const restore = { label: t('mobile.store.restore'), pendingLabel: t('mobile.store.restoring'), pending: store.restoring, disabled: !store.ready || store.buying !== null, onPress: store.restore };
   return row ? <SettingsRow {...restore} /> : <Button kind="quiet" {...restore} />;
 }
 
@@ -166,7 +167,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = scriptStyles(() => StyleSheet.create({
   section: { gap: 10, marginTop: 8 },
   sectionTitle: { fontSize: 20, lineHeight: leading(20, 26) },
   offer: { borderWidth: 1, padding: 14, gap: 6 },
@@ -175,4 +176,4 @@ const styles = StyleSheet.create({
   price: { fontSize: 16, fontWeight: '700' },
   detail: { fontSize: 14, lineHeight: 20 },
   links: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-});
+}));

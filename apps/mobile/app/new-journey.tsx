@@ -9,12 +9,15 @@ import { CREATED_MESSAGE, dateFieldsShown, END_DATE_CHOICES, journeyPayload, jou
 import type { Journey } from '../src/journey/journey-view';
 import { useJourney } from '../src/journey/use-journey';
 import { useShell } from '../src/shell/shell-provider';
+import { useLanguage } from '../src/i18n/language-provider';
 
 /**
  * Begin a private journey: the web's #journey-dialog for a signed-in account (#333). The person
  * who begins it owns it, and it opens on the ledger as soon as it exists.
  */
 export default function NewJourneyScreen() {
+  // Redrawn when the language changes, so its words and its type follow at once.
+  useLanguage();
   const session = useSession();
   const journey = useJourney();
   const { showStatus, clearStatus, showToast } = useShell();

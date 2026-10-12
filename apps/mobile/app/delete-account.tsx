@@ -7,6 +7,7 @@ import { Body, Button, Field, Screen } from '../src/components/ui';
 import { useWaitingMoments } from '../src/journey/use-waiting-moments';
 import { removedWithAccount } from '../src/journey/waiting-moments';
 import { useShell } from '../src/shell/shell-provider';
+import { useLanguage } from '../src/i18n/language-provider';
 
 /**
  * Delete the account: say plainly what goes and what stays, ask for the password and the word
@@ -26,6 +27,8 @@ const DELETION_KEEPS = "What stays: moments you had shared, with their places an
 const DELETION_WAITS_ON_WEB_PAYMENT = 'If you pay on the web for room in a journey, or own a journey whose room is paid for on the web, that payment must end first.';
 
 export default function DeleteAccountScreen() {
+  // Redrawn when the language changes, so its words and its type follow at once.
+  useLanguage();
   const session = useSession();
   const shell = useShell();
   const waiting = useWaitingMoments();

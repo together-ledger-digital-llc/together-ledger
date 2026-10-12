@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSession } from '../auth/session';
 import { locationContext, momentLabel, moneyContext, normalizeMomentTheme, visibilityCue, visibilityRole, dateLabel, type MomentImage, type ShownMoment } from '../journey/journey-view';
-import { fonts, getTheme, leading, targetSize, tracking, useTheme, type ThemeColors } from '../theme';
+import { t } from '../i18n';
+import { fonts, getTheme, leading, scriptStyles, targetSize, tracking, useTheme, type ThemeColors } from '../theme';
 
 /**
  * One moment, as the web's .moment-card draws it (TL-M-07, #182). A moment with its own
@@ -27,7 +28,7 @@ export function MomentCard({ moment, actions }: { moment: ShownMoment; actions?:
       <View style={styles.meta}>
         <Chip colors={colors} radius={radius.pill} text={kind} />
         <Text style={[styles.metaText, { color: colors.muted }]}>{dateLabel(moment.occurredOn)}</Text>
-        <View accessible accessibilityLabel={`Visibility: ${cue.label}`} style={[styles.chip, { borderColor: colors.border, borderRadius: radius.pill, backgroundColor: ownTheme ? colors.bg : colors.surface }]}>
+        <View accessible accessibilityLabel={t('common.moment.visibilitySpoken', { visibility: cue.label })} style={[styles.chip, { borderColor: colors.border, borderRadius: radius.pill, backgroundColor: ownTheme ? colors.bg : colors.surface }]}>
           <Text style={[styles.chipText, { color: cueColor }]}>
             <Text style={styles.glyph}>{cue.glyph} </Text>
             {cue.label}
@@ -48,20 +49,20 @@ export function MomentCard({ moment, actions }: { moment: ShownMoment; actions?:
         </View>
       ) : null}
       {moment.removedImages.length ? (
-        <Disclosure label="Removed photo" colors={colors}>
-          {moment.removedImages.map((image) => <Text key={image.id} style={[styles.detail, { color: colors.muted }]}>{image.filename || 'Image'}</Text>)}
+        <Disclosure label={t('common.moment.removedPhoto')} colors={colors}>
+          {moment.removedImages.map((image) => <Text key={image.id} style={[styles.detail, { color: colors.muted }]}>{image.filename || t('common.moment.image')}</Text>)}
         </Disclosure>
       ) : null}
       {moneyNote ? (
-        <Disclosure label="Practical money context" colors={colors} divided>
+        <Disclosure label={t('common.moment.money')} colors={colors} divided>
           <Text style={[styles.detail, { color: colors.muted }]}>{moneyNote}</Text>
         </Disclosure>
       ) : null}
       <View style={styles.author}>
-        <Text style={[styles.authorText, { color: colors.muted }]}>Held by {moment.createdBy || 'Journey member'}</Text>
+        <Text style={[styles.authorText, { color: colors.muted }]}>{t('common.moment.heldBy', { name: moment.createdBy || t('common.person.journeyMember') })}</Text>
         {moment.shapedByBoth ? (
           <View style={[styles.badge, { backgroundColor: colors.accent, borderRadius: radius.pill }]}>
-            <Text style={[styles.badgeText, { color: colors.onAccent }]}>Shaped by more than one journeyer</Text>
+            <Text style={[styles.badgeText, { color: colors.onAccent }]}>{t('common.moment.shapedByMany')}</Text>
           </View>
         ) : null}
       </View>
@@ -126,19 +127,19 @@ function MomentPhoto({ image, moment, colors, radius }: { image: MomentImage; mo
     <View style={[styles.photo, { borderColor: colors.border, borderRadius: radius }]}>
       <View style={[styles.thumb, { backgroundColor: colors.metaBg, borderRadius: 4 }]}>
         {source && !failed ? (
-          <Image source={source} onError={() => setFailed(true)} accessibilityLabel={`Photo held with ${moment.title}`} style={styles.thumbImage} />
+          <Image source={source} onError={() => setFailed(true)} accessibilityLabel={t('mobile.moment.photoOf', { title: moment.title })} style={styles.thumbImage} />
         ) : null}
       </View>
       <View style={styles.photoCopy}>
-        <Text style={[styles.photoKind, { color: colors.accent }]}>Photo</Text>
-        <Text numberOfLines={1} style={[styles.photoName, { color: colors.fg }]}>{image.filename || 'Image'}</Text>
-        {failed ? <Text style={[styles.photoNote, { color: colors.muted }]}>Photo could not be loaded.</Text> : null}
+        <Text style={[styles.photoKind, { color: colors.accent }]}>{t('common.moment.photo')}</Text>
+        <Text numberOfLines={1} style={[styles.photoName, { color: colors.fg }]}>{image.filename || t('common.moment.image')}</Text>
+        {failed ? <Text style={[styles.photoNote, { color: colors.muted }]}>{t('mobile.moment.photoFailed')}</Text> : null}
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = scriptStyles(() => StyleSheet.create({
   card: { borderWidth: 1, borderLeftWidth: 5, padding: 18 },
   meta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 7, marginBottom: 9 },
   metaText: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase' },
@@ -166,4 +167,4 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   action: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, justifyContent: 'center' },
   actionText: { fontSize: 14, fontWeight: '800' },
-});
+}));

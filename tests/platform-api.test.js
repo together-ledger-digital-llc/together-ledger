@@ -1987,7 +1987,7 @@ test('the phone app\'s own client carries a whole account journey against this s
   t.after(async () => { await app.close(); await pool.end(); });
   const source = await readFile(new URL('../apps/mobile/src/api/client.ts', import.meta.url), 'utf8');
   const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
-  const { createAccountClient } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+  const { createAccountClient } = await import(`data:text/javascript;base64,${Buffer.from(outputText.replace(/from '(\.[^']+\.js)'/g, (_, specifier) => `from '${new URL(specifier, new URL('../apps/mobile/src/api/client.ts', import.meta.url)).href}'`)).toString('base64')}`);
   let held = null;
   const tokens = { read: async () => held, write: async (value) => { held = value; }, clear: async () => { held = null; } };
   const phone = createAccountClient({
@@ -2933,7 +2933,7 @@ test('a moment added by someone who then deleted their account is recorded under
 async function phoneAgainst(app) {
   const url = new URL('../apps/mobile/src/api/client.ts', import.meta.url);
   const { outputText } = ts.transpileModule(await readFile(url, 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
-  const { createAccountClient } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+  const { createAccountClient } = await import(`data:text/javascript;base64,${Buffer.from(outputText.replace(/from '(\.[^']+\.js)'/g, (_, specifier) => `from '${new URL(specifier, new URL('../apps/mobile/src/api/client.ts', import.meta.url)).href}'`)).toString('base64')}`);
   let held = null;
   return createAccountClient({
     base: () => '/api/v1',

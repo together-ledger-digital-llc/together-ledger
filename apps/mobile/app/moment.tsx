@@ -9,12 +9,14 @@ import { DropDown } from '../src/components/drop-down';
 import { MomentCard } from '../src/components/moment-card';
 import { MomentExtras } from '../src/components/store-offers';
 import { Body, Button, Field, Screen } from '../src/components/ui';
-import { MOMENT_THEMES, MOMENT_TYPES, momentThemeLabel, normalizeMomentTheme, VISIBILITY_CUES, visibilityRole, type ShownMoment } from '../src/journey/journey-view';
+import { MOMENT_THEMES, momentKinds, momentThemeName, normalizeMomentTheme, themeName, VISIBILITY_CUES, visibilityRole, type ShownMoment } from '../src/journey/journey-view';
 import { useMomentActions } from '../src/journey/moment-actions';
-import { addPlace, CURRENCIES, CURRENCY_LABEL, DELETE_ZONE_NOTE, DELETE_ZONE_TITLE, draftFrom, draftProblem, MOMENT_NAME_MISSING, removePlace, visibilityHelp, visibilityLocked, type Draft, type EditableMoment } from '../src/journey/moment-draft';
+import { addPlace, currencies, currencyLabel, deleteZoneNote, deleteZoneTitle, draftFrom, draftProblem, MOMENT_NAME_MISSING, removePlace, visibilityHelp, visibilityLocked, type Draft, type EditableMoment } from '../src/journey/moment-draft';
 import { useJourney } from '../src/journey/use-journey';
+import { t } from '../src/i18n';
 import { useShell } from '../src/shell/shell-provider';
-import { fonts, getTheme, leading, targetSize, useTheme } from '../src/theme';
+import { fonts, getTheme, leading, scriptStyles, targetSize, useTheme } from '../src/theme';
+import { useLanguage } from '../src/i18n/language-provider';
 
 /**
  * Hold a moment, or change one (TL-M-08, #183): the web's moment dialog (index.html,
@@ -22,6 +24,8 @@ import { fonts, getTheme, leading, targetSize, useTheme } from '../src/theme';
  * itself, so a theme and a visibility are chosen by seeing exactly how the moment will look.
  */
 export default function MomentScreen() {
+  // Redrawn when the language changes, so its words and its type follow at once.
+  const { active: language } = useLanguage();
   const { id, kind } = useLocalSearchParams<{ id?: string; kind?: string }>();
   const journey = useJourney();
   const session = useSession();
@@ -47,8 +51,8 @@ export default function MomentScreen() {
   const set = (change: Partial<Draft>) => setDraft((current) => ({ ...current, ...change }));
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: before ? 'Edit this moment' : 'Hold a moment' });
-  }, [navigation, before]);
+    navigation.setOptions({ title: before ? t('common.moment.editTitle') : t('mobile.screen.moment.title') });
+  }, [navigation, before, language]);
 
   // A problem with this form leaves with it, as a problem raised in a web dialog does.
   const { clearStatus } = shell;
@@ -56,9 +60,9 @@ export default function MomentScreen() {
 
   if (journey.state.phase !== 'ready' || (id && !before)) {
     return (
-      <Screen title="Hold a moment">
-        <Body>{id ? 'This moment is no longer here. It may have been deleted on another device.' : 'Open a journey first, then hold a moment in it.'}</Body>
-        <Button kind="quiet" label="Back to the ledger" onPress={() => router.back()} />
+      <Screen title={t('mobile.screen.moment.title')}>
+        <Body>{id ? t('mobile.moment.gone') : t('mobile.moment.noJourney')}</Body>
+        <Button kind="quiet" label={t('mobile.moment.backToLedger')} onPress={() => router.back()} />
       </Screen>
     );
   }
@@ -69,7 +73,7 @@ export default function MomentScreen() {
       // Not the status region, which brings the top of the form into view: the field may be far
       // below it, so the words go on the field and the form scrolls to it instead.
       shell.clearStatus('moment');
-      setTitleProblem(problem);
+      setTitleProblem(t('common.moment.nameMissing'));
       scroll.current?.scrollTo({ y: Math.max(0, titleTop.current - 16), animated: true });
       titleInput.current?.focus();
       return;
@@ -102,14 +106,14 @@ export default function MomentScreen() {
     kind: draft.kind,
     kindLabel: draft.kindLabel,
     occurredOn: draft.occurredOn,
-    title: draft.title.trim() || 'A moment worth holding',
-    detail: draft.detail.trim() || 'The theme stays with this card. The page around it stays yours.',
+    title: draft.title.trim() || t('common.moment.previewTitle'),
+    detail: draft.detail.trim() || t('common.moment.previewDetail'),
     visibility: draft.visibility,
     theme: draft.theme,
     moneyCents: draft.money.trim() === '' || !Number.isFinite(Number(draft.money)) ? null : Math.round(Number(draft.money) * 100),
     moneyCurrency: draft.moneyCurrency,
     locations: draft.locations,
-    createdBy: before?.createdBy || (session.status === 'signed-in' ? session.user.displayName || session.user.username : 'Journey member'),
+    createdBy: before?.createdBy || (session.status === 'signed-in' ? session.user.displayName || session.user.username : t('common.person.journeyMember')),
     shapedByBoth: before?.shapedByBoth,
     updatedAt: '',
     images: [],
@@ -117,31 +121,31 @@ export default function MomentScreen() {
   };
 
   return (
-    <Screen scrollRef={scroll} title={before ? 'Edit this moment' : 'Hold a moment'} lead="Choose whether this stays with you, is shared now, or waits until you are ready.">
-      <Section title="Kind of moment" help="Choose a suggestion, or make one your own.">
-        <Choices label="Kind of moment" options={MOMENT_TYPES as [string, string][]} selected={draft.kind} onSelect={(value) => set({ kind: value })} />
+    <Screen scrollRef={scroll} title={before ? t('common.moment.editTitle') : t('mobile.screen.moment.title')} lead={t('common.moment.lead')}>
+      <Section title={t('common.moment.kind')} help={t('mobile.moment.kindHelp')}>
+        <Choices label={t('common.moment.kind')} options={momentKinds()} selected={draft.kind} onSelect={(value) => set({ kind: value })} />
       </Section>
-      {draft.kind === 'other' ? <Field label="Name this kind of moment" value={draft.kindLabel} onChangeText={(value) => set({ kindLabel: value })} limit={60} placeholder="e.g. A small win" /> : null}
-      <DateField label="When" hint="Year, month and day, such as 2026-09-30." value={draft.occurredOn} onChange={(value) => set({ occurredOn: value })} />
+      {draft.kind === 'other' ? <Field label={t('common.moment.kindName')} value={draft.kindLabel} onChangeText={(value) => set({ kindLabel: value })} limit={60} placeholder={t('common.moment.kindNameExample')} /> : null}
+      <DateField label={t('common.moment.when')} hint={t('mobile.moment.whenHint')} value={draft.occurredOn} onChange={(value) => set({ occurredOn: value })} />
       <View onLayout={(event) => { titleTop.current = event.nativeEvent.layout.y; }}>
         <Field
           ref={titleInput}
-          label="A short name"
+          label={t('common.moment.name')}
           value={draft.title}
           onChangeText={(value) => {
             set({ title: value });
             if (value.trim()) setTitleProblem(null);
           }}
           limit={120}
-          placeholder="e.g. A quiet apology after dinner"
+          placeholder={t('common.moment.nameExample')}
           problem={titleProblem}
         />
       </View>
-      <Field label="What would you like to hold? (Optional)" value={draft.detail} onChangeText={(value) => set({ detail: value })} maxLength={1200} multiline placeholder="Use your own words. Keep it simple and kind." style={styles.detail} />
+      <Field label={t('mobile.moment.detail')} value={draft.detail} onChangeText={(value) => set({ detail: value })} maxLength={1200} multiline placeholder={t('common.moment.detailExample')} style={styles.detail} />
 
-      <Section title="Moment theme (Optional)" help="Use your theme, or choose one calm card treatment that every journeyer will see.">
-        <View accessibilityRole="radiogroup" accessibilityLabel="Moment theme" style={styles.options}>
-          {[{ id: '', label: 'Use my theme' }, ...MOMENT_THEMES].map((option) => {
+      <Section title={t('mobile.moment.themeTitle')} help={t('common.moment.themeHelp')}>
+        <View accessibilityRole="radiogroup" accessibilityLabel={t('mobile.moment.themeGroup')} style={styles.options}>
+          {[{ id: '', label: t('common.moment.useMyTheme') }, ...MOMENT_THEMES.map(({ id, label }) => ({ id, label: themeName(id, label) }))].map((option) => {
             const active = normalizeMomentTheme(draft.theme) === option.id;
             const swatch = option.id ? getTheme(option.id).colors : colors;
             return (
@@ -164,23 +168,23 @@ export default function MomentScreen() {
 
       {/* No web price and no web add-on here, unlike the web's form (#268). If a moment has no
           room for another place, the save says so in the phone's own words. */}
-      <Section title="Places (Optional)" help="Add only what helps tell the story.">
-        <Field label="Enter a place" value={place} onChangeText={setPlace} limit={120} placeholder="Enter a place in your own words" onSubmitEditing={() => addTyped()} returnKeyType="done" />
-        <Button kind="quiet" label="Add place" onPress={addTyped} />
+      <Section title={t('mobile.moment.placesTitle')} help={t('mobile.moment.placesHelp')}>
+        <Field label={t('common.moment.place')} value={place} onChangeText={setPlace} limit={120} placeholder={t('common.moment.placeExample')} onSubmitEditing={() => addTyped()} returnKeyType="done" />
+        <Button kind="quiet" label={t('common.moment.addPlace')} onPress={addTyped} />
         {draft.locations.map((location, index) => (
           <View key={`${index}-${location.label}`} style={[styles.place, { borderColor: colors.border, borderRadius: theme.radius.s }]}>
             <View style={styles.placeCopy}>
               <Text style={[styles.placeLabel, { color: colors.fg }]}>{location.label}</Text>
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${location.label}`} onPress={() => set({ locations: removePlace(draft.locations, index) })} style={[styles.remove, targetSize, { borderColor: colors.border, borderRadius: theme.radius.pill }]}>
-              <Text style={[styles.removeText, { color: colors.fg }]}>Remove</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('common.moment.removePlace', { place: location.label })} onPress={() => set({ locations: removePlace(draft.locations, index) })} style={[styles.remove, targetSize, { borderColor: colors.border, borderRadius: theme.radius.pill }]}>
+              <Text style={[styles.removeText, { color: colors.fg }]}>{t('common.action.remove')}</Text>
             </Pressable>
           </View>
         ))}
       </Section>
 
-      <Section title="Visibility" help={visibilityHelp(before)}>
-        <View accessibilityRole="radiogroup" accessibilityLabel="Visibility" style={styles.options}>
+      <Section title={t('common.moment.visibility')} help={visibilityHelp(before)}>
+        <View accessibilityRole="radiogroup" accessibilityLabel={t('common.moment.visibility')} style={styles.options}>
           {(['private', 'shared-now', 'share-later'] as const).map((value) => {
             const cue = VISIBILITY_CUES[value];
             const active = draft.visibility === value;
@@ -199,19 +203,19 @@ export default function MomentScreen() {
                   <Text style={styles.glyph}>{cue.glyph} </Text>
                   {cue.label}
                 </Text>
-                {active ? <Text style={[styles.chosen, { color: colors.muted }]}>Chosen</Text> : null}
+                {active ? <Text style={[styles.chosen, { color: colors.muted }]}>{t('mobile.moment.chosen')}</Text> : null}
               </Pressable>
             );
           })}
         </View>
       </Section>
 
-      <Section title="Practical money context (Optional; never counted as a score)">
-        <Field label="Amount (optional)" value={draft.money} onChangeText={(value) => set({ money: value })} keyboardType="decimal-pad" />
-        <DropDown label={CURRENCY_LABEL} options={CURRENCIES} selected={draft.moneyCurrency} onSelect={(value) => set({ moneyCurrency: value })} />
+      <Section title={t('mobile.moment.moneyTitle')}>
+        <Field label={t('common.moment.amount')} value={draft.money} onChangeText={(value) => set({ money: value })} keyboardType="decimal-pad" />
+        <DropDown label={currencyLabel()} options={currencies()} selected={draft.moneyCurrency} onSelect={(value) => set({ moneyCurrency: value })} />
       </Section>
 
-      <Section title="Live preview" help={`${momentThemeLabel(draft.theme)} · exactly as this moment will appear in the ledger.`}>
+      <Section title={t('common.moment.livePreview')} help={t('common.moment.previewHelp', { theme: momentThemeName(draft.theme) })}>
         <MomentCard moment={preview} />
       </Section>
 
@@ -225,17 +229,17 @@ export default function MomentScreen() {
         />
       ) : null}
 
-      <Button label={before ? 'Save moment' : 'Hold this moment'} pending={pending === 'save'} disabled={pending !== null} onPress={save} />
-      <Button kind="quiet" label="Cancel" disabled={pending !== null} onPress={() => router.back()} />
+      <Button label={before ? t('common.moment.save') : t('common.moment.hold')} pending={pending === 'save'} disabled={pending !== null} onPress={save} />
+      <Button kind="quiet" label={t('common.action.cancel')} disabled={pending !== null} onPress={() => router.back()} />
 
       {/* Deleting sits apart from Save and Cancel, in its own marked box at the foot of the form,
           and says what it does before it is tapped (#338). The button opens the consequence
           dialog, so it takes two deliberate taps. The destructive colour stays: it can't be undone. */}
       {before ? (
         <View style={[styles.dangerZone, { borderColor: colors.destructive, borderRadius: theme.radius.l, backgroundColor: colors.surface }]}>
-          <Text accessibilityRole="header" style={[styles.sectionTitle, fonts.serif, { color: colors.fg }]}>{DELETE_ZONE_TITLE}</Text>
-          <Text style={[styles.help, { color: colors.muted }]}>{DELETE_ZONE_NOTE}</Text>
-          <Button kind="destructive" label="Delete moment" pending={pending === 'delete'} disabled={pending !== null} onPress={remove} />
+          <Text accessibilityRole="header" style={[styles.sectionTitle, fonts.serif, { color: colors.fg }]}>{deleteZoneTitle()}</Text>
+          <Text style={[styles.help, { color: colors.muted }]}>{deleteZoneNote()}</Text>
+          <Button kind="destructive" label={t('mobile.moment.delete')} pending={pending === 'delete'} disabled={pending !== null} onPress={remove} />
         </View>
       ) : null}
     </Screen>
@@ -263,7 +267,7 @@ function Section({ title, help, children }: { title: string; help?: string; chil
   );
 }
 
-const styles = StyleSheet.create({
+const styles = scriptStyles(() => StyleSheet.create({
   section: { gap: 10, marginTop: 8 },
   sectionTitle: { fontSize: 20, lineHeight: leading(20, 26) },
   help: { fontSize: 14, lineHeight: 20 },
@@ -282,4 +286,4 @@ const styles = StyleSheet.create({
   remove: { borderWidth: 1, paddingHorizontal: 14, justifyContent: 'center' },
   removeText: { fontSize: 14, fontWeight: '800' },
   dangerZone: { gap: 10, marginTop: 40, borderWidth: 1, padding: 16 },
-});
+}));

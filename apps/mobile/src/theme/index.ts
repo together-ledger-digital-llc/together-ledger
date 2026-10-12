@@ -3,5 +3,6 @@
 export { chooseTheme, getTheme, themes, type Theme, type ThemeColors, type ThemeRadius } from './themes';
 export type { ThemeBase } from './resolve-theme';
 export { MIN_TARGET, targetSize } from './metrics';
-export { fonts, fontSources, leading, script, tracking } from './fonts';
+export { activeScript, fonts, fontSources, leading, loadScriptFonts, script, scriptStyles, setActiveScript, tracking } from './fonts';
+export { scriptOf, type Script } from './scripts';
 export { ThemeProvider, useTheme } from './theme-provider';

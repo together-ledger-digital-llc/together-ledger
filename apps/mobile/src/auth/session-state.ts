@@ -1,4 +1,5 @@
 import type { AccountUser } from '../api/client';
+import { t } from '../i18n/sentences.js';
 
 /**
  * Who this phone is signed in as, as far as it can tell (#352). Kept free of React so the rules
@@ -31,20 +32,16 @@ export function sessionFailed(current: SessionState, error: unknown): SessionSta
   return { status: 'offline', user: null, reason: code === 'offline' ? 'offline' : 'unreachable' };
 }
 
+/** Words for each reason, read in the active language as they are drawn. */
+function byReason(keys: Readonly<Record<OfflineReason, string>>): Readonly<Record<OfflineReason, string>> {
+  return Object.freeze({ get offline() { return t(keys.offline); }, get unreachable() { return t(keys.unreachable); } });
+}
+
 /** What the phone says while it holds a sign-in it cannot check, short enough for Settings. */
-export const STILL_SIGNED_IN: Readonly<Record<OfflineReason, string>> = Object.freeze({
-  offline: 'This phone is offline. You’re still signed in.',
-  unreachable: 'Together Ledger can’t be reached right now. You’re still signed in.',
-});
+export const STILL_SIGNED_IN = byReason({ offline: 'mobile.offline.stillSignedIn', unreachable: 'mobile.offline.stillSignedInUnreachable' });
 
 /** The ledger in place of its journeys, which are not kept on the phone in v1 (#352, #360). */
-export const LEDGER_WHILE_OFFLINE: Readonly<Record<OfflineReason, string>> = Object.freeze({
-  offline: 'This phone is offline. You’re still signed in, and your journeys will be back here when it reconnects.',
-  unreachable: 'Together Ledger can’t be reached right now. You’re still signed in on this phone. Try again in a moment.',
-});
+export const LEDGER_WHILE_OFFLINE = byReason({ offline: 'mobile.offline.ledger', unreachable: 'mobile.offline.unreachableHere' });
 
 /** The account screen in place of the sign-in form, which this phone does not need. */
-export const ACCOUNT_WHILE_OFFLINE: Readonly<Record<OfflineReason, string>> = Object.freeze({
-  offline: 'This phone is offline. You’re still signed in, and your account will be here when it reconnects.',
-  unreachable: 'Together Ledger can’t be reached right now. You’re still signed in on this phone. Try again in a moment.',
-});
+export const ACCOUNT_WHILE_OFFLINE = byReason({ offline: 'mobile.offline.account', unreachable: 'mobile.offline.unreachableHere' });
