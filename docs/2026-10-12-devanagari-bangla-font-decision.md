@@ -92,8 +92,10 @@ the eyebrows' 0.1–0.18em and the phone's 1.9pt pull the headline apart into se
 reads as broken text, not as small capitals. Neither script has capitals, so `text-transform:
 uppercase` does nothing either. The comparison shows both at 0 and as they are today.
 
-- Web: `:lang(hi) *, :lang(bn) * { letter-spacing: 0 !important; }`. `!important` because no rule may
-  track these scripts, whatever it says.
+- Web: `:lang(hi):not(:lang(hi-Latn)) *, :lang(bn) * { letter-spacing: 0 !important; }`. `!important`
+  because no rule may track these scripts, whatever it says. CSS `:lang(hi)` matches any tag beginning
+  with `hi`, so Hinglish (`hi-Latn`, Latin script) is excluded here and in the line-height rule, as the
+  phone's `scriptOf()` already does. A browser test holds Hinglish to English's spacing.
 - Phone: every `letterSpacing` goes through `tracking()`, which returns 0 in Hindi or Bengali.
 
 **Line height.** Marks above the headline (ि ी ँ ॅ, ঁ ি ী ৈ) and below the baseline (ु ू ृ ्, ু ূ ৃ)

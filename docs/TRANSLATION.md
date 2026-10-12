@@ -240,7 +240,8 @@ Bangla (`docs/2026-10-12-devanagari-bangla-font-decision.md`). Interface text st
 - **Never track Devanagari or Bangla**, and give their marks room: a serif line height of at least 1.35
   (Hindi) or 1.3 (Bengali). On the phone, a serif style's `lineHeight` goes through `leading()` and any
   `letterSpacing` through `tracking()`; on the web, `src/styles.css` does both under `:lang(hi)` and
-  `:lang(bn)`.
+  `:lang(bn)`. `:lang(hi)` also matches Hinglish (`hi-Latn`), so those rules exclude it: Hinglish is
+  Latin and keeps English's spacing.
 - `tests/browser-script-fonts.spec.js` sets the screens in sample Hindi and Bengali and checks the layout
   at 320px. Rerun it with the real translations.
 

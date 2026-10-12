@@ -96,6 +96,29 @@ test('English and Spanish never fetch the Hindi or Bengali serif, and it draws n
   expect(fetched).toEqual([]);
 });
 
+// CSS :lang(hi) matches any tag that begins with hi, Hinglish's hi-Latn included. Hinglish is Latin
+// script, so it keeps English's tracking and line height, and never needs a Tiro file.
+test('Hinglish (hi-Latn) is set as Latin: tracked and spaced as English, and fetches no Tiro file', async ({ page }) => {
+  const fetched = watchFonts(page);
+  await page.goto('/');
+  await expect(page.locator('#welcome-title')).toBeVisible();
+  const read = () => page.evaluate(() => [...document.querySelectorAll('h1, h2, h3, .welcome-eyebrow, .eyebrow')].filter((element) => element.getClientRects().length).map((element) => {
+    const style = getComputedStyle(element);
+    return `${element.tagName}.${element.className} ${style.letterSpacing} ${style.lineHeight}`;
+  }));
+  const english = await read();
+  await page.evaluate(() => {
+    document.documentElement.lang = 'hi-Latn';
+    document.querySelector('#welcome-title').textContent = 'Jo zaroori hai, use saath sambhaal kar rakhein.';
+    document.querySelector('.welcome-eyebrow').textContent = 'Do logon ki saanjhi yatra';
+  });
+  await page.evaluate(() => document.fonts.ready);
+  expect(await read()).toEqual(english);
+  const title = await page.locator('#welcome-title').evaluate((element) => getComputedStyle(element).letterSpacing);
+  expect(title, 'the heading keeps its Latin tracking').not.toMatch(/^(normal|0px)$/);
+  expect(fetched).toEqual([]);
+});
+
 for (const lang of ['hi', 'bn']) {
   for (const width of WIDTHS) {
     test(`${lang} at ${width}px: the welcome's headings are ${FACE[lang]}, untracked, with room for their marks`, async ({ page }) => {
