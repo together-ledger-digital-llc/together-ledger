@@ -15,6 +15,11 @@ const publicFiles = [
   'src/app.js',
   'src/display-text.js',
   'src/history-guide.js',
+  'src/i18n/catalog.js',
+  'src/i18n/dom.js',
+  'src/i18n/format.js',
+  'src/i18n/translator.js',
+  'src/i18n/web.js',
   'src/journey-row.js',
   'src/leave-journey.js',
   'src/model.js',
@@ -23,6 +28,10 @@ const publicFiles = [
   'src/store.js',
   'src/styles.css',
   'src/themes.js',
+  'src/vendor/intl-messageformat.js',
+  // The sentences, read by src/i18n/web.js from this same origin (docs/TRANSLATION.md).
+  'locales/en.json',
+  'locales/languages.json',
 ];
 
 if (releaseRevision !== 'local-development' && !/^[0-9a-f]{40}$/i.test(releaseRevision)) {
@@ -33,6 +42,7 @@ rmSync(output, { force: true, recursive: true });
 mkdirSync(join(output, 'src'), { recursive: true });
 
 for (const relativePath of publicFiles) {
+  mkdirSync(dirname(join(output, relativePath)), { recursive: true });
   cpSync(join(root, relativePath), join(output, relativePath));
 }
 cpSync(join(root, 'public'), output, { recursive: true });

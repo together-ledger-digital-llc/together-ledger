@@ -1,0 +1,211 @@
+{
+  "@@locale": "en",
+  "@@context": "Together Ledger: a private shared journey for two or more people. English is the source language. Notes for translators are the @ entries; docs/TRANSLATION.md and locales/glossary.json explain the careful words.",
+
+  "common.journeySettings.title": "Journey settings",
+  "@common.journeySettings.title": {
+    "description": "The name of the settings for one journey, shown as the title of that panel on the web and as a heading on the phone. A journey is the shared space two or more people keep together; see the glossary."
+  },
+  "common.appearance.title": "Appearance",
+  "@common.appearance.title": {
+    "description": "Heading over the theme choice, in settings on the web and on the phone."
+  },
+  "common.theme.label": "Theme",
+  "@common.theme.label": {
+    "description": "Label of the menu that picks a colour theme (Light, Dark, Green, Flexoki) for this person's own screen."
+  },
+  "common.theme.note": "Your theme changes only your own view. Each journeyer chooses what feels right on their screen.",
+  "@common.theme.note": {
+    "description": "Under the theme menu. Reassures that a theme is personal: changing it never changes what the other people in the journey see. 'Journeyer' is one of the people sharing a journey; see the glossary."
+  },
+  "common.action.edit": "Edit",
+  "@common.action.edit": {
+    "description": "Button that opens something to change it. A short verb."
+  },
+  "common.action.delete": "Delete",
+  "@common.action.delete": {
+    "description": "Button that deletes something. A confirmation always follows, so this is the first step, not the final one."
+  },
+  "common.time.notRecorded": "Time not recorded",
+  "@common.time.notRecorded": {
+    "description": "Shown in place of a date and time when none was saved."
+  },
+
+  "settings.dialog.close": "Close settings",
+  "@settings.dialog.close": {
+    "description": "Spoken label of the × button that closes the journey settings panel on the web. Read by screen readers only."
+  },
+  "settings.storage.browserOnly": "Browser-only journeys stay on this device unless you download a backup.",
+  "@settings.storage.browserOnly": {
+    "description": "Under the settings title on the web, when the person is not signed in and the journey lives only in this browser."
+  },
+  "settings.storage.signedIn": "This signed-in journey is loaded from the private service. Sign out to return to your browser-only journey.",
+  "@settings.storage.signedIn": {
+    "description": "Under the settings title on the web, when the person is signed in and the journey comes from their account."
+  },
+  "settings.theme.menuLabel": "Settings color theme",
+  "@settings.theme.menuLabel": {
+    "description": "Spoken label of the theme menu inside settings on the web, so screen readers can tell it from the identical menu in the page header. Read by screen readers only."
+  },
+  "settings.backup.title": "Backup and restore",
+  "@settings.backup.title": {
+    "description": "Heading of the settings section that downloads all of this browser's journeys to a file and brings a file back."
+  },
+  "settings.backup.privacy": "Exports include every local journey, moment, practical detail, and action milestone. Internal account IDs are replaced with aliases made for that file. The file still contains private journey content, so store it with care.",
+  "@settings.backup.privacy": {
+    "description": "What a backup file holds, and that it is private. 'Moment' is something two people hold in their journey; see the glossary."
+  },
+  "settings.backup.restoreBoundary": "Import replaces this browser’s current ledger only after the whole file passes validation. Export first if you need the current ledger.",
+  "@settings.backup.restoreBoundary": {
+    "description": "Warns that importing a file replaces what this browser holds, and only once the whole file checks out. 'Ledger' is everything this browser keeps."
+  },
+  "settings.backup.export": "Export all journeys",
+  "@settings.backup.export": {
+    "description": "Button that downloads a backup file of every journey in this browser."
+  },
+  "settings.backup.import": "Import and replace",
+  "@settings.backup.import": {
+    "description": "Button that picks a backup file and replaces this browser's journeys with it. Keep both halves: it imports, and it replaces."
+  },
+  "settings.backup.exported": "Private backup downloaded.",
+  "@settings.backup.exported": {
+    "description": "Brief message after the backup file has been downloaded."
+  },
+  "settings.backup.imported": "Ledger imported on this browser.",
+  "@settings.backup.imported": {
+    "description": "Brief message after a backup file has replaced this browser's journeys."
+  },
+  "settings.reset.title": "Start fresh",
+  "@settings.reset.title": {
+    "description": "Heading of the settings section that clears this browser's journeys. The button below it has the same English words but is an action; its key is settings.reset.action."
+  },
+  "settings.reset.note": "Reset clears this browser’s journeys and starts with an empty shared space. Export first if you need a backup.",
+  "@settings.reset.note": {
+    "description": "What starting fresh does, under its heading."
+  },
+  "settings.reset.action": "Start fresh",
+  "@settings.reset.action": {
+    "description": "Button that asks to clear this browser's journeys. A confirmation follows. Same English words as the heading settings.reset.title, but this is a verb on a button."
+  },
+  "settings.reset.confirmTitle": "Clear this browser’s ledger?",
+  "@settings.reset.confirmTitle": {
+    "description": "Title of the confirmation asked before clearing this browser's journeys. It cannot be undone."
+  },
+  "settings.reset.confirmConsequence": "This browser begins again with an empty shared space. Export first if you need a backup.",
+  "@settings.reset.confirmConsequence": {
+    "description": "What clearing does, in the confirmation."
+  },
+  "settings.reset.confirmAction": "Clear ledger",
+  "@settings.reset.confirmAction": {
+    "description": "The button in the confirmation that clears this browser's journeys. It cannot be undone."
+  },
+  "settings.reset.done": "This browser has a fresh shared space.",
+  "@settings.reset.done": {
+    "description": "Brief message after this browser's journeys were cleared."
+  },
+  "settings.privacy.title": "Privacy boundary",
+  "@settings.privacy.title": {
+    "description": "Heading of the settings section that says where journeys are kept."
+  },
+  "settings.privacy.note": "Browser-only journeys stay in this browser. Signed-in private journeys are loaded from the account service and removed from view on sign-out; signing in never uploads the browser ledger.",
+  "@settings.privacy.note": {
+    "description": "Where journeys live: in this browser, or in the person's account. Signing in never sends the browser's journeys anywhere."
+  },
+
+  "history.screen.name": "History",
+  "@history.screen.name": {
+    "description": "The name of the History screen on the phone, shown when it cannot open yet. History is the journey's record of every change, newest first."
+  },
+  "history.screen.title": "{journey} history",
+  "@history.screen.title": {
+    "description": "Title of the History screen on the phone: the journey's own name, then 'history'.",
+    "placeholders": {
+      "journey": { "type": "String", "example": "Home in Fall", "description": "The journey's name, written by the people in it, in any script." }
+    }
+  },
+  "history.screen.lead": "Server-authoritative, account-attributed history. HMAC chaining makes database changes detectable; deleted records retain privacy-bounded tombstones.",
+  "@history.screen.lead": {
+    "description": "Introduction at the top of History: the record is kept by the server, each change is tied to the account that made it, and tampering is detectable. HMAC is a technical name; keep it as is. A tombstone is the small, private marker left where something was deleted."
+  },
+  "history.screen.signedOut": "Sign in and open a journey to see its history.",
+  "@history.screen.signedOut": {
+    "description": "On the History screen when nobody is signed in."
+  },
+  "history.concerns.heading": "Return-to conversations",
+  "@history.concerns.heading": {
+    "description": "Heading over the list of conversations the people in a journey want to come back to together."
+  },
+  "history.concerns.start": "Start a return-to conversation",
+  "@history.concerns.start": {
+    "description": "Button that starts a new conversation to come back to."
+  },
+  "history.concerns.empty": "Nothing to return to yet. Conversations you want to come back to together will appear here.",
+  "@history.concerns.empty": {
+    "description": "Shown when there are no conversations to return to."
+  },
+  "history.concern.status": "{status, select, open {Open} other {Resolved}}",
+  "@history.concern.status": {
+    "description": "Small label on a conversation to return to: still open, or resolved. Shown in capitals on the phone.",
+    "placeholders": {
+      "status": { "type": "String", "example": "open", "description": "open, or anything else for resolved. Translate only the words inside the braces." }
+    }
+  },
+  "history.concern.updated": "Updated {time}",
+  "@history.concern.updated": {
+    "description": "When a conversation to return to last changed.",
+    "placeholders": {
+      "time": { "type": "String", "example": "Oct 12, 2026, 3:04 PM", "description": "The date and time, already written for the language." }
+    }
+  },
+  "history.concern.deleted": "Conversation deleted. The history keeps a tombstone.",
+  "@history.concern.deleted": {
+    "description": "Brief message after a conversation to return to was deleted. The history keeps a small, private marker that it was there."
+  },
+  "history.events.heading": "Recorded changes",
+  "@history.events.heading": {
+    "description": "Heading over the journey's record of every change, newest first."
+  },
+  "history.events.empty": "No recorded changes yet. Changes appear here as they happen. Activity from before the Event Manager began cannot be reconstructed.",
+  "@history.events.empty": {
+    "description": "Shown when the record has no changes yet. The Event Manager is the name of the record-keeping that began on a certain date."
+  },
+  "history.event.heading": "#{sequence, number, ::group-off} · {summary}",
+  "@history.event.heading": {
+    "description": "One change in the record: its number in order, then what happened. Keep the number without thousands separators.",
+    "placeholders": {
+      "sequence": { "type": "int", "example": "12", "description": "Where this change comes in order, from 1." },
+      "summary": { "type": "String", "example": "Added a moment", "description": "What happened, as the server recorded it." }
+    }
+  },
+  "history.event.byline": "{actor} · {time}",
+  "@history.event.byline": {
+    "description": "Who made a change, and when.",
+    "placeholders": {
+      "actor": { "type": "String", "example": "Asha", "description": "The person's name, in any script, or 'Former journeyer'." },
+      "time": { "type": "String", "example": "Oct 12, 2026, 3:04 PM", "description": "The date and time, already written for the language." }
+    }
+  },
+  "history.event.change": "{before} → {after}",
+  "@history.event.change": {
+    "description": "One value that changed, from what it was to what it became. It follows the name of the value, which is shown in bold and not translated.",
+    "placeholders": {
+      "before": { "type": "String", "example": "$12.50", "description": "The old value." },
+      "after": { "type": "String", "example": "$20.00", "description": "The new value." }
+    }
+  },
+  "history.event.noChange": "No field-level value change was stored for this event.",
+  "@history.event.noChange": {
+    "description": "Shown inside an opened change that recorded no individual values."
+  },
+  "history.event.record": "Event ID {id} · Previous {hasPrevious, select, yes {{previous}} other {none}} · server-authoritative{hasHash, select, yes { · Hash {hash}…} other {}}",
+  "@history.event.record": {
+    "description": "The technical record of one change: its ID, the ID of the change before it (or none), that the server keeps it, and the start of its tamper-evident hash when there is one. IDs and the hash are machine text; keep them as they come.",
+    "placeholders": {
+      "id": { "type": "String", "example": "8c1f0e7a-…", "description": "This change's ID." },
+      "hasPrevious": { "type": "String", "example": "yes", "description": "yes when there is a change before this one. Translate only the words inside the braces." },
+      "previous": { "type": "String", "example": "77b2c9d4-…", "description": "The previous change's ID." },
+      "hasHash": { "type": "String", "example": "yes", "description": "yes when the change has a hash. Translate only the words inside the braces." },
+      "hash": { "type": "String", "example": "3f9a1c0b77de", "description": "The first twelve characters of the hash." }
+    }
+  }
+}

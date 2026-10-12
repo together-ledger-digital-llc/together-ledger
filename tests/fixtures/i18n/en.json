@@ -1,0 +1,12 @@
+{
+  "@@locale": "en",
+  "journey.leave.done": "{gender, select, female {{name} left the journey.} male {{name} left the journey.} other {{name} left the journey.}}",
+  "@journey.leave.done": {
+    "description": "Fixture: a sentence about a person. English reads the same for every gender; the select is there so Hindi, whose verbs agree, can differ.",
+    "placeholders": { "gender": { "type": "String", "example": "female" }, "name": { "type": "String", "example": "Asha" } }
+  },
+  "journey.moments.count": "{count, plural, one {# moment} other {# moments}}",
+  "@journey.moments.count": { "description": "Fixture: a count with its noun." },
+  "common.action.save": "Save",
+  "@common.action.save": { "description": "Fixture: a plain button." }
+}

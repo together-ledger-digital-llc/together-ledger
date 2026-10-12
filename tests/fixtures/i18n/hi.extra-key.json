@@ -1,0 +1,7 @@
+{
+  "@@locale": "hi",
+  "journey.leave.done": "{gender, select, female {{name} ने यात्रा छोड़ दी।} other {{name} ने यात्रा छोड़ दी।}}",
+  "journey.moments.count": "{count, plural, one {# पल} other {# पल}}",
+  "common.action.save": "सहेजें",
+  "common.action.cancel": "रद्द करें"
+}
