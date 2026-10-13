@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { englishFileHasText } from './required-text.mjs';
 import { appSiteAssociationProblems, APP_SITE_ASSOCIATION, ASSET_LINKS, assetLinksProblems } from './app-links.mjs';
 
 // Proves the bundle about to be uploaded is the reviewed revision, before it is uploaded.
@@ -10,6 +11,8 @@ import { appSiteAssociationProblems, APP_SITE_ASSOCIATION, ASSET_LINKS, assetLin
 // verified here; what cannot is stated as a boundary rather than faked.
 //
 //   node scripts/verify-release-bundle.mjs --directory _site --revision <sha> --required-text "…"
+//
+// The required text may be in index.html or in locales/en.json.
 
 const defaults = { directory: '_site' };
 
@@ -58,8 +61,27 @@ export async function verifyReleaseBundle({ directory, revision, requiredText, r
   }
   // A marker alone proves a build ran. The control proves the page a person lands on is the
   // product rather than an error page or an empty shell that happens to carry the right sha.
+  // The page draws its sentences at runtime from locales/en.json (docs/TRANSLATION.md), so the
+  // words count when they are in the page or in the English file shipped beside it, both read
+  // from the bundle and neither from the network.
   if (!home.includes(requiredText)) {
-    throw new Error(`The bundle's page does not contain the required user-visible control ${JSON.stringify(requiredText)}.`);
+    let englishRaw;
+    try {
+      englishRaw = await readFileImpl(join(directory, 'locales', 'en.json'), 'utf8');
+    } catch {
+      throw new Error(
+        `The bundle's page does not contain the required user-visible control ${JSON.stringify(requiredText)}, and the bundle has no ${join(directory, 'locales', 'en.json')} to draw it from.`,
+      );
+    }
+    let english;
+    try {
+      english = JSON.parse(englishRaw);
+    } catch (error) {
+      throw new Error(`The bundle's locales/en.json is not valid JSON: ${error.message}`);
+    }
+    if (!englishFileHasText(english, requiredText)) {
+      throw new Error(`Neither the bundle's page nor its locales/en.json contains the required user-visible control ${JSON.stringify(requiredText)}.`);
+    }
   }
 
   // The phone apps' link files (#266), read from the bundle like the rest. Apple's must be there and

@@ -229,7 +229,7 @@ Returning the image does not return the schema. Migrations are forward-only and 
 
 `app.together-ledger.com` is the independently deployed public application. Protected `main` reaches it only after the `CI` workflow for that exact push succeeds. The delivery workflow rebuilds from the lockfile, repeats the repository checks, packages the static Worker, and deploys it with the `app` environment's `CLOUDFLARE_API_TOKEN`.
 
-The final parity check is deliberately made through a separate, fixed-purpose Cloudflare Worker. The probe accepts only a full revision SHA, fetches only the public app's release marker and home page, and succeeds only when both the deployed SHA and the `Keep what matters,` control agree. Its `workers.dev` endpoint is verification-only; it serves no app traffic, takes no secrets or user input beyond the revision, and is not an authority for the root site. This separates delivery evidence from the GitHub runner network path without weakening app protections.
+The final parity check is deliberately made through a separate, fixed-purpose Cloudflare Worker. The probe accepts only a full revision SHA, fetches only the public app's release marker, home page and English sentences, and succeeds only when both the deployed SHA and the `Keep what matters,` control agree. The page draws its sentences from `locales/en.json` at runtime, so the control counts when it is in the page or in `/locales/en.json`. The release gate reads that file from the built bundle, without the network; the runner's observation and the scheduled availability check fetch it beside the page, and keep their `down`, `drift` and `refused` answers as they were. Its `workers.dev` endpoint is verification-only; it serves no app traffic, takes no secrets or user input beyond the revision, and is not an authority for the root site. This separates delivery evidence from the GitHub runner network path without weakening app protections.
 
 Keep that token scoped only to the production app Worker deployment path. Store it as an environment secret, not in repository files, workflow text, command arguments, or issue discussion. A missing token intentionally fails the delivery job before it can claim the reviewed release is live.
 
@@ -246,7 +246,7 @@ npm ci
 node scripts/verify-worker-release.mjs --base-url https://app.together-ledger.com --revision <previous-reviewed-commit-sha> --required-text "Keep what matters,"
 ```
 
-Choose the prior Worker version by its recorded reviewed-main message and use its matching commit SHA in the last command. A Worker rollback changes only the static app bundle. It does not roll back the API container, database schema or data, billing state, DNS, or release-specific behavioral decisions.
+(`--required-text` is found in the page or in `/locales/en.json`.) Choose the prior Worker version by its recorded reviewed-main message and use its matching commit SHA in the last command. A Worker rollback changes only the static app bundle. It does not roll back the API container, database schema or data, billing state, DNS, or release-specific behavioral decisions.
 
 ## Incident rule
 

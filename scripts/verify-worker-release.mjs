@@ -1,3 +1,5 @@
+import { englishFileHasText } from './required-text.mjs';
+
 const defaults = {
   attempts: 36,
   delayMs: 5000,
@@ -49,6 +51,7 @@ export async function verifyWorkerRelease(options) {
   const markerUrl = new URL('release.json', baseUrl);
   markerUrl.searchParams.set('revision', options.revision);
   const homeUrl = new URL('/', baseUrl);
+  const englishUrl = new URL('locales/en.json', baseUrl);
   const fetchImpl = options.fetchImpl || fetch;
   let lastError;
 
@@ -61,7 +64,11 @@ export async function verifyWorkerRelease(options) {
       }
       const homepage = await fetchChecked(fetchImpl, homeUrl, 'App homepage');
       if (!(await homepage.text()).includes(options.requiredText)) {
-        throw new Error('App homepage is missing the expected user-visible control text.');
+        // The page draws its sentences from locales/en.json, so the words may live there instead.
+        const english = await fetchChecked(fetchImpl, englishUrl, 'English sentences');
+        if (!englishFileHasText(await english.json(), options.requiredText)) {
+          throw new Error('Neither the app homepage nor its English sentences hold the expected user-visible control text.');
+        }
       }
       return { attempt, revision: payload.revision };
     } catch (error) {

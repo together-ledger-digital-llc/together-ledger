@@ -79,6 +79,20 @@ test('external release probe permits only a matching public revision', async () 
   assert.deepEqual(await response.json(), { verified: true, revision });
 });
 
+test('external release probe finds the words in the English file when the page does not hold them', async () => {
+  const serve = (englishBody, englishStatus = 200) => createAppReleaseProbe(async (url) => {
+    const path = new URL(url).pathname;
+    if (path === '/release.json') return Response.json({ revision });
+    if (path === '/locales/en.json') return new Response(englishBody, { status: englishStatus });
+    return new Response('<div data-i18n-sentence="common.welcome.headline"></div>', { status: 200 });
+  });
+  const ask = (probe) => probe.fetch(new Request(`https://probe.example.test/verify/${revision}`));
+  assert.equal((await ask(serve(JSON.stringify({ a: 'Keep what matters, {together}' })))).status, 200);
+  assert.equal((await ask(serve(JSON.stringify({ a: 'Other' })))).status, 503);
+  assert.equal((await ask(serve('<html>the page</html>'))).status, 503);
+  assert.equal((await ask(serve('missing', 404))).status, 503);
+});
+
 test('external release probe fails closed for stale or non-probe requests', async () => {
   const probe = createAppReleaseProbe(async () => new Response(JSON.stringify({ revision: 'b'.repeat(40) }), { status: 200 }));
   const stale = await probe.fetch(new Request(`https://probe.example.test/verify/${revision}`));
@@ -289,6 +303,81 @@ test('the release bundle verifier proves the revision and the visible control be
     verifyReleaseBundle({ directory: '_site', revision, requiredText: 'Keep what matters,', readFileImpl: withFile('_site/.well-known/assetlinks.json', placeholder) }),
     /assetlinks\.json must not ship: .*placeholder/,
   );
+});
+
+test('the release bundle verifier lets a sentence that lives in the English file count', async () => {
+  const files = {
+    '_site/release.json': JSON.stringify({ revision }),
+    '_site/.well-known/apple-app-site-association': readFileSync(new URL('../public/.well-known/apple-app-site-association', import.meta.url), 'utf8'),
+    '_site/.well-known/assetlinks.json': readFileSync(new URL('../public/.well-known/assetlinks.json', import.meta.url), 'utf8'),
+  };
+  const bundle = (extra) => async (path) => {
+    const key = String(path).replaceAll('\\', '/');
+    const all = { ...files, ...extra };
+    if (!(key in all)) throw new Error('missing');
+    return all[key];
+  };
+  const shell = '<div id="welcome-title" data-i18n-sentence="common.welcome.headline"></div>';
+  const requiredText = 'Keep what matters,';
+
+  // The page lacks the words and the English file holds them: the page draws them at runtime.
+  const result = await verifyReleaseBundle({
+    directory: '_site',
+    revision,
+    requiredText,
+    readFileImpl: bundle({ '_site/index.html': shell, '_site/locales/en.json': JSON.stringify({ 'common.welcome.headline': 'Keep what matters, {together}' }) }),
+  });
+  assert.equal(result.revision, revision);
+
+  // Neither has them: an empty shell is not the product.
+  await assert.rejects(
+    verifyReleaseBundle({
+      directory: '_site',
+      revision,
+      requiredText,
+      readFileImpl: bundle({ '_site/index.html': shell, '_site/locales/en.json': JSON.stringify({ 'common.welcome.headline': 'Something else' }) }),
+    }),
+    /Neither the bundle's page nor its locales\/en\.json contains the required user-visible control/,
+  );
+
+  // No English file to look in, and the page lacks the words: say so, never pass by absence.
+  await assert.rejects(
+    verifyReleaseBundle({ directory: '_site', revision, requiredText, readFileImpl: bundle({ '_site/index.html': shell }) }),
+    /has no .*locales\/en\.json to draw it from/,
+  );
+
+  // An English file that is not JSON is a broken bundle, said as that.
+  await assert.rejects(
+    verifyReleaseBundle({ directory: '_site', revision, requiredText, readFileImpl: bundle({ '_site/index.html': shell, '_site/locales/en.json': '<html>' }) }),
+    /locales\/en\.json is not valid JSON/,
+  );
+});
+
+test('the live checks find the words in the English file when the page does not hold them', async () => {
+  const shell = '<div data-i18n-sentence="common.welcome.headline"></div>';
+  const english = { 'common.welcome.headline': 'Keep what matters, {together}' };
+  const base = { baseUrl: 'https://app.example.test', revision, requiredText: 'Keep what matters,', attempts: 1, delayMs: 0 };
+  const served = (englishResponse) => async (url) => {
+    const path = new URL(url).pathname;
+    if (path === '/release.json') return Response.json({ revision });
+    if (path === '/locales/en.json') return englishResponse();
+    return new Response(shell, { status: 200 });
+  };
+
+  const observed = await verifyWorkerRelease({ ...base, fetchImpl: served(() => Response.json(english)) });
+  assert.equal(observed.revision, revision);
+  await assert.rejects(
+    verifyWorkerRelease({ ...base, fetchImpl: served(() => Response.json({ 'common.welcome.headline': 'Other' })) }),
+    /Neither the app homepage nor its English sentences/,
+  );
+
+  assert.equal((await checkPublicAvailability({ ...base, fetchImpl: served(() => Response.json(english)) })).state, 'healthy');
+  // The distinction is kept for the English file as for the page.
+  assert.equal((await checkPublicAvailability({ ...base, fetchImpl: served(() => Response.json({ x: 'Other' })) })).state, 'drift');
+  assert.equal((await checkPublicAvailability({ ...base, fetchImpl: served(() => new Response('<html>the page</html>')) })).state, 'drift');
+  assert.equal((await checkPublicAvailability({ ...base, fetchImpl: served(() => new Response('no', { status: 403 })) })).state, 'refused');
+  assert.equal((await checkPublicAvailability({ ...base, fetchImpl: served(() => new Response('boom', { status: 503 })) })).state, 'down');
+  assert.equal((await checkPublicAvailability({ ...base, fetchImpl: served(() => { throw new Error('ENOTFOUND'); }) })).state, 'down');
 });
 
 test('the availability check separates refused from down from drift', async () => {

@@ -1,3 +1,5 @@
+import { englishFileHasText } from './required-text.mjs';
+
 // Asks the one question the release gate deliberately does not: can a visitor load this?
 //
 // The gate proves the right bundle shipped, without touching the network, because bot
@@ -80,7 +82,27 @@ async function look({ baseUrl, revision, requiredText, fetchImpl }) {
 
   const body = await home.text();
   if (!body.includes(requiredText)) {
-    return { state: DRIFT, detail: 'the page is missing the control a visitor needs to begin' };
+    // The page draws its sentences from locales/en.json, so the words may live there instead.
+    // This is asked the same way the page was: down, refused and drift stay what they were.
+    let english;
+    try {
+      english = await fetchImpl(new URL('locales/en.json', origin), { headers: { 'cache-control': 'no-cache' }, signal: AbortSignal.timeout(15000) });
+    } catch (error) {
+      return { state: DOWN, detail: `the English sentences could not be reached: ${error.message}` };
+    }
+    if (refusal(english.status)) return { state: REFUSED, detail: `the English sentences answered HTTP ${english.status}` };
+    if (!english.ok) return { state: DOWN, detail: `the English sentences answered HTTP ${english.status}` };
+    let sentences;
+    try {
+      sentences = await english.json();
+    } catch {
+      // The marker and the page both answered us, so this is no challenge: the file is not being
+      // served as the product ships it (the page's own HTML where the file should be).
+      return { state: DRIFT, detail: 'the English sentences answered with something other than JSON' };
+    }
+    if (!englishFileHasText(sentences, requiredText)) {
+      return { state: DRIFT, detail: 'neither the page nor its English sentences hold the control a visitor needs to begin' };
+    }
   }
   return { state: HEALTHY, detail: `serving ${revision}` };
 }
