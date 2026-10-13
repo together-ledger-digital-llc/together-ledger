@@ -203,6 +203,14 @@ English words, so it keeps its name when the wording changes.
   "Start fresh" in English, and Hindi may need a noun for one and a verb for the other.
 - Server errors read under `error.server.<code>`, camelCased: `rate_limit_exceeded` →
   `error.server.rateLimitExceeded` (`errorKey()`).
+- **A sentence the website and the phone both say is one key, under `common.*`, never `web.*` or
+  `mobile.*`** (owner, Oct 12, 2026). When 102A (the website) merged after 103A (the phone, #425),
+  every website sentence with the same English and the same meaning as one of #425's switched to
+  #425's key; where #425's key was under `mobile.*`, it moved to `common.*` (five screen titles
+  became `common.screen.<name>.title`). A sentence with the same English but a different job keeps
+  its own key: the website's "Hold a moment" button (`home.moment.hold`) is not the form's title
+  (`common.screen.moment.title`), and the example ledger's "Our ledger" (`welcome.example.title`)
+  is not the empty ledger's (`common.ledger.title`).
 
 ## Notes for translators
 
@@ -278,12 +286,13 @@ decision 145):
   language's does; it may lack sentences, which read in English (`previewLanguageProblems()`).
 - It needs no reviewer or approval date, and can't have an approval date.
 - The website ships its file, and the server accepts it as an account's choice.
-- Draft and in-review languages are never shown, chosen or matched.
+- Draft and in-review languages are listed as **coming soon** and can never be chosen, read or
+  matched (decision 160, below).
 
 `choosableLanguages()` is what may be picked by hand (approved and preview), `offeredLanguages()`
 what a device may be matched to (approved only), and `isPreview()` marks the difference.
 `resolveLanguage({ choice, deviceLanguages, offered, choosable, source })` takes both; a caller
-that passes no `choosable` gets `offered`, as before. The phone doesn't pass it yet (103).
+that passes no `choosable` gets `offered`, as before. The web and the phone both pass it.
 
 **A language in preview** (owner, Oct 12, decision 145) may be chosen by hand before it is approved:
 `choosableLanguages()` lists the approved ones, then each in preview, marked `preview: true`, and
@@ -292,7 +301,7 @@ matched from a device: a phone set to Hindi reads in English until Hindi is appr
 owner chooses Hindi. Its file may lack sentences, which read in English, but what it holds must
 parse and keep English's placeholders (`previewLanguageProblems()`, in `tests/i18n-catalog.test.js`).
 The server accepts a preview choice (`PATCH /account/language`). Draft and in-review languages are
-never shown.
+listed as coming soon, and never chosen.
 
 ## People's text inside a sentence
 
@@ -342,8 +351,8 @@ by hand. A device in Hindi (Latin) when Hinglish isn't offered is not given Deva
 either: a reader of Latin script may not read Devanagari, so the walk goes on to the next language.
 
 **Only an approved language is ever matched, and only an approved or preview language is ever
-offered or read.** A draft can't be chosen, can't be reached from the device, and is refused by
-the server.
+chosen or read.** A draft is listed as coming soon (decision 160), but it can't be chosen, can't be
+reached from the device, and is refused by the server.
 
 ### Where the choice is kept
 
@@ -364,25 +373,39 @@ the server.
 
 ### The Language row, and the choice on the welcome page
 
+**The language choice is always there, on the website and the phone, English alone included**
+(owner, Oct 12, 2026, decision 160). It lists "Follow my device", then every language in the
+manifest in its own name and script, from its `nativeName`, in the manifest's order:
+
+| Status | Shown as | May be chosen |
+|---|---|---|
+| `approved` | its name alone: "English" | yes, and a device's own languages are matched to it |
+| `preview` | "हिन्दी · Preview" (`common.language.preview`) | by hand only (decision 145) |
+| `draft`, `in-review` | "বাংলা · Coming soon" (`common.language.comingSoon`) | no |
+
+`listedLanguages(manifest, carried)` (`src/i18n/catalog.js`) gives that list for both, each
+language with its `listing`: `approved`, `preview` or `comingSoon`. `carried(tag)` says whether
+the app has the language's file; an approved or preview language the phone doesn't bundle yet is
+coming soon there too, since it can't be read. The website ships every choosable language's file,
+so it carries them all.
+
 On the web, Settings has a **Language** row (`#language-settings`), and the welcome page has a
 small language menu at its very top (`#welcome-language`, 102A), the first thing on the page that
-can be changed. Both list "Follow my device", then each approved or preview language in its own
-name and script, from the manifest's `nativeName`: English, हिन्दी, বাংলা, Español
-(Latinoamérica), Hinglish (Hindi in Latin script); a preview with "· Preview" after it. Each
-option carries its own `lang`, so a screen reader says हिन्दी in Hindi. **While English is the
-only language that may be chosen, both stay hidden.** The phone's row comes in 103; `useLanguage()`
-(`apps/mobile/src/i18n/language-provider.tsx`) is what it will use.
-
-On the web, Settings has a **Language** row (`#language-settings`). It lists "Follow my device",
-then each approved language in its own name and script, from the manifest's `nativeName`: English,
-हिन्दी, বাংলা, Español (Latinoamérica), Hinglish (Hindi in Latin script). Each option carries its
-own `lang`, so a screen reader says हिन्दी in Hindi. **While English is the only approved
-language, the row stays hidden.**
+can be changed. Both are `<select>`s. A language coming soon is a disabled `<option>`: the menu
+never lets a person pick it, the arrow keys pass over it, and if a script sets it anyway, the page
+changes nothing and sends nothing. Each option carries its own `lang`, so a screen reader says
+हिन्दी in Hindi.
 
 On the phone (103A) the same choice is in two places: small, at the top of the welcome
-(`LanguageControl`), and as a Language section in Settings, after Appearance (`LanguageList`), both in
-`apps/mobile/src/components/language-choice.tsx`, both through `useLanguage()`. Neither shows while
-English is the only language that may be chosen (`languageChoiceShown()`).
+(`LanguageControl`), and as a Language section in Settings, after Appearance (`LanguageList`), both
+in `apps/mobile/src/components/language-choice.tsx`, both through `useLanguage()`'s `listed`. A
+language coming soon is a disabled radio (`accessibilityState.disabled`), its words drawn in the
+muted colour.
+
+"Coming soon" and "Preview" are in the reader's language, after the language's own name. Because
+the option as a whole carries the listed language's `lang`, a screen reader may say those two
+words with that language's voice; the language's name is the part that matters most to say
+right.
 
 Approving a language (`status`, `reviewer`, `approvedOn`), or setting it to `preview`, is all it
 takes for it to appear: the web ships `locales/<tag>.json` for every approved or preview language
