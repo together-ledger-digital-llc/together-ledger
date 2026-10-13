@@ -127,7 +127,7 @@ function MomentPhoto({ image, moment, colors, radius }: { image: MomentImage; mo
     <View style={[styles.photo, { borderColor: colors.border, borderRadius: radius }]}>
       <View style={[styles.thumb, { backgroundColor: colors.metaBg, borderRadius: 4 }]}>
         {source && !failed ? (
-          <Image source={source} onError={() => setFailed(true)} accessibilityLabel={t('mobile.moment.photoOf', { title: moment.title })} style={styles.thumbImage} />
+          <Image source={source} onError={() => setFailed(true)} accessibilityLabel={t('common.moment.photoOf', { title: moment.title })} style={styles.thumbImage} />
         ) : null}
       </View>
       <View style={styles.photoCopy}>

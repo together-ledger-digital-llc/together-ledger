@@ -25,7 +25,7 @@ export function ThemePicker() {
             accessibilityState={{ checked: selected }}
             onPress={() => {
               setChoice(option.id);
-              showToast(option.id === null ? t('mobile.theme.followsPhone') : t('mobile.theme.applied', { theme: option.label }));
+              showToast(option.id === null ? t('mobile.theme.followsPhone') : t('common.theme.applied', { theme: option.label }));
             }}
             style={({ pressed }) => [styles.option, targetSize, {
               borderColor: selected ? theme.colors.accent : theme.colors.border,

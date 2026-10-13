@@ -85,13 +85,13 @@ test('it fails on a sentence planted in the areas 102A moved, and a listed funct
   const found = hardcodedSentences(movedAreas(), planted({
     'index.html': [
       ['<h2 id="closing-title" data-i18n="welcome.closing.title"></h2>', '<h2 id="closing-title">Start with one thing.</h2>'],
-      ['data-i18n-placeholder="moment.form.namePlaceholder"', 'placeholder="e.g. A walk"'],
-      ['<h3 data-i18n="sharing.section.title"></h3>', '<h3>Journey sharing</h3>'],
-      ['<h3 data-i18n="register.form.title"></h3>', '<h3>Create account</h3>'],
+      ['data-i18n-placeholder="common.moment.nameExample"', 'placeholder="e.g. A walk"'],
+      ['<h3 data-i18n="common.screen.journeySettings.title"></h3>', '<h3>Journey sharing</h3>'],
+      ['<h3 data-i18n="common.screen.register.title"></h3>', '<h3>Create account</h3>'],
     ],
     'src/app.js': [
       ["return t('sharing.invitation.status', { status });", "return 'Waiting on them';"],
-      ["showToast(t('moment.share.done'));", "showToast('Shared with them.');"],
+      ["showToast(t('common.moment.sharedWithJourneyer'));", "showToast('Shared with them.');"],
       // The line after renderLeaveJourney's body is not part of it, so this one is let through.
       ["$('#leave-journey-button').addEventListener(", "const after = 'Not checked here.';\n$('#leave-journey-button').addEventListener("],
     ],

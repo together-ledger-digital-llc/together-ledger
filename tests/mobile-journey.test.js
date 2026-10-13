@@ -38,8 +38,8 @@ test('dates, money and moment types are the web\'s own functions, not copies', (
   assert.equal(view.MOMENT_TYPES, model.MOMENT_TYPES);
   assert.equal(view.normalizeMomentTheme, momentThemes.normalizeMomentTheme);
   assert.equal(unmarked(view.moneyContext({ moneyCents: 1250, moneyCurrency: 'USD' })), `${model.money(1250, 'USD')} is held here as context, not a score.`);
-  assert.equal(english['moment.card.money'], '{amount} is held here as context, not a score.');
-  assert.ok(web.includes("<p>${sentenceMarkup('moment.card.money', { amount: money(moment.moneyCents, moment.moneyCurrency) })}</p>"));
+  assert.equal(english['common.moment.moneyContext'], '{amount} is held here as context, not a score.');
+  assert.ok(web.includes("<p>${sentenceMarkup('common.moment.moneyContext', { amount: money(moment.moneyCents, moment.moneyCurrency) })}</p>"));
   assert.equal(view.moneyContext({ moneyCents: null }), null);
 });
 
@@ -85,8 +85,8 @@ test('moments are newest first, carry their photos, and the list opens on three'
   // "See all 1 moment", never "See all 1 moments", on the phone and the web alike (#337).
   assert.equal(view.seeAllLabel(1), 'See all 1 moment');
   assert.equal(view.seeAllLabel(4), 'See all 4 moments');
-  assert.ok(web.includes("t('home.moments.seeAll', { count: recent.length })"), 'the web builds its label from one sentence');
-  for (const count of [1, 4]) assert.equal(t('home.moments.seeAll', { count }), view.seeAllLabel(count));
+  assert.ok(web.includes("t('common.ledger.seeAll', { count: recent.length })"), 'the web builds its label from one sentence');
+  for (const count of [1, 4]) assert.equal(t('common.ledger.seeAll', { count }), view.seeAllLabel(count));
   // Shown only when the ledger is not already showing every moment (the owner, on #337).
   assert.equal(view.seeAllShown, model.seeAllShown, 'the phone uses the web\'s own rule');
   assert.ok(web.includes("$('#toggle-moments-button').hidden = !seeAllShown(recent.length, momentsExpanded);"));
@@ -185,8 +185,8 @@ test('pull to refresh re-reads the snapshot, and the list only draws what is on 
   assert.doesNotMatch(ledger + web, /choose another filter to see more/, 'no sentence that asks for a filter that is gone (#405)');
   assert.match(ledger, /<EmptyState compact title=\{t\('common\.threads\.emptyTitle'\)\} body=\{t\('common\.threads\.emptyBody'\)\} \/>/);
   assert.deepEqual([english['common.threads.emptyTitle'], english['common.threads.emptyBody']], ['No open threads', 'That can be a good place to rest.']);
-  assert.ok(web.includes("emptyState(escapeHtml(t('home.moments.emptyTitle')), escapeHtml(t('home.moments.emptyBody')))"));
-  assert.deepEqual([english['home.moments.emptyTitle'], english['home.moments.emptyBody']], ['No moments here yet', 'A small truth is enough to begin.']);
-  assert.ok(web.includes("emptyState(escapeHtml(t('home.threads.emptyTitle')), escapeHtml(t('home.threads.emptyBody')), { compact: true })"));
-  assert.deepEqual([english['home.threads.emptyTitle'], english['home.threads.emptyBody']], ['No open threads', 'That can be a good place to rest.']);
+  assert.ok(web.includes("emptyState(escapeHtml(t('common.ledger.emptyTitle')), escapeHtml(t('common.ledger.emptyBody')))"));
+  assert.deepEqual([english['common.ledger.emptyTitle'], english['common.ledger.emptyBody']], ['No moments here yet', 'A small truth is enough to begin.']);
+  assert.ok(web.includes("emptyState(escapeHtml(t('common.threads.emptyTitle')), escapeHtml(t('common.threads.emptyBody')), { compact: true })"));
+  assert.deepEqual([english['common.threads.emptyTitle'], english['common.threads.emptyBody']], ['No open threads', 'That can be a good place to rest.']);
 });

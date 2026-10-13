@@ -56,8 +56,18 @@ function translatePage() {
 // found inside the sentence rather than joined onto it, so a translation can put them anywhere;
 // if a translation's italic words aren't in its sentence, the sentence still reads, just upright.
 function renderEmphasis(element) {
-  const sentence = t(element.dataset.i18nSentence);
   const emphasis = t(element.dataset.i18nEmphasis);
+  // A sentence that takes its italic words as a value ({together}, as the phone's headline does).
+  const value = element.dataset.emphasisValue;
+  if (value) {
+    element.replaceChildren(...t.parts(element.dataset.i18nSentence, { [value]: emphasis }, (text) => {
+      const em = document.createElement('em');
+      em.textContent = text;
+      return em;
+    }));
+    return;
+  }
+  const sentence = t(element.dataset.i18nSentence);
   const at = emphasis ? sentence.lastIndexOf(emphasis) : -1;
   if (at === -1) {
     element.textContent = sentence;
@@ -154,7 +164,7 @@ function visibilityCue(visibility) {
 // A consequence is read before it is agreed to. The confirming button names the act rather
 // than saying OK, and focus opens on the way out, so the irreversible choice is never the one
 // a stray Return key reaches first.
-function confirmConsequence({ title, consequence, confirmLabel, keepLabel = t('common.consequence.keep'), destructive = false }) {
+function confirmConsequence({ title, consequence, confirmLabel, keepLabel = t('common.dialog.keep'), destructive = false }) {
   const dialog = document.querySelector('#consequence-dialog');
   if (!dialog?.showModal) return Promise.resolve(false);
   writeText(dialog.querySelector('#consequence-dialog-title'), title);
@@ -175,7 +185,7 @@ function confirmConsequence({ title, consequence, confirmLabel, keepLabel = t('c
 // says the same words (apps/mobile/src/auth/account-messages.ts).
 const SIGN_OUT_EVERYWHERE_CONSEQUENCE = 'Every device signed in to this account, this one included, will need to sign in again. Nothing in your journeys is deleted.';
 const SIGNED_OUT_EVERYWHERE = 'Signed out on every device, this one included. Sign in again to continue.';
-const signedOutHere = () => t('signIn.status.signedOutHere');
+const signedOutHere = () => t('common.account.signedOutHere');
 const PASSWORD_CHANGED_HERE = 'Password changed. Every other device was signed out, and this one stays signed in.';
 
 // A confirmation may pass; a problem must not. Anything a person needs to read twice, act on,
@@ -285,8 +295,10 @@ function isCloudJourney(trip = activeTrip(state)) {
 function accountMessage(error, area = '') {
   if (error instanceof ApiError && error.sessionEnded) return signedOutHere();
   if (error instanceof ApiError && area && error.code && t.has(errorKey(error.code, area))) return t(errorKey(error.code, area));
+  // The web's own client refused before sending anything: the phone says the same words.
+  if (error instanceof ApiError && error.code === 'accounts_unavailable') return t('error.client.accountsUnavailable');
   if (error instanceof ApiError) return errorMessage(t, error);
-  return t('status.banner.accountService');
+  return t('common.account.fallbackError');
 }
 
 function snapshotToState(snapshots) {
@@ -343,7 +355,7 @@ async function refreshCloudState({ announce = false } = {}) {
     if (heldCloudJourneys) state = loadState();
     renderAccountState();
     render();
-    if (announce) showToast(t('signIn.toast.accountReady'));
+    if (announce) showToast(t('common.start.accountReady'));
     return;
   }
   const snapshots = await Promise.all(journeys.map((journey) => api.request(`/journeys/${journey.id}/snapshot`)));
@@ -569,10 +581,10 @@ function renderAccountState() {
 
 // Sign in, Account settings or Accounts soon, wherever an account is opened from.
 function renderAccountLabels(signedIn, accountsAvailable) {
-  const label = signedIn ? t('common.account.settings') : accountsAvailable ? t('common.action.signIn') : t('common.account.soon');
+  const label = signedIn ? t('common.account.settings') : accountsAvailable ? t('common.account.signIn') : t('common.account.soon');
   $('#account-button').textContent = label;
   $$('[data-open-account]').forEach((button) => { button.textContent = label; });
-  $('#account-dialog-copy').textContent = accountsAvailable ? t('account.dialog.copy') : t('account.dialog.unavailable');
+  $('#account-dialog-copy').textContent = accountsAvailable ? t('common.account.passwordsPrivate') : t('account.dialog.unavailable');
 }
 
 function syncBadgeLabel(signedIn, accountsAvailable) {
@@ -865,10 +877,10 @@ function invitationStatusLabel(status) {
 // The four themes' names, read by key. src/themes.js keeps their ids and colours, for the web and
 // the phone alike; what a theme is called is a sentence like any other.
 const THEME_NAME_KEYS = Object.freeze({
-  light: 'common.themeName.light',
-  dark: 'common.themeName.dark',
-  green: 'common.themeName.green',
-  flexoki: 'common.themeName.flexoki',
+  light: 'common.theme.name.light',
+  dark: 'common.theme.name.dark',
+  green: 'common.theme.name.green',
+  flexoki: 'common.theme.name.flexoki',
 });
 
 function themeName(id) {
@@ -1126,22 +1138,22 @@ const MOMENT_KIND_KEYS = Object.freeze({
   'call-me': 'common.momentKind.callMe',
   'called-you': 'common.momentKind.calledYou',
   'practical-matter': 'common.momentKind.practicalMatter',
-  other: 'common.momentKind.addYourOwn',
+  other: 'common.momentKind.other',
 });
 
 function momentKindName(kind) {
-  return MOMENT_KIND_KEYS[kind] ? t(MOMENT_KIND_KEYS[kind]) : t('common.momentKind.moment');
+  return MOMENT_KIND_KEYS[kind] ? t(MOMENT_KIND_KEYS[kind]) : t('common.moment.kindFallback');
 }
 
 function momentLabel(kind, kindLabel = '') {
-  if (kind === 'other') return kindLabel || t('common.momentKind.sharedNote');
+  if (kind === 'other') return kindLabel || t('common.moment.sharedNote');
   return momentKindName(kind);
 }
 
 // A moment's own theme, by name: one of the four themes, or each reader's own.
 function momentThemeName(value) {
   const theme = normalizeMomentTheme(value);
-  return theme ? themeName(theme) : t('common.momentTheme.own');
+  return theme ? themeName(theme) : t('common.moment.useMyTheme');
 }
 
 function momentThemeAttribute(value) {
@@ -1160,8 +1172,8 @@ function guidanceEndedToday() {
 function journeyPeriod(trip) {
   const pieces = [];
   if (trip.location) pieces.push(trip.location);
-  pieces.push(trip.startDateStatus === 'unknown' ? t('home.trip.beganUnknown') : t('home.trip.began', { date: dateLabel(trip.startDate) }));
-  pieces.push(trip.endDateStatus === 'forever' ? t('home.trip.noEnd') : trip.endDateStatus === 'unsure' ? t('home.trip.endUnsure') : t('home.trip.ends', { date: dateLabel(trip.endDate) }));
+  pieces.push(trip.startDateStatus === 'unknown' ? t('common.journey.beganUnknown') : t('common.journey.began', { date: dateLabel(trip.startDate) }));
+  pieces.push(trip.endDateStatus === 'forever' ? t('common.journey.noEnd') : trip.endDateStatus === 'unsure' ? t('common.journey.endUnsure') : t('common.journey.ends', { date: dateLabel(trip.endDate) }));
   return pieces.join(' · ');
 }
 
@@ -1185,14 +1197,14 @@ function renderSharedJourney(trip, moments, isEmptyStart) {
   $('#guidance-prev').disabled = guidanceIndex === 0;
   $('#guidance-skip').hidden = guidanceIndex === prompts.length - 1;
   $('#guidance-done').hidden = guidanceIndex !== prompts.length - 1;
-  $('#moments-eyebrow').textContent = isEmptyStart ? t('home.moments.beginEyebrow') : t('home.sharedJourney.eyebrow');
-  $('#moments-title').textContent = isEmptyStart ? t('home.moments.beginTitle') : t('home.moments.title');
-  $('#moments-copy').textContent = isEmptyStart ? t('home.moments.beginCopy') : t('home.moments.copy');
+  $('#moments-eyebrow').textContent = isEmptyStart ? t('common.start.eyebrow') : t('common.ledger.eyebrow');
+  $('#moments-title').textContent = isEmptyStart ? t('common.start.title') : t('home.moments.title');
+  $('#moments-copy').textContent = isEmptyStart ? t('common.start.lead') : t('common.ledger.lead');
   $('#toggle-moments-button').hidden = !seeAllShown(recent.length, momentsExpanded);
-  $('#toggle-moments-button').textContent = momentsExpanded ? t('home.moments.showRecent') : t('home.moments.seeAll', { count: recent.length });
+  $('#toggle-moments-button').textContent = momentsExpanded ? t('home.moments.showRecent') : t('common.ledger.seeAll', { count: recent.length });
   // Every moment once "See all" is chosen, with no filter between them (#405).
   const visible = momentsExpanded ? recent : recent.slice(0, RECENT_MOMENTS_SHOWN);
-  $('#moment-timeline').innerHTML = visible.length ? visible.map(momentCardMarkup.bind(null, trip)).join('') : isEmptyStart ? `<div class="log-types"><p>${escapeHtml(t('home.moments.possibilities'))}</p><div>${MOMENT_TYPES.filter(([value]) => value !== 'other').map(([value]) => `<span>${escapeHtml(momentKindName(value))}</span>`).join('')}<button type="button" data-open-custom-moment>＋ ${escapeHtml(t('home.moments.addYourOwn'))}</button></div></div>` : emptyState(escapeHtml(t('home.moments.emptyTitle')), escapeHtml(t('home.moments.emptyBody')));
+  $('#moment-timeline').innerHTML = visible.length ? visible.map(momentCardMarkup.bind(null, trip)).join('') : isEmptyStart ? `<div class="log-types"><p>${escapeHtml(t('common.start.kinds'))}</p><div>${MOMENT_TYPES.filter(([value]) => value !== 'other').map(([value]) => `<span>${escapeHtml(momentKindName(value))}</span>`).join('')}<button type="button" data-open-custom-moment>＋ ${escapeHtml(t('home.moments.addYourOwn'))}</button></div></div>` : emptyState(escapeHtml(t('common.ledger.emptyTitle')), escapeHtml(t('common.ledger.emptyBody')));
   $$('[data-edit-moment]').forEach((button) => button.addEventListener('click', () => openMoment(button.dataset.editMoment)));
   $$('[data-open-moment-image]').forEach((button) => button.addEventListener('click', () => openMomentImage(button.dataset.openMomentImage)));
   $$('[data-share-moment]').forEach((button) => button.addEventListener('click', () => shareMoment(button.dataset.shareMoment)));
@@ -1200,21 +1212,21 @@ function renderSharedJourney(trip, moments, isEmptyStart) {
     if (accountUser && !isCloudJourney(trip)) { openJourney(); return; }
     openMoment('', 'other');
   }));
-  $('#open-threads').innerHTML = threads.length ? threads.map((thread) => `<article class="thread-row"><div><span class="status-chip open">${escapeHtml(t('home.threads.open'))}</span><strong>${escapeHtml(thread.title)}</strong>${thread.detail ? `<p>${escapeHtml(thread.detail)}</p>` : ''}</div><button data-edit-thread="${escapeHtml(thread.id)}">${escapeHtml(t('common.action.open'))}</button></article>`).join('') : emptyState(escapeHtml(t('home.threads.emptyTitle')), escapeHtml(t('home.threads.emptyBody')), { compact: true });
+  $('#open-threads').innerHTML = threads.length ? threads.map((thread) => `<article class="thread-row"><div><span class="status-chip open">${escapeHtml(t('home.threads.open'))}</span><strong>${escapeHtml(thread.title)}</strong>${thread.detail ? `<p>${escapeHtml(thread.detail)}</p>` : ''}</div><button data-edit-thread="${escapeHtml(thread.id)}">${escapeHtml(t('common.action.open'))}</button></article>`).join('') : emptyState(escapeHtml(t('common.threads.emptyTitle')), escapeHtml(t('common.threads.emptyBody')), { compact: true });
   $$('[data-edit-thread]').forEach((button) => button.addEventListener('click', () => openConcern(button.dataset.editThread)));
   hydrateMomentImagePreviews(trip);
 }
 
 // One moment, as it reads on the ledger.
 function momentCardMarkup(trip, moment) {
-  const attribution = `<span>${sentenceMarkup('moment.card.heldBy', { name: moment.createdBy || t('common.person.journeyMember') })}</span>${moment.shapedByBoth ? `<span class="moment-collaboration-badge">${escapeHtml(t('moment.card.shapedByMore'))}</span>` : ''}`;
-  const shareAction = isCloudJourney(trip) && moment.visibility === 'share-later' ? `<button data-share-moment="${escapeHtml(moment.id)}">${escapeHtml(t('moment.card.shareNow'))}</button>` : '';
-  const photoName = (image) => image.filename || t('moment.photo.fallbackName');
-  const attachments = moment.images?.length ? `<div class="moment-attachments">${moment.images.map((image) => `<button type="button" class="moment-image-attachment" data-open-moment-image="${escapeHtml(image.id)}" aria-label="${escapeHtml(t('moment.photo.open', { name: photoName(image) }))}"><img data-moment-image-preview="${escapeHtml(image.id)}" alt="${escapeHtml(t('moment.photo.alt', { title: moment.title }))}" /><span class="moment-image-attachment-copy"><span>${escapeHtml(t('moment.photo.label'))}</span><strong>${escapeHtml(photoName(image))}</strong><small>${escapeHtml(t('moment.photo.openLarger'))}</small></span></button>`).join('')}</div>` : '';
-  const removed = moment.removedImages?.length ? `<details class="moment-removed-photos"><summary>${escapeHtml(t('moment.photo.removed'))}</summary>${moment.removedImages.map((image) => `<button type="button" class="moment-image-attachment" data-open-moment-image="${escapeHtml(image.id)}" aria-label="${escapeHtml(t('moment.photo.openRemoved', { name: photoName(image) }))}"><span class="moment-image-attachment-copy"><span>${escapeHtml(t('moment.photo.removed'))}</span><strong>${escapeHtml(photoName(image))}</strong><small>${escapeHtml(t('moment.photo.openLarger'))}</small></span></button>`).join('')}</details>` : '';
+  const attribution = `<span>${sentenceMarkup('common.moment.heldBy', { name: moment.createdBy || t('common.person.journeyMember') })}</span>${moment.shapedByBoth ? `<span class="moment-collaboration-badge">${escapeHtml(t('common.moment.shapedByMany'))}</span>` : ''}`;
+  const shareAction = isCloudJourney(trip) && moment.visibility === 'share-later' ? `<button data-share-moment="${escapeHtml(moment.id)}">${escapeHtml(t('common.action.shareNow'))}</button>` : '';
+  const photoName = (image) => image.filename || t('common.moment.image');
+  const attachments = moment.images?.length ? `<div class="moment-attachments">${moment.images.map((image) => `<button type="button" class="moment-image-attachment" data-open-moment-image="${escapeHtml(image.id)}" aria-label="${escapeHtml(t('moment.photo.open', { name: photoName(image) }))}"><img data-moment-image-preview="${escapeHtml(image.id)}" alt="${escapeHtml(t('common.moment.photoOf', { title: moment.title }))}" /><span class="moment-image-attachment-copy"><span>${escapeHtml(t('common.moment.photo'))}</span><strong>${escapeHtml(photoName(image))}</strong><small>${escapeHtml(t('moment.photo.openLarger'))}</small></span></button>`).join('')}</div>` : '';
+  const removed = moment.removedImages?.length ? `<details class="moment-removed-photos"><summary>${escapeHtml(t('common.moment.removedPhoto'))}</summary>${moment.removedImages.map((image) => `<button type="button" class="moment-image-attachment" data-open-moment-image="${escapeHtml(image.id)}" aria-label="${escapeHtml(t('moment.photo.openRemoved', { name: photoName(image) }))}"><span class="moment-image-attachment-copy"><span>${escapeHtml(t('common.moment.removedPhoto'))}</span><strong>${escapeHtml(photoName(image))}</strong><small>${escapeHtml(t('moment.photo.openLarger'))}</small></span></button>`).join('')}</details>` : '';
   const locations = Array.isArray(moment.locations) ? moment.locations : [];
   const locationContext = locations.length ? `<div class="location-context">${escapeHtml(locations.map((location) => location.label).join(' · '))}</div>` : '';
-  const moneyContext = moment.moneyCents != null ? `<details class="money-context"><summary>${escapeHtml(t('moment.money.title'))}</summary><p>${sentenceMarkup('moment.card.money', { amount: money(moment.moneyCents, moment.moneyCurrency) })}</p></details>` : '';
+  const moneyContext = moment.moneyCents != null ? `<details class="money-context"><summary>${escapeHtml(t('common.moment.money'))}</summary><p>${sentenceMarkup('common.moment.moneyContext', { amount: money(moment.moneyCents, moment.moneyCurrency) })}</p></details>` : '';
   return `<article class="moment-card ${moment.visibility}"${momentThemeAttribute(moment.theme)}><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn)}</span><span class="visibility-chip ${moment.visibility}"><span class="visibility-glyph" aria-hidden="true">${visibilityCue(moment.visibility).glyph}</span>${escapeHtml(visibilityCue(moment.visibility).label)}</span></div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${locationContext}${attachments}${removed}${moneyContext}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">${escapeHtml(t('common.action.edit'))}</button></div></article>`;
 }
 
@@ -1248,12 +1260,12 @@ async function openMomentImage(imageId) {
   const moment = activeMoments(state).find((item) => item.images?.some((image) => image.id === imageId));
   const image = moment?.images.find((item) => item.id === imageId);
   if (!trip || !moment || !image) return;
-  $('#moment-image-viewer-name').textContent = image.filename || t('moment.photo.fallbackName');
+  $('#moment-image-viewer-name').textContent = image.filename || t('common.moment.image');
   const viewer = $('#moment-image-viewer-image');
   const error = $('#moment-image-viewer-error');
   viewer.hidden = true;
   error.hidden = true;
-  viewer.alt = t('moment.photo.alt', { title: moment.title });
+  viewer.alt = t('common.moment.photoOf', { title: moment.title });
   $('#moment-image-viewer').showModal();
   try {
     viewer.src = await imageUrlForMoment(trip, moment, image);
@@ -1289,7 +1301,7 @@ function renderMomentThemeChooser(form, selectedTheme = '') {
 
 function renderMomentLocations() {
   const list = $('#moment-locations');
-  list.innerHTML = momentLocations.map((location, index) => `<li><strong>${escapeHtml(location.label)}</strong><small>${escapeHtml(index === 0 ? t('moment.form.placeIncluded') : t('moment.form.placePrice'))}</small><button type="button" data-remove-location="${index}" aria-label="${escapeHtml(t('moment.form.removePlace', { place: location.label }))}">${escapeHtml(t('common.action.remove'))}</button></li>`).join('');
+  list.innerHTML = momentLocations.map((location, index) => `<li><strong>${escapeHtml(location.label)}</strong><small>${escapeHtml(index === 0 ? t('moment.form.placeIncluded') : t('moment.form.placePrice'))}</small><button type="button" data-remove-location="${index}" aria-label="${escapeHtml(t('common.moment.removePlace', { place: location.label }))}">${escapeHtml(t('common.action.remove'))}</button></li>`).join('');
   $$('[data-remove-location]', list).forEach((button) => button.addEventListener('click', () => {
     momentLocations.splice(Number(button.dataset.removeLocation), 1);
     renderMomentLocations();
@@ -1298,7 +1310,7 @@ function renderMomentLocations() {
 
 function addMomentLocation(location) {
   if (!location.label?.trim()) return;
-  if (momentLocations.length >= 12) { showToast(t('moment.form.tooManyPlaces')); return; }
+  if (momentLocations.length >= 12) { showToast(t('common.moment.tooManyPlaces')); return; }
   momentLocations.push({ ...location, label: location.label.trim() });
   renderMomentLocations();
 }
@@ -1347,13 +1359,13 @@ function openMoment(id = '', initialKind = '') {
   form.elements.visibility.value = 'shared-now';
   renderMomentThemeChooser(form, moment?.theme);
   momentLocations = [];
-  $('#moment-dialog-title').textContent = moment ? t('moment.form.editTitle') : t('moment.form.title');
-  $('#save-moment').textContent = moment ? t('moment.form.saveChanges') : t('moment.form.save');
-  $('#moment-dialog-copy').textContent = hosted ? t('moment.form.hostedCopy') : t('moment.form.localCopy');
+  $('#moment-dialog-title').textContent = moment ? t('common.moment.editTitle') : t('common.screen.moment.title');
+  $('#save-moment').textContent = moment ? t('common.moment.save') : t('common.moment.hold');
+  $('#moment-dialog-copy').textContent = hosted ? t('common.moment.lead') : t('moment.form.localCopy');
   $('#moment-visibility-help').textContent = hosted
     ? moment?.visibility === 'shared-now'
-      ? t('moment.form.visibilityShared')
-      : t('moment.form.visibilityHosted')
+      ? t('common.moment.visibilityLocked')
+      : t('common.moment.visibilityHelp')
     : t('moment.form.visibilityLocal');
   $('#moment-visibility-field').hidden = false;
   $('#moment-image-field').hidden = !hosted;
@@ -1395,12 +1407,12 @@ async function shareMoment(id) {
   const moment = state.moments.find((item) => item.id === id);
   const trip = activeTrip(state);
   if (!moment || !isCloudJourney(trip) || moment.visibility !== 'share-later') return;
-  if (!await confirmConsequence({ title: t('moment.share.title'), consequence: t('moment.share.consequence'), confirmLabel: t('moment.share.confirm') })) return;
+  if (!await confirmConsequence({ title: t('common.moment.shareTitle'), consequence: t('common.moment.shareConsequence'), confirmLabel: t('common.moment.shareAction') })) return;
   try {
     const payload = { kind: moment.kind, kindLabel: moment.kindLabel || '', title: moment.title, detail: moment.detail, occurredOn: moment.occurredOn, visibility: 'shared-now', theme: normalizeMomentTheme(moment.theme), moneyCents: moment.moneyCents, moneyCurrency: moment.moneyCurrency || '', locations: moment.locations || [], version: moment.version };
     await api.mutate(`/journeys/${trip.id}/moments/${moment.id}`, 'PATCH', payload);
     await refreshCloudState();
-    showToast(t('moment.share.done'));
+    showToast(t('common.moment.sharedWithJourneyer'));
   } catch (error) {
     showStatus(accountMessage(error));
   }
@@ -1940,7 +1952,7 @@ $('#moment-form').addEventListener('submit', async (event) => {
     // The browser stops an empty name; a name of only spaces gets past it, so it is caught here,
     // in the form's own name for the field, and the person is taken back to it (#354).
     if (!String(input.title || '').trim()) {
-      showStatus(t('moment.form.nameMissing'), { source: 'moment' });
+      showStatus(t('common.moment.nameMissing'), { source: 'moment' });
       form.elements.title.focus();
       return;
     }
@@ -1956,7 +1968,7 @@ $('#moment-form').addEventListener('submit', async (event) => {
       if (image) await api.uploadMomentImage(trip.id, result.moment.id, preparedMomentPhoto?.source === image ? preparedMomentPhoto.photo : image, form.dataset.paidSlotId || '');
       $('#moment-dialog').close();
       await refreshCloudState();
-      showToast(before ? t('moment.form.updated') : input.visibility === 'shared-now' ? t('moment.form.shared') : t('moment.form.heldWithYou'));
+      showToast(before ? t('common.moment.updated') : input.visibility === 'shared-now' ? t('common.moment.shared') : t('common.moment.heldWithYou'));
       return;
     }
     const actorName = currentActor();
@@ -1966,7 +1978,7 @@ $('#moment-form').addEventListener('submit', async (event) => {
     eventRecord({ action: existingIndex >= 0 ? 'moment_updated' : 'moment_added', entityType: 'moment', entityId: moment.id, summary: `${existingIndex >= 0 ? 'Updated' : 'Held'} ${momentLabel(moment.kind, moment.kindLabel).toLowerCase()}: ${moment.title}`, before, after: moment });
     if (before && before.theme !== moment.theme) eventRecord({ action: 'moment_theme_changed', entityType: 'moment', entityId: moment.id, summary: 'Changed moment theme', before: { theme: before.theme }, after: { theme: moment.theme } });
     $('#moment-dialog').close();
-    persistAndRender(existingIndex >= 0 ? t('moment.form.updated') : t('moment.form.heldLocally'));
+    persistAndRender(existingIndex >= 0 ? t('common.moment.updated') : t('moment.form.heldLocally'));
   } catch (error) {
     showToast(error.message);
   }
@@ -2022,7 +2034,7 @@ $$('[data-close-account]').forEach((button) => button.addEventListener('click', 
 $('#login-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const button = event.currentTarget.querySelector('button[type="submit"], button:not([type])');
-  setButtonPending(button, true, t('signIn.form.pending'));
+  setButtonPending(button, true, t('common.account.signingIn'));
   try {
     accountUser = await api.login(Object.fromEntries(new FormData(event.currentTarget)));
     await settleLanguage();
@@ -2041,7 +2053,7 @@ $('#login-form').addEventListener('submit', async (event) => {
 $('#register-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const button = event.currentTarget.querySelector('button');
-  setButtonPending(button, true, t('register.form.pending'));
+  setButtonPending(button, true, t('common.register.creating'));
   try {
     accountUser = await api.register(Object.fromEntries(new FormData(event.currentTarget)));
     await settleLanguage();
@@ -2049,7 +2061,7 @@ $('#register-form').addEventListener('submit', async (event) => {
     refreshBillingState().catch((error) => showStatus(accountMessage(error)));
     showLedgerSurface({ persist: true });
     renderAccountState();
-    showToast(api.lastVerificationSent ? t('register.form.created') : t('register.form.createdDelayed'));
+    showToast(api.lastVerificationSent ? t('common.account.registered') : t('common.account.registeredEmailDelayed'));
   } catch (error) {
     showStatus(accountMessage(error));
   } finally {
@@ -2285,7 +2297,7 @@ $('#logout-button').addEventListener('click', async () => {
   render();
   if (state.preferences.onboardingComplete) showLedgerSurface();
   else showWelcomeSurface();
-  showToast(t('signIn.toast.signedOut'));
+  showToast(t('common.account.signedOut'));
 });
 
 $('#logout-everywhere-button').addEventListener('click', async (event) => {
@@ -2765,7 +2777,7 @@ async function initializeAccount() {
   try {
     if (emailedCodes.has('verify')) {
       await api.request('/auth/verify-email', { method: 'POST', body: { token: emailedCodes.get('verify') } });
-      showToast(t('signIn.toast.emailVerified'));
+      showToast(t('common.account.verified'));
     }
     if (emailedCodes.has('recovery')) {
       $('#recovery-confirm-form').elements.token.value = emailedCodes.get('recovery');

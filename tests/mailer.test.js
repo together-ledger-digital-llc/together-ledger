@@ -194,7 +194,7 @@ test('the password-changed notice is one plain message that carries no link, cod
   // The web's words are in locales/en.json since 102A (tests/fixtures/web-english.js), and the phone's since 103A.
   const { webSays } = await import('./fixtures/web-english.js');
   const english = JSON.parse(await readFile(new URL('../locales/en.json', import.meta.url), 'utf8'));
-  assert.ok(signIn.includes('id="recovery-button" data-i18n="signIn.form.forgot"') && webSays('I forgot my password') && phone.includes("label={t('common.account.forgotPassword')}") && english['common.account.forgotPassword'] === 'I forgot my password', 'the button the email names is the one both clients show');
+  assert.ok(signIn.includes('id="recovery-button" data-i18n="common.account.forgotPassword"') && webSays('I forgot my password') && phone.includes("label={t('common.account.forgotPassword')}") && english['common.account.forgotPassword'] === 'I forgot my password', 'the button the email names is the one both clients show');
 });
 
 // A name can hold any language, symbol or emoji (owner, Oct 10, 2026). The one email that carries

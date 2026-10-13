@@ -214,7 +214,7 @@ test('accountMessage shows the service\'s own words, and the web\'s fallback oth
   const web = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
   // The web's words are in locales/en.json since 102A (tests/fixtures/web-english.js).
   const { webSays } = await import('./fixtures/web-english.js');
-  assert.ok(web.includes("return t('status.banner.accountService');") && webSays(ACCOUNT_FALLBACK_MESSAGE));
+  assert.ok(web.includes("return t('common.account.fallbackError');") && webSays(ACCOUNT_FALLBACK_MESSAGE));
   const notices = await readFile(new URL('src/auth/account-messages.ts', mobile), 'utf8');
   // The phone's words for a moment with no room are its own on purpose: the web's point at a
   // payment the app does not offer (#268). Everything else is the web's.

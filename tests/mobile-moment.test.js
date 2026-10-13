@@ -74,7 +74,7 @@ test('places are added in the person\'s words, removed one at a time, and never 
   assert.deepEqual(draft.addPlace([], '   '), { locations: [], problem: null });
   const twelve = Array.from({ length: 12 }, (_, index) => ({ label: `Place ${index}` }));
   assert.equal(draft.addPlace(twelve, 'One more').problem, 'A moment can hold up to 12 places.');
-  assert.ok(web.includes("showToast(t('moment.form.tooManyPlaces'))") && webSays('A moment can hold up to 12 places.'));
+  assert.ok(web.includes("showToast(t('common.moment.tooManyPlaces'))") && webSays('A moment can hold up to 12 places.'));
   assert.deepEqual(draft.removePlace([{ label: 'a' }, { label: 'b' }, { label: 'c' }], 1), [{ label: 'a' }, { label: 'c' }]);
 });
 
@@ -116,8 +116,8 @@ test('sharing and deleting go through the consequence dialog; the currencies are
   assert.match(actions, /confirmConsequence\(\{ title: t\('mobile\.moment\.deleteQuestion'\), consequence: deleteConsequence\(moment\), confirmLabel: t\('mobile\.moment\.delete'\), destructive: true \}\)/);
   assert.deepEqual([english['mobile.moment.deleteQuestion'], english['mobile.moment.delete']], ['Delete this moment?', 'Delete moment']);
   assert.equal(unmarked(draft.deleteConsequence({ ...existing, visibility: 'shared-now' })), '“The road near Marlow” will be removed for everyone in this journey. The journey’s history will still show that it was deleted, and who deleted it.', 'plain words for the tombstone (#338)');
-  assert.ok(web.includes("confirmConsequence({ title: t('moment.share.title'), consequence: t('moment.share.consequence'), confirmLabel: t('moment.share.confirm') })"));
-  assert.deepEqual(['moment.share.title', 'moment.share.consequence', 'moment.share.confirm'].map((key) => english[key]), ['Share this moment now?', 'Everyone in this journey will be able to see it, including anyone who joins later. That access cannot be undone.', 'Share this moment']);
+  assert.ok(web.includes("confirmConsequence({ title: t('common.moment.shareTitle'), consequence: t('common.moment.shareConsequence'), confirmLabel: t('common.moment.shareAction') })"));
+  assert.deepEqual(['common.moment.shareTitle', 'common.moment.shareConsequence', 'common.moment.shareAction'].map((key) => english[key]), ['Share this moment now?', 'Everyone in this journey will be able to see it, including anyone who joins later. That access cannot be undone.', 'Share this moment']);
   assert.doesNotMatch(draft.deleteConsequence({ ...existing, visibility: 'shared-now' }), /tombstone|attributable/);
   assert.ok(server.includes("action: 'moment_deleted', entityType: 'moment', entityId: momentId, summary: `Deleted moment: ${before.title}`"), 'the history does keep that a shared moment was deleted, and by whom');
   assert.doesNotMatch(draft.deleteConsequence(existing), /tombstone|history/);
@@ -160,8 +160,8 @@ test('an empty name is told at its own field, and the form takes the person ther
   assert.match(ui, /accessibilityHint=\{problem \|\| undefined\}/, 'a screen reader hears the problem on the field');
   assert.match(ui, /borderColor: problem \? theme\.colors\.caution : theme\.colors\.border/, 'the mark is caution, never destructive: nothing has been lost');
   assert.match(ui, /STATUS_TONES\.caution\.glyph/, 'and a shape as well as a colour');
-  assert.ok(web.includes('showStatus(t(\'moment.form.nameMissing\'), { source: \'moment\' });\n      form.elements.title.focus();') && english['moment.form.nameMissing'] === draft.MOMENT_NAME_MISSING, 'the web says the same words and goes to the same field');
-  assert.match(html, /<label class="field full"><span data-i18n="moment.form.name"><\/span><input name="title" required/, 'where the browser\'s own check stops an empty one first');
+  assert.ok(web.includes('showStatus(t(\'common.moment.nameMissing\'), { source: \'moment\' });\n      form.elements.title.focus();') && english['common.moment.nameMissing'] === draft.MOMENT_NAME_MISSING, 'the web says the same words and goes to the same field');
+  assert.match(html, /<label class="field full"><span data-i18n="common.moment.name"><\/span><input name="title" required/, 'where the browser\'s own check stops an empty one first');
 });
 
 test('deleting a moment sits in its own marked zone, apart from Save and Cancel (#338)', async () => {

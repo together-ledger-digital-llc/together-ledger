@@ -20,8 +20,8 @@ try {
   const englishResponse = await fetch(`${origin}/locales/en.json`);
   assert.equal(englishResponse.status, 200);
   const english = await englishResponse.json();
-  assert.match(english['welcome.hero.title'], /Keep what matters/);
-  assert.equal(english['home.sharedJourney.eyebrow'], 'Our shared journey');
+  assert.match(english['common.welcome.headline'], /Keep what matters/);
+  assert.equal(english['common.ledger.eyebrow'], 'Our shared journey');
   assert.match(html, /class="ledger-preview"/);
   assert.match(html, /data-begin-ledger/);
   assert.match(html, /data-open-moment/);

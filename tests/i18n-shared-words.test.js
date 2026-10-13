@@ -1,7 +1,8 @@
-// The web's shared sentences (common.*, 102A) read word for word as the modules the phone still
-// draws from: src/leave-journey.js, src/model.js, src/themes.js, src/moment-themes.js and
-// src/photo-metadata.js. Until the phone moves to the same keys (103A), this is what keeps the two
-// from saying different things.
+// The web's shared sentences (common.*) read word for word as the modules the phone and the web
+// both still keep English in: src/leave-journey.js, src/model.js, src/themes.js,
+// src/moment-themes.js and src/photo-metadata.js. Since 103A (#425) the phone reads the theme
+// names, the kinds of moment, visibility and the consequence question by key; for those, the web
+// and the phone name the same keys, so a translator sees each sentence once.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
@@ -66,15 +67,39 @@ test('themes, kinds of moment, visibility and the moment form\'s shared lines re
   const sandbox = { globalThis: {} };
   vm.runInNewContext(read('src/themes.js'), sandbox);
   const themes = sandbox.globalThis.TOGETHER_THEMES;
-  for (const theme of themes) assert.equal(t(`common.themeName.${theme.id}`), theme.label);
-  for (const theme of MOMENT_THEMES) assert.equal(t(`common.themeName.${theme.id}`), theme.label);
-  assert.equal(t('common.momentTheme.own'), momentThemeLabel(''));
-  const kinds = { 'missed-chance': 'missedChance', 'heart-to-heart': 'heartToHeart', 'repair-request': 'repairRequest', 'learned-something': 'learnedSomething', 'call-me': 'callMe', 'called-you': 'calledYou', 'practical-matter': 'practicalMatter', other: 'addYourOwn' };
+  for (const theme of themes) assert.equal(t(`common.theme.name.${theme.id}`), theme.label);
+  for (const theme of MOMENT_THEMES) assert.equal(t(`common.theme.name.${theme.id}`), theme.label);
+  assert.equal(t('common.moment.useMyTheme'), momentThemeLabel(''));
+  const kinds = { 'missed-chance': 'missedChance', 'heart-to-heart': 'heartToHeart', 'repair-request': 'repairRequest', 'learned-something': 'learnedSomething', 'call-me': 'callMe', 'called-you': 'calledYou', 'practical-matter': 'practicalMatter' };
   for (const [value, label] of MOMENT_TYPES) assert.equal(t(`common.momentKind.${kinds[value] || value}`), label, value);
-  assert.equal(t('moment.form.nameMissing'), MOMENT_NAME_MISSING);
+  assert.equal(t('common.moment.nameMissing'), MOMENT_NAME_MISSING);
   assert.equal(t('moment.form.photoMetadataRemoved'), PHOTO_METADATA_REMOVED);
-  const phone = read('apps/mobile/src/journey/journey-view.ts');
-  for (const key of ['common.visibility.private', 'common.visibility.shareLater', 'common.visibility.sharedNow']) assert.ok(phone.includes(`label: '${t(key)}'`), key);
-  assert.ok(read('apps/mobile/src/shell/defaults.ts').includes(`'${t('common.consequence.keep')}'`));
-  assert.ok(read('apps/mobile/src/components/dialogs.tsx').includes(`>${t('common.consequence.eyebrow')}<`));
+});
+
+// A key map written as `const NAME = Object.freeze({ id: 'key', … })`, read from a file's text.
+const keyMap = (path, name) => {
+  const body = read(path).match(new RegExp(`const ${name}[^=]*= Object\\.freeze\\(\\{([\\s\\S]*?)\\}\\)`))?.[1];
+  assert.ok(body, `${path} has ${name}`);
+  return Object.fromEntries([...body.matchAll(/^\s*'?([\w-]+)'?: '([^']+)'/gm)].map(([, id, key]) => [id, key]));
+};
+
+test('the web and the phone name the theme names and the kinds of moment by the same keys', () => {
+  assert.deepEqual(keyMap('src/app.js', 'THEME_NAME_KEYS'), keyMap('apps/mobile/src/i18n/theme-names.js', 'THEME_NAMES'));
+  assert.deepEqual(keyMap('src/app.js', 'MOMENT_KIND_KEYS'), keyMap('apps/mobile/src/journey/journey-view.ts', 'KIND_KEYS'));
+  assert.equal(Object.keys(keyMap('src/app.js', 'MOMENT_KIND_KEYS')).length, MOMENT_TYPES.length);
+});
+
+test('visibility and the consequence question are the same keys on the web and the phone', () => {
+  const web = `${read('src/app.js')}\n${read('index.html')}`;
+  const phone = {
+    'common.visibility.private': 'apps/mobile/src/journey/journey-view.ts',
+    'common.visibility.shareLater': 'apps/mobile/src/journey/journey-view.ts',
+    'common.visibility.sharedNow': 'apps/mobile/src/journey/journey-view.ts',
+    'common.dialog.keep': 'apps/mobile/src/shell/defaults.ts',
+    'common.dialog.eyebrow': 'apps/mobile/src/components/dialogs.tsx',
+  };
+  for (const [key, path] of Object.entries(phone)) {
+    assert.ok(read(path).includes(`t('${key}')`), `${path} reads ${key}`);
+    assert.ok(web.includes(`'${key}'`) || web.includes(`"${key}"`), `the web reads ${key}`);
+  }
 });

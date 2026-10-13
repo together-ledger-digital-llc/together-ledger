@@ -51,7 +51,7 @@ export default function MomentScreen() {
   const set = (change: Partial<Draft>) => setDraft((current) => ({ ...current, ...change }));
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: before ? t('common.moment.editTitle') : t('mobile.screen.moment.title') });
+    navigation.setOptions({ title: before ? t('common.moment.editTitle') : t('common.screen.moment.title') });
   }, [navigation, before, language]);
 
   // A problem with this form leaves with it, as a problem raised in a web dialog does.
@@ -60,7 +60,7 @@ export default function MomentScreen() {
 
   if (journey.state.phase !== 'ready' || (id && !before)) {
     return (
-      <Screen title={t('mobile.screen.moment.title')}>
+      <Screen title={t('common.screen.moment.title')}>
         <Body>{id ? t('mobile.moment.gone') : t('mobile.moment.noJourney')}</Body>
         <Button kind="quiet" label={t('mobile.moment.backToLedger')} onPress={() => router.back()} />
       </Screen>
@@ -121,7 +121,7 @@ export default function MomentScreen() {
   };
 
   return (
-    <Screen scrollRef={scroll} title={before ? t('common.moment.editTitle') : t('mobile.screen.moment.title')} lead={t('common.moment.lead')}>
+    <Screen scrollRef={scroll} title={before ? t('common.moment.editTitle') : t('common.screen.moment.title')} lead={t('common.moment.lead')}>
       <Section title={t('common.moment.kind')} help={t('mobile.moment.kindHelp')}>
         <Choices label={t('common.moment.kind')} options={momentKinds()} selected={draft.kind} onSelect={(value) => set({ kind: value })} />
       </Section>
@@ -144,7 +144,7 @@ export default function MomentScreen() {
       <Field label={t('mobile.moment.detail')} value={draft.detail} onChangeText={(value) => set({ detail: value })} maxLength={1200} multiline placeholder={t('common.moment.detailExample')} style={styles.detail} />
 
       <Section title={t('mobile.moment.themeTitle')} help={t('common.moment.themeHelp')}>
-        <View accessibilityRole="radiogroup" accessibilityLabel={t('mobile.moment.themeGroup')} style={styles.options}>
+        <View accessibilityRole="radiogroup" accessibilityLabel={t('common.moment.themeGroup')} style={styles.options}>
           {[{ id: '', label: t('common.moment.useMyTheme') }, ...MOMENT_THEMES.map(({ id, label }) => ({ id, label: themeName(id, label) }))].map((option) => {
             const active = normalizeMomentTheme(draft.theme) === option.id;
             const swatch = option.id ? getTheme(option.id).colors : colors;

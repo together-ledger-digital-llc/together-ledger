@@ -13,10 +13,10 @@ const english = JSON.parse(readFileSync(new URL('../locales/en.json', import.met
 
 // Test sentences only: just enough of each language to see the page switch to it.
 const FILES = {
-  hi: { '@@locale': 'hi', 'welcome.hero.eyebrow': 'देखभाल से रखी साझा यात्रा', 'common.language.title': 'भाषा' },
-  bn: { '@@locale': 'bn', 'welcome.hero.eyebrow': 'যত্নে রাখা একসাথে পথচলা' },
-  'es-419': { '@@locale': 'es-419', 'welcome.hero.eyebrow': 'Un viaje compartido, cuidado' },
-  'hi-Latn': { '@@locale': 'hi-Latn', 'welcome.hero.eyebrow': 'Ek saath ka safar, pyaar se sambhala' },
+  hi: { '@@locale': 'hi', 'common.welcome.eyebrow': 'देखभाल से रखी साझा यात्रा', 'common.language.title': 'भाषा' },
+  bn: { '@@locale': 'bn', 'common.welcome.eyebrow': 'যত্নে রাখা একসাথে পথচলা' },
+  'es-419': { '@@locale': 'es-419', 'common.welcome.eyebrow': 'Un viaje compartido, cuidado' },
+  'hi-Latn': { '@@locale': 'hi-Latn', 'common.welcome.eyebrow': 'Ek saath ka safar, pyaar se sambhala' },
 };
 
 const json = (route, body) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
@@ -89,7 +89,7 @@ test('a browser set to a preview language stays in English, and does not even fe
   await page.goto('/');
   await expect(page.locator('#welcome-language')).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-  await expect(page.locator('.welcome-hero .welcome-eyebrow')).toHaveText(english['welcome.hero.eyebrow']);
+  await expect(page.locator('.welcome-hero .welcome-eyebrow')).toHaveText(english['common.welcome.eyebrow']);
   expect(fetched).toEqual([]);
 });
 
@@ -105,9 +105,9 @@ test('a preview chosen by hand on the welcome page switches the page, is kept, a
   await page.goto('/');
   await page.locator('#welcome-language-select').selectOption('hi');
   await expect(page.locator('html')).toHaveAttribute('lang', 'hi');
-  await expect(page.locator('.welcome-hero .welcome-eyebrow')).toHaveText(FILES.hi['welcome.hero.eyebrow']);
+  await expect(page.locator('.welcome-hero .welcome-eyebrow')).toHaveText(FILES.hi['common.welcome.eyebrow']);
   // A sentence the preview lacks reads in English.
-  await expect(page.locator('#welcome-title')).toHaveText(english['welcome.hero.title']);
+  await expect(page.locator('#welcome-title')).toHaveText(english['common.welcome.headline']);
   expect(await page.evaluate(() => localStorage.getItem('language'))).toBe('hi');
 
   await page.reload();
