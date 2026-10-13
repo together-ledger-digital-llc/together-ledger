@@ -239,8 +239,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .welcome { overflow: hidden; }
 /* The language choice at the top of the welcome page: small, in the hero's top corner above the
-   heading, and only there once a language besides English may be chosen. The select names the language it is in;
-   the globe says what it is for, in any language. */
+   heading, and always there (decision 160). The select names the language it is in; the globe
+   says what it is for, in any language. */
 .welcome-language { position: absolute; right: clamp(18px, 4vw, 58px); top: 14px; z-index: 1; }
 .language-control { align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-pill); color: var(--muted); display: inline-flex; gap: 2px; max-width: 100%; min-height: 44px; padding-left: 12px; }
 .language-glyph { flex: none; height: 18px; width: 18px; }
@@ -811,9 +811,8 @@ footer p { color: var(--on-accent); margin-bottom: 0; opacity: .8; }
   .header-actions .button { min-height: 42px; padding: 7px 12px; }
   .theme-control span { display: none; }
   .theme-control select { min-height: 42px; max-width: 155px; }
-  .welcome-hero { min-height: 0; padding: 65px 15px 78px; }
-  /* Room under the language choice, only while it shows. */
-  .welcome-hero:has(> .welcome-language:not([hidden])) { padding-top: 80px; }
+  /* The top leaves room under the language choice, which is always there (decision 160). */
+  .welcome-hero { min-height: 0; padding: 80px 15px 78px; }
   .welcome-hero::before { height: 390px; left: -285px; top: -190px; width: 390px; }
   .welcome h1 { font-size: clamp(55px, 17vw, 76px); }
   .welcome-intro { font-size: 18px; line-height: 1.65; }

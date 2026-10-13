@@ -12,19 +12,21 @@ import { Button } from './ui';
 
 /**
  * The language choice (103A), the same as the web's Language row (101B): "Follow my device", then
- * each language in its own name and script. A language in preview carries the word Preview after
- * its name (decision 145); an approved one doesn't. A change takes effect at once, and is saved to
- * the account when someone is signed in (src/i18n/language-provider.tsx).
+ * every language in the manifest in its own name and script (decision 160). An approved language
+ * may be chosen. One in preview carries the word Preview after its name and is chosen by hand
+ * only (decision 145). A draft or a language in review carries the words Coming soon and can't be
+ * chosen. A change takes effect at once, and is saved to the account when someone is signed in
+ * (src/i18n/language-provider.tsx).
  *
  * The welcome shows it small, near the top: one control that opens the list. Settings shows the
- * list itself, as it shows the themes. Neither shows anything while English is the only language.
+ * list itself, as it shows the themes. Both are always there, English alone included.
  */
 export function LanguageList() {
-  const { choose, choice, offered } = useLanguage();
+  const { choose, choice, listed } = useLanguage();
   const pick = useChoose(choose);
   return (
     <View accessibilityRole="radiogroup" accessibilityLabel={t('common.language.title')} style={styles.options}>
-      {languageOptions(offered).map((option) => <LanguageRow key={option.choice ?? 'device'} option={option} chosen={option.choice === choice} onPress={() => pick(option.choice)} />)}
+      {languageOptions(listed).map((option) => <LanguageRow key={option.choice ?? 'device'} option={option} chosen={option.choice === choice} onPress={() => pick(option.choice)} />)}
     </View>
   );
 }
@@ -34,12 +36,12 @@ export function LanguageControl() {
   const { theme } = useTheme();
   const colors = theme.colors;
   const insets = useSafeAreaInsets();
-  const { choose, choice, offered, active } = useLanguage();
+  const { choose, choice, listed, active } = useLanguage();
   const pick = useChoose(choose);
   const [open, setOpen] = useState(false);
   const chosenRow = useRef<View>(null);
-  const options = languageOptions(offered);
-  const current = offered.find((language) => language.tag === active);
+  const options = languageOptions(listed);
+  const current = listed.find((language) => language.tag === active);
   return (
     <View style={styles.control}>
       <Pressable
@@ -87,21 +89,27 @@ export function LanguageControl() {
   );
 }
 
+// The words after a language's name, in the web's own sentences, so the two say it the same way.
+const LISTING_KEYS = Object.freeze({ preview: 'common.language.preview', comingSoon: 'common.language.comingSoon' } as const);
+
 /**
  * One language: its own name, read in its own language. A language in preview reads "हिन्दी ·
- * Preview" in the web's own sentence (common.language.preview), so the two say it the same way.
+ * Preview" (common.language.preview); one still being translated reads "বাংলা · Coming soon"
+ * (common.language.comingSoon), drawn quieter, and can't be chosen.
  */
 function LanguageRow({ option, chosen, onPress, rowRef }: { option: LanguageOption; chosen: boolean; onPress: () => void; rowRef?: React.Ref<View> }) {
   const { theme } = useTheme();
   const colors = theme.colors;
-  const label = option.preview ? t('common.language.preview', { language: option.label }) : option.label;
+  const comingSoon = option.listing === 'comingSoon';
+  const label = option.listing === 'approved' ? option.label : t(LISTING_KEYS[option.listing], { language: option.label });
   return (
     <Pressable
       ref={rowRef}
       accessibilityRole="radio"
-      accessibilityState={{ checked: chosen }}
+      accessibilityState={{ checked: chosen, disabled: comingSoon }}
       accessibilityLabel={label}
       accessibilityLanguage={option.lang}
+      disabled={comingSoon}
       onPress={onPress}
       style={({ pressed }) => [styles.option, targetSize, {
         borderColor: chosen ? colors.accent : colors.border,
@@ -111,7 +119,7 @@ function LanguageRow({ option, chosen, onPress, rowRef }: { option: LanguageOpti
       }]}
     >
       <Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.mark, { color: chosen ? colors.accent : colors.muted }]}>{chosen ? '●' : '○'}</Text>
-      <Text style={[styles.label, { color: colors.fg }]}>{label}</Text>
+      <Text style={[styles.label, { color: comingSoon ? colors.muted : colors.fg }]}>{label}</Text>
     </Pressable>
   );
 }

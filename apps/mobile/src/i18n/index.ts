@@ -11,7 +11,7 @@ import { getLocales } from 'expo-localization';
 import { IntlMessageFormat } from 'intl-messageformat';
 import source from '../../../../locales/en.json';
 import manifest from '../../../../locales/languages.json';
-import { choosableLanguages, isPreview, languageOf, messagesOf, offeredLanguages } from '../../../../src/i18n/catalog.js';
+import { choosableLanguages, isPreview, languageOf, listedLanguages, messagesOf, offeredLanguages } from '../../../../src/i18n/catalog.js';
 import { createFormatter, deviceLocale } from '../../../../src/i18n/format.js';
 import { readChoice, resolveLanguage, speechLanguage } from '../../../../src/i18n/language-choice.js';
 import { createTranslator } from '../../../../src/i18n/translator.js';
@@ -51,6 +51,15 @@ export const OFFERED_LANGUAGES: readonly OfferedLanguage[] = choosableLanguages(
   .filter((language: { tag: string }) => language.tag in catalogs)
   .map((language: { tag: string; nativeName: string; status: string }) => ({ tag: language.tag, nativeName: language.nativeName, preview: isPreview(language) }));
 const choosableTags = OFFERED_LANGUAGES.map((language) => language.tag);
+
+export type ListedLanguage = { tag: string; nativeName: string; listing: 'approved' | 'preview' | 'comingSoon' };
+
+/**
+ * Every language in the manifest, as the Language choice lists it (decision 160): approved ones
+ * and previews the app carries may be chosen; drafts, languages in review and any the app doesn't
+ * carry yet are listed as coming soon, and can't be chosen.
+ */
+export const LISTED_LANGUAGES: readonly ListedLanguage[] = listedLanguages(manifest, (tag: string) => tag in catalogs);
 // What the phone's own languages may be matched to: approved languages only. A preview is never
 // reached from the phone, only chosen by hand.
 const offeredTags = offeredLanguages(manifest).map((language: { tag: string }) => language.tag).filter((tag: string) => tag in catalogs);

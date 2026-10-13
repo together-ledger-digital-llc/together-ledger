@@ -6,7 +6,7 @@ import { dirname, join, relative } from 'node:path';
 import test from 'node:test';
 import { IntlMessageFormat } from 'intl-messageformat';
 import {
-  approvedLanguageProblems, choosableLanguages, glossaryToTbx, isPreview, KEY_PATTERN, languageOf, manifestProblems, messagesOf, notesOf, offeredLanguages,
+  approvedLanguageProblems, choosableLanguages, glossaryToTbx, isPreview, KEY_PATTERN, languageOf, listedLanguages, manifestProblems, messagesOf, notesOf, offeredLanguages,
   previewLanguageProblems, sourceProblems, translationProblems,
 } from '../src/i18n/catalog.js';
 import { collectFiles } from '../scripts/check-public-safety.mjs';
@@ -116,6 +116,25 @@ test('every language in preview has its file, and every sentence in it passes th
   assert.deepEqual(previewLanguageProblems(manifest, source, translations, IntlMessageFormat), []);
 });
 
+test('the Language choice lists every language in the manifest: approved, in preview, or coming soon (decision 160)', () => {
+  // As the manifest stands: English may be chosen, and every other language is on its way.
+  assert.deepEqual(listedLanguages(manifest), [
+    { tag: 'en', nativeName: 'English', listing: 'approved' },
+    { tag: 'hi', nativeName: 'हिन्दी', listing: 'comingSoon' },
+    { tag: 'bn', nativeName: 'বাংলা', listing: 'comingSoon' },
+    { tag: 'es-419', nativeName: 'Español (Latinoamérica)', listing: 'comingSoon' },
+    { tag: 'hi-Latn', nativeName: 'Hinglish (Hindi in Latin script)', listing: 'comingSoon' },
+  ]);
+  const statuses = { hi: 'preview', bn: 'approved', 'es-419': 'in-review', 'hi-Latn': 'draft' };
+  const mixed = { ...manifest, languages: manifest.languages.map((language) => (statuses[language.tag] ? { ...language, status: statuses[language.tag] } : language)) };
+  assert.deepEqual(listedLanguages(mixed).map(({ tag, listing }) => [tag, listing]), [['en', 'approved'], ['hi', 'preview'], ['bn', 'approved'], ['es-419', 'comingSoon'], ['hi-Latn', 'comingSoon']], 'in the manifest\'s order, each as its status allows');
+  // An app that doesn't carry a language's file yet can't read it, so lists it as coming soon.
+  assert.deepEqual(listedLanguages(mixed, (tag) => tag !== 'bn').map(({ tag, listing }) => [tag, listing]), [['en', 'approved'], ['hi', 'preview'], ['bn', 'comingSoon'], ['es-419', 'comingSoon'], ['hi-Latn', 'comingSoon']]);
+  // Whatever is listed as choosable is exactly what may be chosen, no more.
+  assert.deepEqual(listedLanguages(mixed).filter(({ listing }) => listing !== 'comingSoon').map(({ tag }) => tag), choosableLanguages(mixed).map(({ tag }) => tag));
+  assert.equal(source['common.language.comingSoon'], '{language} · Coming soon');
+});
+
 test('a language in preview may be chosen by hand, says so, and is never offered without being asked for (decision 145)', () => {
   const statuses = { hi: 'preview', bn: 'in-review', 'hi-Latn': 'preview' };
   const withPreview = { ...manifest, languages: manifest.languages.map((language) => (statuses[language.tag] ? { ...language, status: statuses[language.tag] } : language)) };
@@ -124,7 +143,7 @@ test('a language in preview may be chosen by hand, says so, and is never offered
   assert.deepEqual(choosableLanguages(withPreview).map((language) => [language.tag, isPreview(language)]), [['en', false], ['hi', true], ['hi-Latn', true]], 'draft and in-review are never shown');
   const datedPreview = { ...withPreview, languages: withPreview.languages.map((language) => (language.tag === 'hi' ? { ...language, approvedOn: '2026-10-12' } : language)) };
   assert.deepEqual(manifestProblems(datedPreview), ['hi has an approval date but is preview']);
-  assert.deepEqual(choosableLanguages(manifest).map((language) => language.tag), ['en'], 'today: English only, so no choice is shown');
+  assert.deepEqual(choosableLanguages(manifest).map((language) => language.tag), ['en'], 'today: only English may be chosen');
 
   // Its file may lack sentences, which read in English, but what it holds must keep English's placeholders.
   const fixtureSource = fixture('en.json');

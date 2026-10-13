@@ -6,7 +6,7 @@
 // service. Loading them is part of loading the page: app.js waits for this module, as it waits
 // for every other one it imports.
 import { IntlMessageFormat } from '../vendor/intl-messageformat.js';
-import { choosableLanguages, isPreview, languageOf, messagesOf, offeredLanguages } from './catalog.js';
+import { choosableLanguages, languageOf, listedLanguages, messagesOf, offeredLanguages } from './catalog.js';
 import { applyTranslations as applyAll, renderSentence as render, sentenceHtml as html } from './dom.js';
 import { createFormatter } from './format.js';
 import { readChoice, resolveLanguage, speechLanguage } from './language-choice.js';
@@ -35,10 +35,10 @@ if (pseudo) {
 }
 
 // A browser's own languages are matched only to approved ones. A person may also choose a
-// preview by hand; a draft or a language in review is never offered, read or matched (catalog.js).
+// preview by hand; a draft or a language in review is listed as coming soon, and never chosen,
+// read or matched (catalog.js).
 const offeredTags = offeredLanguages(manifest).map((language) => language.tag);
-const choosable = choosableLanguages(manifest);
-const choosableTags = choosable.map((language) => language.tag);
+const choosableTags = choosableLanguages(manifest).map((language) => language.tag);
 
 // The choice this browser keeps: a language chosen by hand, or nothing for "Follow my device".
 // Before signing in it is the only choice there is; once signed in, it mirrors the account's, so
@@ -128,10 +128,12 @@ export const activeLanguage = () => active;
 export const languageChoice = () => storedChoice();
 
 /**
- * The languages that may be chosen, each with its own name, in the manifest's order. preview is
- * true for a language offered before it is approved, which the menu marks "Preview".
+ * Every language in the manifest, each with its own name, in the manifest's order (decision 160):
+ * listing is 'approved', 'preview' (marked Preview, chosen by hand only) or 'comingSoon' (a draft
+ * or a language in review, shown and never chosen). The build ships every choosable language's
+ * file, so the web carries each one it may offer.
  */
-export const languageOptions = () => choosable.map((language) => ({ tag: language.tag, nativeName: language.nativeName, preview: isPreview(language) }));
+export const languageOptions = () => listedLanguages(manifest);
 
 /**
  * Keeps choice (a tag, or null to follow the browser) on this browser and switches the page's

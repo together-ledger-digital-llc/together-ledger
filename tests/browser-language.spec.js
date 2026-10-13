@@ -63,13 +63,16 @@ async function openSettings(page) {
   await expect(page.locator('#settings-dialog')).toBeVisible();
 }
 
-test('while English is the only approved language, there is no Language row and the page is English, whatever the browser speaks', async ({ page }) => {
+test('while English is the only approved language, the Language row offers nothing else yet and the page is English, whatever the browser speaks', async ({ page }) => {
   await browserLanguages(page, ['hi-IN', 'bn-BD', 'es-MX']);
   const asked = [];
   page.on('request', (request) => { if (/\/locales\/(?!en\.json|languages\.json)/.test(request.url())) asked.push(request.url()); });
   await page.goto('/');
   await openSettings(page);
-  await expect(page.locator('#language-settings')).toBeHidden();
+  // Always there (decision 160): every other language is listed as coming soon, and can't be chosen.
+  await expect(page.locator('#language-settings')).toBeVisible();
+  const choosable = await page.locator('#language-select option:not(:disabled)').evaluateAll((options) => options.map((option) => option.value));
+  expect(choosable).toEqual(['', 'en']);
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   expect(await page.locator('body').getAttribute('lang')).toBeNull();
   expect(asked, 'no draft is ever fetched').toEqual([]);
@@ -90,6 +93,7 @@ test('a language appears once it is approved, in its own name and script, after 
     { value: 'en', text: 'English', lang: 'en' },
     { value: 'hi', text: 'हिन्दी', lang: 'hi' },
     { value: 'bn', text: 'বাংলা', lang: 'bn' },
+    { value: 'es-419', text: '\u2068Español (Latinoamérica)\u2069 · Coming soon', lang: 'es-419' },
     { value: 'hi-Latn', text: 'Hinglish (Hindi in Latin script)', lang: 'hi-Latn' },
   ]);
   await expect(select).toHaveValue('', { message: 'nobody has chosen, so the page follows the browser' });

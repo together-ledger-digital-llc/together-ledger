@@ -7,7 +7,7 @@ import { useLanguage } from '../src/i18n/language-provider';
 import { sentenceParts } from '../src/i18n/sentences.js';
 import { INVITATION_WORDS } from '../src/invitations/invitation-words';
 import { useShell } from '../src/shell/shell-provider';
-import { languageChoiceShown, SETTINGS_GLYPH } from '../src/shell/screens';
+import { SETTINGS_GLYPH } from '../src/shell/screens';
 import { openingSurface } from '../src/shell/surface';
 import { fonts, leading, scriptStyles, tracking, useTheme } from '../src/theme';
 
@@ -16,17 +16,17 @@ import { fonts, leading, scriptStyles, tracking, useTheme } from '../src/theme';
  * meets the welcome first (the web's showWelcomeSurface / showLedgerSurface). The words are the
  * web's welcome (index.html). One Settings door (owner, Oct 12, 2026; #399): the account is
  * inside it, as Account settings, not a second button beside it. The door carries a gear before
- * its word (#399), as the ledger's does. Once there is more than English to choose, the language
- * choice sits small at the top (103A), so someone who can't read English finds it first.
+ * its word (#399), as the ledger's does. The language choice sits small at the top, always (103A;
+ * decision 160), so someone who can't read English finds it first.
  */
 export default function WelcomeScreen() {
   const shell = useShell();
   const { theme } = useTheme();
-  const { offered } = useLanguage();
+  useLanguage();
   if (openingSurface({ onboardingComplete: shell.onboardingComplete }) === 'ledger') return <Redirect href="/ledger" />;
   return (
     <Screen title="Together Ledger" edges={['top', 'bottom', 'left', 'right']}>
-      {languageChoiceShown(offered) ? <LanguageControl /> : null}
+      <LanguageControl />
       <Text style={[styles.eyebrow, { color: theme.colors.accent }]}>{t('common.welcome.eyebrow')}</Text>
       <Text accessibilityRole="header" style={[styles.headline, fonts.serif, { color: theme.colors.fg }]}>
         {sentenceParts('common.welcome.headline', { together: t('common.welcome.headlineTogether') }).map((part, index) => (

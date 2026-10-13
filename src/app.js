@@ -914,26 +914,26 @@ function initializeThemePicker() {
 }
 
 // The language menus: the Language row in Settings (101B) and the small one at the top of the
-// welcome page (102A). Both list "Follow my device", then every language that may be chosen, each
-// in its own name and script; a language in preview carries the word Preview beside its name
-// (owner, Oct 12, 2026, decision 145). While English is the only one, both stay hidden.
+// welcome page (102A). Both are always there (owner, Oct 12, 2026, decision 160) and list "Follow
+// my device", then every language in the manifest, each in its own name and script. An approved
+// language may be chosen; one in preview carries the word Preview beside its name and is chosen by
+// hand only (decision 145); a draft or a language in review says Coming soon and can't be chosen.
+const LANGUAGE_LISTING_KEYS = Object.freeze({ preview: 'common.language.preview', comingSoon: 'common.language.comingSoon' });
+
 function languageMenuOptions() {
-  return [{ tag: '', nativeName: t('common.language.followDevice'), preview: false }, ...languageOptions()].map(({ tag, nativeName, preview }) => {
+  return [{ tag: '', nativeName: t('common.language.followDevice'), listing: 'approved' }, ...languageOptions()].map(({ tag, nativeName, listing }) => {
     const option = document.createElement('option');
     option.value = tag;
-    option.textContent = preview ? t('common.language.preview', { language: nativeName }) : nativeName;
+    option.textContent = LANGUAGE_LISTING_KEYS[listing] ? t(LANGUAGE_LISTING_KEYS[listing], { language: nativeName }) : nativeName;
     // Each name in its own language, so a screen reader says हिन्दी as Hindi, not as English.
     if (tag) option.lang = tag;
-    if (preview) option.dataset.preview = '';
+    if (listing === 'preview') option.dataset.preview = '';
+    option.disabled = listing === 'comingSoon';
     return option;
   });
 }
 
 function renderLanguageRow() {
-  const shown = languageOptions().length >= 2;
-  $('#language-settings').hidden = !shown;
-  $('#welcome-language').hidden = !shown;
-  if (!shown) return;
   for (const select of [$('#language-select'), $('#welcome-language-select')]) {
     select.replaceChildren(...languageMenuOptions());
     select.value = languageChoice() || '';
@@ -976,6 +976,12 @@ function initializeLanguageRow() {
   renderLanguageRow();
   for (const select of [$('#language-select'), $('#welcome-language-select')]) {
     select.addEventListener('change', async (event) => {
+      // A language coming soon can't be chosen: the menu never lets a person pick it, and if a
+      // script sets it anyway, nothing changes and nothing is sent.
+      if (event.currentTarget.selectedOptions[0]?.disabled) {
+        renderLanguageRow();
+        return;
+      }
       const choice = event.currentTarget.value || null;
       try {
         // Signed in, the choice is saved to the account first, and the page follows what it kept.

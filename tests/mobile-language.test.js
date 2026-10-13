@@ -101,48 +101,56 @@ test('the app opens in the saved language, read at once, so its first screen and
   assert.match(i18n, /setActiveLanguage\(resolveActiveLanguage\(readLanguageChoice\(savedLanguageNow\(\)\)\)\);\s*(?:\/\*\*[\s\S]*?\*\/\s*)?export const language = activeLanguage\(\);/, 'what src/theme/fonts.ts sets type for');
 });
 
-// 103A: the language choice on the welcome and in Settings, with languages in preview
-// (decision 145), and type that follows the language without the app starting again.
+// 103A: the language choice on the welcome and in Settings, always there (decision 160), with
+// languages in preview (decision 145) and coming soon, and type that follows the language
+// without the app starting again.
 
 const manifest = JSON.parse(await readFile(new URL('../locales/languages.json', import.meta.url), 'utf8'));
-const { choosableLanguages, isPreview } = await import('../src/i18n/catalog.js');
+const { listedLanguages } = await import('../src/i18n/catalog.js');
 const screens = await importMobile('src/shell/screens.ts');
 const withStatus = (statuses) => ({ ...manifest, languages: manifest.languages.map((language) => (statuses[language.tag] ? { ...language, status: statuses[language.tag] } : language)) });
 
-test('the choice lists "Follow my device", then each language in its own name and script; Preview only beside one in preview', () => {
-  const offered = choosableLanguages(withStatus({ hi: 'preview', bn: 'approved', 'es-419': 'in-review', 'hi-Latn': 'preview' }))
-    .map((language) => ({ ...language, preview: isPreview(language) }));
-  assert.deepEqual(screens.languageOptions(offered), [
-    { choice: null, label: 'Follow my device', preview: false },
-    { choice: 'en', label: 'English', lang: 'en', preview: false },
-    { choice: 'hi', label: 'हिन्दी', lang: 'hi', preview: true },
-    { choice: 'bn', label: 'বাংলা', lang: 'bn', preview: false },
-    { choice: 'hi-Latn', label: 'Hinglish (Hindi in Latin script)', lang: 'hi-Latn', preview: true },
-  ], 'a draft or one in review is never shown; each is named in its own script, never translated');
+test('the choice lists "Follow my device", then every language in its own name and script, each as its status allows (decision 160)', () => {
+  const listed = listedLanguages(withStatus({ hi: 'preview', bn: 'approved', 'es-419': 'in-review', 'hi-Latn': 'draft' }));
+  assert.deepEqual(screens.languageOptions(listed), [
+    { choice: null, label: 'Follow my device', listing: 'approved' },
+    { choice: 'en', label: 'English', lang: 'en', listing: 'approved' },
+    { choice: 'hi', label: 'हिन्दी', lang: 'hi', listing: 'preview' },
+    { choice: 'bn', label: 'বাংলা', lang: 'bn', listing: 'approved' },
+    { choice: 'es-419', label: 'Español (Latinoamérica)', lang: 'es-419', listing: 'comingSoon' },
+    { choice: 'hi-Latn', label: 'Hinglish (Hindi in Latin script)', lang: 'hi-Latn', listing: 'comingSoon' },
+  ], 'every language is shown, each named in its own script, never translated');
 });
 
-test('the choice appears only once there is more than English: today nothing changes for anyone', async () => {
-  assert.equal(screens.languageChoiceShown(choosableLanguages(manifest)), false, 'English only, as the manifest stands');
-  assert.equal(screens.languageChoiceShown(choosableLanguages(withStatus({ hi: 'preview' }))), true, 'one language in preview is enough');
-  assert.equal(screens.languageChoiceShown(choosableLanguages(withStatus({ bn: 'draft', hi: 'in-review' }))), false);
+test('the choice is always there, on the welcome and in Settings, English alone included (decision 160)', async () => {
+  const i18n = await read('src/i18n/index.ts');
+  assert.match(i18n, /export const LISTED_LANGUAGES: readonly ListedLanguage\[\] = listedLanguages\(manifest, \(tag: string\) => tag in catalogs\);/, 'a language the app doesn\'t carry yet is coming soon');
+  const provider = await read('src/i18n/language-provider.tsx');
+  assert.match(provider, /listed: LISTED_LANGUAGES/);
   const welcome = await read('app/index.tsx');
-  assert.match(welcome, /\{languageChoiceShown\(offered\) \? <LanguageControl \/> : null\}/);
+  assert.match(welcome, /^ {6}<LanguageControl \/>$/m, 'drawn unconditionally');
+  assert.doesNotMatch(welcome, /languageChoiceShown/);
   assert.ok(welcome.indexOf('<LanguageControl />') < welcome.indexOf("t('common.welcome.eyebrow')"), 'small, at the top of the welcome, before anything to read');
   const settings = await read('app/settings.tsx');
-  assert.match(settings, /languages: languageChoiceShown\(offered\)/);
+  assert.doesNotMatch(settings, /languageChoiceShown/);
+  assert.equal(screens.languageChoiceShown, undefined, 'nothing left that could hide it');
   assert.match(settings, /<SettingsHeading>\{t\('common\.language\.title'\)\}<\/SettingsHeading>\s*<LanguageList \/>\s*<Body>\{t\('common\.language\.note'\)\}<\/Body>/, 'a Language section, under its own word, with the web\'s note');
 });
 
-test('each language is read in its own language, a preview is said as one, and choosing saves through the provider', async () => {
+test('each language is read in its own language; a preview and a language coming soon say so, and only one coming soon can\'t be chosen', async () => {
   const choice = await read('src/components/language-choice.tsx');
   assert.match(choice, /accessibilityLanguage=\{option\.lang\}/, 'a screen reader says हिन्दी in Hindi');
-  assert.match(choice, /const label = option\.preview \? t\('common\.language\.preview', \{ language: option\.label \}\) : option\.label;/, 'the word Preview only after a language in preview, in the web\'s own sentence');
+  assert.match(choice, /const LISTING_KEYS = Object\.freeze\(\{ preview: 'common\.language\.preview', comingSoon: 'common\.language\.comingSoon' \} as const\);/, 'the web\'s own sentences');
+  assert.match(choice, /const label = option\.listing === 'approved' \? option\.label : t\(LISTING_KEYS\[option\.listing\], \{ language: option\.label \}\);/, 'an approved language is its name alone');
   assert.match(choice, /accessibilityLabel=\{label\}/);
-  assert.match(choice, /accessibilityRole="radio"\s+accessibilityState=\{\{ checked: chosen \}\}/);
+  assert.match(choice, /accessibilityRole="radio"\s+accessibilityState=\{\{ checked: chosen, disabled: comingSoon \}\}/, 'a screen reader hears that it can\'t be chosen yet');
+  assert.match(choice, /disabled=\{comingSoon\}\s+onPress=\{onPress\}/, 'and a tap does nothing');
+  assert.match(choice, /const comingSoon = option\.listing === 'comingSoon';/);
   assert.match(choice, /targetSize/, 'every choice is a 44-point target');
   assert.match(choice, /choose\(next\)\.catch\(\(error: unknown\) => showStatus\(accountMessage\(error\)\)\)/, 'an account that can\'t be reached says so, and nothing changes');
   const english = JSON.parse(await readFile(new URL('../locales/en.json', import.meta.url), 'utf8'));
   assert.equal(english['common.language.preview'], '{language} · Preview');
+  assert.equal(english['common.language.comingSoon'], '{language} · Coming soon');
 });
 
 test('a phone set to a language in preview is never switched to it; choosing it by hand is (decision 145)', async () => {

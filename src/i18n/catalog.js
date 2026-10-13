@@ -175,6 +175,26 @@ export function isPreview(language) {
 }
 
 /**
+ * Every language in the manifest, in its order, as the Language choice lists it (decision 160):
+ * listing is 'approved' (chosen by hand, and a device's own languages are matched to it),
+ * 'preview' (chosen by hand only, and marked so) or 'comingSoon' (a draft or a language in review:
+ * shown, so people can see it is on its way, and never chosen). carried(tag) says whether the app
+ * has that language's file; an approved or preview language it doesn't carry yet is coming soon
+ * there too, since it can't be read.
+ * @param {{ languages?: { tag: string, nativeName: string, status: string }[] }} manifest
+ * @param {(tag: string) => boolean} [carried]
+ * @returns {{ tag: string, nativeName: string, listing: 'approved' | 'preview' | 'comingSoon' }[]}
+ */
+export function listedLanguages(manifest, carried = () => true) {
+  const choosable = new Set(choosableLanguages(manifest).map((language) => language.tag));
+  return (manifest?.languages || []).map((language) => ({
+    tag: language.tag,
+    nativeName: language.nativeName,
+    listing: !choosable.has(language.tag) || !carried(language.tag) ? 'comingSoon' : isPreview(language) ? 'preview' : 'approved',
+  }));
+}
+
+/**
  * The gate on every approved language: each must have its file, and its file must pass
  * translationProblems against the source. translations is { tag: parsed ARB file }.
  */

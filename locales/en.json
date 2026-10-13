@@ -1396,6 +1396,13 @@
       "language": { "type": "String", "example": "हिन्दी", "description": "The language’s own name, in its own script." }
     }
   },
+  "common.language.comingSoon": "{language} · Coming soon",
+  "@common.language.comingSoon": {
+    "description": "A language in a language menu that is still being translated: its own name, then the words Coming soon, in the reader’s language. It is shown so people can see it is on its way, and it can’t be chosen yet.",
+    "placeholders": {
+      "language": { "type": "String", "example": "বাংলা", "description": "The language’s own name, in its own script." }
+    }
+  },
   "mobile.language.current": "Language: {language}",
   "@mobile.language.current": {
     "description": "What a screen reader says for the small language control at the top of the welcome, which opens the Language choice.",

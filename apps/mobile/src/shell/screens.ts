@@ -69,26 +69,18 @@ export function backAccessibilityLabel(label: string) {
 export type SettingsSection = 'appearance' | 'language' | 'journey' | 'account';
 
 /**
- * Settings' groups, in order (owner, Oct 12, 2026; #399). Language follows Appearance whenever
- * there is more than one language to choose (103A). The journey's own group shows only while a
- * journey is open; Account settings is always there, and says how to sign in when no one is.
- * Privacy, Terms and Help follow every group, for everyone, as quiet links.
+ * Settings' groups, in order (owner, Oct 12, 2026; #399). Language follows Appearance, always
+ * (decision 160). The journey's own group shows only while a journey is open; Account settings is
+ * always there, and says how to sign in when no one is. Privacy, Terms and Help follow every
+ * group, for everyone, as quiet links.
  */
-export function settingsSections({ journeyOpen, languages = false }: { journeyOpen: boolean; languages?: boolean }): SettingsSection[] {
+export function settingsSections({ journeyOpen }: { journeyOpen: boolean }): SettingsSection[] {
   return [
     'appearance' as const,
-    ...(languages ? ['language' as const] : []),
+    'language' as const,
     ...(journeyOpen ? ['journey' as const] : []),
     'account' as const,
   ];
-}
-
-/**
- * Whether the language choice is shown, on the welcome and in Settings: only once there is more
- * than English to choose, approved or in preview. Until then nothing changes for anyone.
- */
-export function languageChoiceShown(offered: readonly { tag: string }[]): boolean {
-  return offered.length > 1;
 }
 
 export type LanguageOption = {
@@ -98,19 +90,22 @@ export type LanguageOption = {
   label: string;
   /** The language the label is written in, for screen readers; undefined for "Follow my device". */
   lang?: string;
-  /** Shown with the word Preview beside it (decision 145). */
-  preview: boolean;
+  /**
+   * 'approved' may be chosen; 'preview' is chosen by hand only and shows the word Preview
+   * (decision 145); 'comingSoon' shows the words Coming soon and can't be chosen (decision 160).
+   */
+  listing: 'approved' | 'preview' | 'comingSoon';
 };
 
 /**
- * The language choices, in order: "Follow my device" (in the language the app is in), then each
- * language in its own name and script from the manifest's nativeName. A language in preview says
- * so; an approved one doesn't. Draft and in-review languages are never among them.
+ * The language choices, in order (decision 160): "Follow my device" (in the language the app is
+ * in), then every language in the manifest in its own name and script from its nativeName, each
+ * with how it is listed.
  */
-export function languageOptions(offered: readonly { tag: string; nativeName: string; preview?: boolean }[]): LanguageOption[] {
+export function languageOptions(listed: readonly { tag: string; nativeName: string; listing: LanguageOption['listing'] }[]): LanguageOption[] {
   return [
-    { choice: null, label: t('common.language.followDevice'), preview: false },
-    ...offered.map(({ tag, nativeName, preview }) => ({ choice: tag, label: nativeName, lang: tag, preview: Boolean(preview) })),
+    { choice: null, label: t('common.language.followDevice'), listing: 'approved' },
+    ...listed.map(({ tag, nativeName, listing }) => ({ choice: tag, label: nativeName, lang: tag, listing })),
   ];
 }
 
