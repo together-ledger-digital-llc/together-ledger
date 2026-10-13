@@ -2,7 +2,7 @@
 
 How the web and the phone say things in more than one language. v1 ships in five: English (`en`),
 Hindi (`hi`), Bengali for Bangladesh and India alike (`bn`), Latin American Spanish (`es-419`) and
-Hinglish, Hindi in Latin script (`hi-Latn`). Only English exists so far. The rest are drafts.
+Hinglish, Hindi in Latin script (`hi-Latn`). All five are approved (the four others on Oct 13, 2026).
 
 ## The pieces
 

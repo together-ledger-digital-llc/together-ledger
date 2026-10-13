@@ -35,7 +35,15 @@ const MIGRATIONS = [
   '038_remember-the-language-a-person-chose.sql',
 ];
 
-const realManifest = JSON.parse(await readFile(new URL('../locales/languages.json', import.meta.url), 'utf8'));
+const shippedManifest = JSON.parse(await readFile(new URL('../locales/languages.json', import.meta.url), 'utf8'));
+// What these tests are about is the rule, not which languages happen to be approved today, so they
+// start from the manifest with every translation back at draft and approve what each one needs.
+const realManifest = {
+  ...shippedManifest,
+  languages: shippedManifest.languages.map((language) => (language.tag === shippedManifest.source
+    ? language
+    : { ...language, status: 'draft', reviewer: null, approvedOn: null })),
+};
 
 /** The real manifest with the named languages approved, as a reviewer's sign-off would leave it. */
 function approving(...tags) {
@@ -127,11 +135,11 @@ test('a language chosen by hand is saved on the account, read back on every devi
 });
 
 test('only a language the manifest marks approved can be chosen', async (t) => {
-  const { app, pool } = await setup();
+  const { app, pool } = await setup({ languages: realManifest });
   t.after(async () => { await app.close(); await pool.end(); });
   await register(app, 'asha@example.test');
   const browser = await browserSignIn(app, 'asha@example.test');
-  // Today only English is approved. Every draft is refused, as is anything that isn't a tag the
+  // With only English approved, every draft is refused, as is anything that isn't a tag the
   // manifest lists, or no language at all.
   for (const language of ['hi', 'bn', 'es-419', 'hi-Latn', 'es', 'fr', 'EN', '', 7, { tag: 'en' }, undefined]) {
     const response = await choose(app, { browser }, language === undefined ? {} : { language });

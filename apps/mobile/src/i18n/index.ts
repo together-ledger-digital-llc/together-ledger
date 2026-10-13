@@ -10,6 +10,10 @@ import './intl-polyfills';
 import { getLocales } from 'expo-localization';
 import { IntlMessageFormat } from 'intl-messageformat';
 import source from '../../../../locales/en.json';
+import bn from '../../../../locales/bn.json';
+import es419 from '../../../../locales/es-419.json';
+import hi from '../../../../locales/hi.json';
+import hiLatn from '../../../../locales/hi-Latn.json';
 import manifest from '../../../../locales/languages.json';
 import { choosableLanguages, isPreview, languageOf, listedLanguages, messagesOf, offeredLanguages } from '../../../../src/i18n/catalog.js';
 import { createFormatter, deviceLocale } from '../../../../src/i18n/format.js';
@@ -25,7 +29,7 @@ export type MessageValues = Record<string, string | number | Date | null | undef
 // Every language file the app carries. Metro bundles only what is imported by name, so a
 // language is added here as its file is written (105–109); it is offered only once the manifest
 // also marks it approved, or in preview (chosen by hand only).
-const BUNDLED: Record<string, Record<string, unknown>> = { [manifest.source]: source };
+const BUNDLED: Record<string, Record<string, unknown>> = { [manifest.source]: source, hi, bn, 'es-419': es419, 'hi-Latn': hiLatn };
 const catalogs: Record<string, Record<string, string>> = Object.fromEntries(Object.entries(BUNDLED).map(([tag, arb]) => [tag, messagesOf(arb)]));
 
 // The pseudo-language, for testing layouts (docs/TRANSLATION.md): start a development server with

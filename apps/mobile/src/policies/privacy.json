@@ -6,7 +6,7 @@
       "kind": "paragraph",
       "spans": [
         {
-          "text": "Effective 8 October 2026."
+          "text": "Effective 13 October 2026."
         }
       ]
     },
@@ -151,6 +151,14 @@
             "text": "technical timestamps and record versions."
           }
         ]
+      ]
+    },
+    {
+      "kind": "paragraph",
+      "spans": [
+        {
+          "text": "The language you choose to read Together Ledger in is kept on your account, so every browser and phone you sign in on opens in it; deleting your account clears it."
+        }
       ]
     },
     {
