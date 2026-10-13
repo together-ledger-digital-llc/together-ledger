@@ -8,7 +8,7 @@ import { awaitingYourAnswer } from '../src/journey/sharing-view';
 import { useJourney } from '../src/journey/use-journey';
 import { t } from '../src/i18n';
 import { useLanguage } from '../src/i18n/language-provider';
-import { accountSettingsRows, journeySettingsHeading, languageChoiceShown, settingsSections } from '../src/shell/screens';
+import { accountSettingsRows, journeySettingsHeading, settingsSections } from '../src/shell/screens';
 import { FootLink, SettingsGroup, SettingsHeading, SettingsRow } from '../src/components/settings-rows';
 import { LanguageList } from '../src/components/language-choice';
 import { RestorePurchases } from '../src/components/store-offers';
@@ -24,13 +24,13 @@ import { useTheme } from '../src/theme';
  * away here, then a screen that says what it removes and keeps, then a confirmation: three taps,
  * the bar the stores set (#180). Privacy, Terms and Help sit at the foot for everyone, signed in
  * or not: the people who most need them may be the ones who cannot sign in. Language follows
- * Appearance once there is more than English to choose (103A).
+ * Appearance, always (103A; decision 160).
  */
 export default function SettingsScreen() {
   const session = useSession();
   const journey = useJourney();
   const { theme } = useTheme();
-  const { offered } = useLanguage();
+  useLanguage();
   const [helpOpen, setHelpOpen] = useState(false);
   const snapshot = journey.state.phase === 'ready' ? journey.state.snapshot : null;
   // The ledger's header says how many wait; here it says what they are waiting for.
@@ -55,7 +55,8 @@ export default function SettingsScreen() {
         <Body>{t('common.theme.note')}</Body>
       </View>
     ),
-    // Each language in its own name and script; one in preview says so (decision 145).
+    // Every language in its own name and script; one in preview says so (decision 145), and one
+    // still being translated says Coming soon (decision 160).
     language: (
       <View key="language" style={styles.section}>
         <SettingsHeading>{t('common.language.title')}</SettingsHeading>
@@ -78,7 +79,7 @@ export default function SettingsScreen() {
 
   return (
     <Screen title={t('mobile.screen.settings.title')}>
-      {settingsSections({ journeyOpen: Boolean(snapshot), languages: languageChoiceShown(offered) }).map((section) => sections[section])}
+      {settingsSections({ journeyOpen: Boolean(snapshot) }).map((section) => sections[section])}
       <View style={styles.foot}>
         <View style={styles.links}>
           <FootLink label={t('mobile.settings.privacy')} onPress={() => router.push('/privacy')} />

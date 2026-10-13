@@ -144,6 +144,14 @@ sideways. For 102 and 103 to fix:
   sharing-view (the value labels, the delete question, "Former journeyer"), the web's words in
   English, under `common.*`.*
 
+**What 102A did with the web's:** the × is `flex: none` now, so a flex row can't squeeze it; it is
+44 by 44px at 320px and at desktop width, in English and in the pseudo-language
+(`tests/browser-language-preview.spec.js`). Export all journeys, Journey settings and Backup and
+restore still wrap at 320px in the pseudo-language, and read well doing it: each line breaks
+between words, nothing is cut off, and the button grows to hold both lines. They were left as they
+are. The theme names, Journey sharing, the reset question's eyebrow and Keep things as they are,
+and the Leave zone have moved to keys.
+
 ## Moved areas, and the guard
 
 `scripts/i18n-moved-areas.json` lists every area whose sentences have moved to `t()`. It's the one
@@ -195,6 +203,14 @@ English words, so it keeps its name when the wording changes.
   "Start fresh" in English, and Hindi may need a noun for one and a verb for the other.
 - Server errors read under `error.server.<code>`, camelCased: `rate_limit_exceeded` →
   `error.server.rateLimitExceeded` (`errorKey()`).
+- **A sentence the website and the phone both say is one key, under `common.*`, never `web.*` or
+  `mobile.*`** (owner, Oct 12, 2026). When 102A (the website) merged after 103A (the phone, #425),
+  every website sentence with the same English and the same meaning as one of #425's switched to
+  #425's key; where #425's key was under `mobile.*`, it moved to `common.*` (five screen titles
+  became `common.screen.<name>.title`). A sentence with the same English but a different job keeps
+  its own key: the website's "Hold a moment" button (`home.moment.hold`) is not the form's title
+  (`common.screen.moment.title`), and the example ledger's "Our ledger" (`welcome.example.title`)
+  is not the empty ledger's (`common.ledger.title`).
 
 ## Notes for translators
 
@@ -254,8 +270,29 @@ A language is:
    commit. From then on, `tests/i18n-catalog.test.js` fails if its file is missing a key, has one
    English doesn't, drops or renames a placeholder, or changes a placeholder's kind.
 
-**Only an approved language may ever be offered to people** (`offeredLanguages()`). English is the
-source: approved by being the product's own words, with no reviewer to record.
+**Only an approved language is ever matched to a device's languages** (`offeredLanguages()`). English
+is the source: approved by being the product's own words, with no reviewer to record.
+
+### Preview
+
+A language whose `status` is `preview` may be tried before it is approved (owner, Oct 12, 2026,
+decision 145):
+
+- It is **offered to be chosen by hand**, in both language menus, with the word Preview beside its
+  name (`common.language.preview`: "हिन्दी · Preview"). An approved language shows without it.
+- It is **never chosen for anyone**. A browser or phone set to it is not moved into it: the walk
+  goes on to the next approved match, or stays in English, until the language is approved.
+- It needs its `locales/<tag>.json`, and every sentence in it must pass the same gate an approved
+  language's does; it may lack sentences, which read in English (`previewLanguageProblems()`).
+- It needs no reviewer or approval date, and can't have an approval date.
+- The website ships its file, and the server accepts it as an account's choice.
+- Draft and in-review languages are listed as **coming soon** and can never be chosen, read or
+  matched (decision 160, below).
+
+`choosableLanguages()` is what may be picked by hand (approved and preview), `offeredLanguages()`
+what a device may be matched to (approved only), and `isPreview()` marks the difference.
+`resolveLanguage({ choice, deviceLanguages, offered, choosable, source })` takes both; a caller
+that passes no `choosable` gets `offered`, as before. The web and the phone both pass it.
 
 **A language in preview** (owner, Oct 12, decision 145) may be chosen by hand before it is approved:
 `choosableLanguages()` lists the approved ones, then each in preview, marked `preview: true`, and
@@ -264,7 +301,7 @@ matched from a device: a phone set to Hindi reads in English until Hindi is appr
 owner chooses Hindi. Its file may lack sentences, which read in English, but what it holds must
 parse and keep English's placeholders (`previewLanguageProblems()`, in `tests/i18n-catalog.test.js`).
 The server accepts a preview choice (`PATCH /account/language`). Draft and in-review languages are
-never shown.
+listed as coming soon, and never chosen.
 
 ## People's text inside a sentence
 
@@ -285,9 +322,9 @@ missing value, a broken translation) falls back to English rather than breaking 
 Which language a person reads in is decided the same way on the web and the phone, by
 `src/i18n/language-choice.js`:
 
-1. **A language they chose by hand**, if the manifest still offers it.
+1. **A language they chose by hand**, if the manifest still offers it, approved or in preview.
 2. Otherwise **"Follow my device"**: the device's own languages are walked **in order, the whole
-   list**, not only the first, and the first one that matches an offered language wins.
+   list**, not only the first, and the first one that matches an approved language wins.
 3. Otherwise English.
 
 A choice is a tag or nothing. Nothing is "Follow my device", and it is never stored as English:
@@ -313,7 +350,8 @@ only when the device itself names Hindi in Latin script; everywhere else it is o
 by hand. A device in Hindi (Latin) when Hinglish isn't offered is not given Devanagari Hindi
 either: a reader of Latin script may not read Devanagari, so the walk goes on to the next language.
 
-**Only an approved language is ever offered, matched or read.** A draft can't be chosen, can't be
+**Only an approved language is ever matched, and only an approved or preview language is ever
+chosen or read.** A draft is listed as coming soon (decision 160), but it can't be chosen, can't be
 reached from the device, and is refused by the server.
 
 ### Where the choice is kept
@@ -333,22 +371,45 @@ reached from the device, and is refused by the server.
 - Server error messages and emails stay in English in v1; the account keeps the preference so they
   can follow it later.
 
-### The Language row
+### The Language row, and the choice on the welcome page
 
-On the web, Settings has a **Language** row (`#language-settings`). It lists "Follow my device",
-then each approved language in its own name and script, from the manifest's `nativeName`: English,
-हिन्दी, বাংলা, Español (Latinoamérica), Hinglish (Hindi in Latin script). Each option carries its
-own `lang`, so a screen reader says हिन्दी in Hindi. **While English is the only approved
-language, the row stays hidden.**
+**The language choice is always there, on the website and the phone, English alone included**
+(owner, Oct 12, 2026, decision 160). It lists "Follow my device", then every language in the
+manifest in its own name and script, from its `nativeName`, in the manifest's order:
+
+| Status | Shown as | May be chosen |
+|---|---|---|
+| `approved` | its name alone: "English" | yes, and a device's own languages are matched to it |
+| `preview` | "हिन्दी · Preview" (`common.language.preview`) | by hand only (decision 145) |
+| `draft`, `in-review` | "বাংলা · Coming soon" (`common.language.comingSoon`) | no |
+
+`listedLanguages(manifest, carried)` (`src/i18n/catalog.js`) gives that list for both, each
+language with its `listing`: `approved`, `preview` or `comingSoon`. `carried(tag)` says whether
+the app has the language's file; an approved or preview language the phone doesn't bundle yet is
+coming soon there too, since it can't be read. The website ships every choosable language's file,
+so it carries them all.
+
+On the web, Settings has a **Language** row (`#language-settings`), and the welcome page has a
+small language menu at its very top (`#welcome-language`, 102A), the first thing on the page that
+can be changed. Both are `<select>`s. A language coming soon is a disabled `<option>`: the menu
+never lets a person pick it, the arrow keys pass over it, and if a script sets it anyway, the page
+changes nothing and sends nothing. Each option carries its own `lang`, so a screen reader says
+हिन्दी in Hindi.
 
 On the phone (103A) the same choice is in two places: small, at the top of the welcome
-(`LanguageControl`), and as a Language section in Settings, after Appearance (`LanguageList`), both in
-`apps/mobile/src/components/language-choice.tsx`, both through `useLanguage()`. Neither shows while
-English is the only language that may be chosen (`languageChoiceShown()`).
+(`LanguageControl`), and as a Language section in Settings, after Appearance (`LanguageList`), both
+in `apps/mobile/src/components/language-choice.tsx`, both through `useLanguage()`'s `listed`. A
+language coming soon is a disabled radio (`accessibilityState.disabled`), its words drawn in the
+muted colour.
 
-Approving a language (`status`, `reviewer`, `approvedOn`) is all it takes for it to appear: the
-web ships `locales/<tag>.json` for every approved language (`scripts/build-public-site.mjs`), and
-the server accepts it. The phone also needs its file imported in `apps/mobile/src/i18n/index.ts`
+"Coming soon" and "Preview" are in the reader's language, after the language's own name. Because
+the option as a whole carries the listed language's `lang`, a screen reader may say those two
+words with that language's voice; the language's name is the part that matters most to say
+right.
+
+Approving a language (`status`, `reviewer`, `approvedOn`), or setting it to `preview`, is all it
+takes for it to appear: the web ships `locales/<tag>.json` for every approved or preview language
+(`scripts/build-public-site.mjs`), and the server accepts it. The phone also needs its file imported in `apps/mobile/src/i18n/index.ts`
 (`BUNDLED`), because Metro bundles only what is imported by name.
 
 ### Screen readers
@@ -380,6 +441,22 @@ On the phone, `accountMessage(error, area)` (`apps/mobile/src/auth/account-messa
 client's own codes read under `mobile.error.*` (no connection, no answer) and `error.client.*`
 (the web's words too).
 
+The web (102A) shows every account-service error through `accountMessage()` in `src/app.js`, which
+uses `errorMessage`. A code gets a sentence only when the server says one thing for it everywhere,
+so English can't change: `rate_limit_exceeded`, `internal_error`, `invalid_csrf`,
+`invalid_origin`, `authentication_required`, `account_exists`, `email_in_use`, `link_required`,
+`identity_in_use`, `invitation_exists`, `already_member`, `proposal_exists`, `proposal_closed`,
+`proposal_lapsed`, `already_decided`, `consent_incomplete`, `invalid_invitation`,
+`journey_of_one`, and the web client's own `accounts_unavailable`. A code with several messages
+(`invalid_input`, `conflict`, `not_found`, `journey_full`...) keeps the server's English until the
+server gives each meaning its own code. One is narrowed by where it is met: on the sign-in forms,
+`invalid_credentials` only ever means a wrong sign-in, so it reads `error.signIn.invalidCredentials`
+there (`errorKey(code, 'error.signIn')`), while deleting an account keeps the server's "Password
+confirmation failed."
+
+`tests/i18n-catalog.test.js` counts an `error.*` key as in use while the server, or `src/api.js`,
+still answers with its code.
+
 ## Dates, numbers and money
 
 `format.date()`, `format.dateTime()`, `format.number()` and `format.money()` (in
@@ -398,9 +475,9 @@ Anything a machine reads (a file name, a stored day, a sort key) never goes thro
 |---|---|---|
 | `apps/mobile/app/history.tsx` (`when`) | History's dates | People: **moved** to `format.dateTime` |
 | `src/model.js:151-152` (`money`) | Amounts, en-US | People: moves in 102/103 (the phone's History change values still use it, through `valueLabel`) |
-| `src/model.js:179` (`dateLabel`) | A moment's day, en-US, UTC | People: 102/103 |
-| `src/app.js:536` (`dateTimeLabel`) | Journey record and invitation times, device locale | People: 102 |
-| `src/app.js:1398`, `:1401` (`toLocaleString`) | The web's history times | People: 102 |
+| `src/model.js:179` (`dateLabel`) | A moment's day, en-US, UTC | People: the web still uses it in 102A; the phone's is 103's |
+| `src/app.js` (`dateTimeLabel`) | Journey record and invitation times, device locale | People: not moved in 102A, see below |
+| `src/app.js` (`renderEventManager`, `toLocaleString`) | The web's history times | People: not moved in 102A |
 | `apps/mobile/src/journey/sharing-view.ts:117` (`dateTimeLabel`) | Journey settings times on the phone | People: 103 |
 | `apps/mobile/src/billing/store-provider.tsx:69` | Renewal date | People: 103 |
 | `apps/mobile/src/invitations/invitation-words.ts:69` | Invitation expiry | People: 103 |
@@ -409,6 +486,13 @@ Anything a machine reads (a file name, a stored day, a sort key) never goes thro
 | `src/app.js:950`, `:1226`, `:1389`; `sharing-view.ts:425`; `journey-view.ts:124`; `server/platform.js:1577`, `:1979`, `:1982`; `scripts/capture-outbound.mjs:1082` (`localeCompare`) | Sort ISO timestamps, days and IDs | Machines: the order must not follow the language |
 | `src/model.js:235` (`toLocaleLowerCase()`) | Tells two names apart | Machines: it uses the device's locale; worth pinning |
 | `server/security.js:5` (`toLocaleLowerCase('en-US')`) | Normalises an email | Machines: pinned already |
+
+**Why 102A left the web's dates and amounts as they are:** moving them to `format` changes English
+for some readers. `format.date()` keeps the reader's region (a browser in en-GB writes 12 Oct, not
+Oct 12) and `dateTimeLabel` today follows the browser's own locale, so a browser set to German but
+reading English would see its times change. 102A's promise was that nothing changes for English
+readers, so the dates and amounts inside moved sentences are still written as before and passed in
+as text. Moving them is a separate, visible change for the owner to decide.
 
 ## Intl on the phone
 

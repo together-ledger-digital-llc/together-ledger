@@ -22,6 +22,9 @@ test('the /support page carries every section in SUPPORT.md', () => {
 
 // Every step the page tells someone to take is one the app really offers (owner, Oct 8: the
 // support URL on both stores is this page).
+// The web's words are in locales/en.json since 102A (tests/fixtures/web-english.js).
+const { webSays } = await import('./fixtures/web-english.js');
+
 test('the support page only describes steps the web and the phone really have', () => {
   const web = read('index.html');
   const account = read('apps/mobile/app/account.tsx');
@@ -30,7 +33,7 @@ test('the support page only describes steps the web and the phone really have', 
   const offers = read('apps/mobile/src/components/store-offers.tsx');
 
   assert.ok(support.includes('I forgot my password'));
-  assert.ok(web.includes('I forgot my password') && says(account, 'common.account.forgotPassword', 'I forgot my password'));
+  assert.ok(webSays('I forgot my password') && says(account, 'common.account.forgotPassword', 'I forgot my password'));
 
   assert.ok(support.includes('choose Restore purchases in the app\'s Settings'));
   assert.ok(settings.includes('<RestorePurchases key="restore" row />') && says(offers, 'mobile.store.restore', 'Restore purchases'));
@@ -38,7 +41,7 @@ test('the support page only describes steps the web and the phone really have', 
   assert.ok(support.includes('open Settings, then Delete account'));
   assert.ok(settings.includes("label={t('common.account.delete')}") && english['common.account.delete'] === 'Delete account');
   assert.ok(support.includes('open Account settings, then Delete account'));
-  assert.ok(read('src/app.js').includes("signedIn ? 'Account settings'"), 'the signed-in web button reads Account settings');
+  assert.ok(read('src/app.js').includes("signedIn ? t('common.account.settings')") && webSays('Account settings'), 'the signed-in web button reads Account settings');
   assert.ok(web.includes('<h3>Delete account</h3>'));
   assert.ok(support.includes('typing DELETE'));
   assert.ok(web.includes('Type DELETE') && deletion.includes('label="Type DELETE"'));

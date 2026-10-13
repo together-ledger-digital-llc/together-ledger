@@ -9,12 +9,8 @@
       "element": "<dialog id=\"settings-dialog\">",
       "except": [
         {
-          "element": "<section id=\"sharing-settings\"",
-          "until": "102"
-        },
-        {
-          "element": "<section id=\"leave-journey\"",
-          "until": "102"
+          "element": "<section id=\"unpaid-capacity-rest\"",
+          "until": "a later prompt: it is seen only by an owner whose journey is paid for on the web"
         }
       ]
     },
@@ -33,12 +29,241 @@
       ]
     },
     {
-      "name": "The web's Language row, what its code writes",
-      "movedIn": "101B",
+      "name": "The web's language menus, what their code writes",
+      "movedIn": "101B, 102A",
       "file": "src/app.js",
       "kind": "script",
       "statements": [
-        "$('#language-select').addEventListener("
+        "function initializeLanguageRow(",
+        "function renderLanguageRow(",
+        "function languageMenuOptions(",
+        "function showLanguage("
+      ]
+    },
+    {
+      "name": "The web's header",
+      "movedIn": "102A",
+      "file": "index.html",
+      "kind": "html",
+      "element": "<header class=\"site-header\">",
+      "allow": [
+        "Together Ledger"
+      ]
+    },
+    {
+      "name": "The web's skip link",
+      "movedIn": "102A",
+      "file": "index.html",
+      "kind": "html",
+      "element": "<a class=\"skip-link\""
+    },
+    {
+      "name": "The web's ledger sections",
+      "movedIn": "102A",
+      "file": "index.html",
+      "kind": "html",
+      "element": "<nav class=\"ledger-sections\""
+    },
+    {
+      "name": "The web's status region",
+      "movedIn": "102A",
+      "file": "index.html",
+      "kind": "html",
+      "element": "<div id=\"status-banner\""
+    },
+    {
+      "name": "The welcome page",
+      "movedIn": "102A",
+      "file": "index.html",
+      "kind": "html",
+      "element": "<section class=\"welcome\" id=\"welcome\"",
+      "allow": [
+        "M",
+        "T"
+      ]
+    },
+    {
+      "name": "The ledger's home",
+      "movedIn": "102A",
+      "file": "index.html",
+      "kind": "html",
+      "element": "<div id=\"ledger-app\"",
+      "except": [
+        {
+          "element": "<section id=\"grace-banner\"",
+          "until": "a later prompt: it is seen only while a journey waits on a payment"
+        }
+      ]
+    },
+    {
+      "name": "The page's footer",
+      "movedIn": "102A",
+      "file": "index.html",
+      "kind": "html",
+      "element": "<footer>",
+      "allow": [
+        "Together Ledger"
+      ]
+    },
+    {
+      "name": "The ledger's quick action",
+      "movedIn": "102A",
+      "file": "index.html",
+      "kind": "html",
+      "element": "<nav class=\"mobile-action\""
+    },
+    {
+      "name": "Holding a moment",
+      "movedIn": "102A",
+      "file": "index.html",
+      "kind": "html",
+      "element": "<dialog id=\"moment-dialog\">",
+      "except": [
+        {
+          "element": "<select name=\"moneyCurrency\">",
+          "until": "a later prompt: currency names should come from Intl.DisplayNames, not from translators"
+        }
+      ]
+    },
+    {
+      "name": "A moment's photo, opened larger",
+      "movedIn": "102A",
+      "file": "index.html",
+      "kind": "html",
+      "element": "<dialog id=\"moment-image-viewer\""
+    },
+    {
+      "name": "A journey's details",
+      "movedIn": "102A",
+      "file": "index.html",
+      "kind": "html",
+      "element": "<dialog id=\"journey-dialog\">"
+    },
+    {
+      "name": "A return-to conversation",
+      "movedIn": "102A",
+      "file": "index.html",
+      "kind": "html",
+      "element": "<dialog id=\"concern-dialog\">"
+    },
+    {
+      "name": "Signing in and creating an account",
+      "movedIn": "102A",
+      "file": "index.html",
+      "kind": "html",
+      "element": "<dialog id=\"account-dialog\">",
+      "except": [
+        {
+          "element": "<section id=\"account-unavailable\"",
+          "until": "a later prompt: shown only where accounts are switched off"
+        },
+        {
+          "element": "<form id=\"link-identity-form\"",
+          "until": "a later prompt: connecting Google or Apple to a password account, met once"
+        },
+        {
+          "element": "<div id=\"signed-in-account\"",
+          "until": "a later prompt: Account settings once signed in"
+        }
+      ]
+    },
+    {
+      "name": "The consequence question",
+      "movedIn": "102A",
+      "file": "index.html",
+      "kind": "html",
+      "element": "<dialog id=\"consequence-dialog\""
+    },
+    {
+      "name": "The web's most-seen screens, what their code writes",
+      "movedIn": "102A",
+      "file": "src/app.js",
+      "kind": "script",
+      "statements": [
+        "function translatePage(",
+        "function renderEmphasis(",
+        "function sentenceMarkup(",
+        "const VISIBILITY_CUES =",
+        "function visibilityCue(",
+        "function confirmConsequence(",
+        "const signedOutHere =",
+        "function saveWorkingState(",
+        "function accountMessage(",
+        "function snapshotToState(",
+        "async function refreshCloudState(",
+        "function renderAccountLabels(",
+        "function syncBadgeLabel(",
+        "function renderJourneySharing(",
+        "function memberRowMarkup(",
+        "function dateTimeLabel(",
+        "function memberListMarkup(",
+        "function sharingCopy(",
+        "function remainingText(",
+        "function countdownMarkup(",
+        "function sentByMarkup(",
+        "function reservedPlaceRow(",
+        "function invitationHistoryRow(",
+        "function inviteProposalRow(",
+        "function proposalDecisionRow(",
+        "function refreshCountdowns(",
+        "function proposalStatusLabel(",
+        "function proposalDecisionLabel(",
+        "function invitationStatusLabel(",
+        "const THEME_NAME_KEYS =",
+        "function themeName(",
+        "function renderThemeOptions(",
+        "function initializeThemePicker(",
+        "function setSurface(",
+        "function render(",
+        "function awaitingYourAnswer(",
+        "function renderJourneyControls(",
+        "const MOMENT_KIND_KEYS =",
+        "function momentKindName(",
+        "function momentLabel(",
+        "function momentThemeName(",
+        "function journeyPeriod(",
+        "const GUIDANCE_PROMPT_KEYS =",
+        "function renderSharedJourney(",
+        "function momentCardMarkup(",
+        "async function hydrateMomentImagePreviews(",
+        "async function openMomentImage(",
+        "function syncMomentThemePreview(",
+        "function renderMomentThemeChooser(",
+        "function renderMomentLocations(",
+        "function addMomentLocation(",
+        "async function prepareMomentPhoto(",
+        "function openMoment(",
+        "async function shareMoment(",
+        "function setButtonPending(",
+        "$('#use-device-location').addEventListener(",
+        "$('#journey-row').addEventListener('change'",
+        "$('#actor-select').addEventListener(",
+        "$('#journey-form').addEventListener(",
+        "$('#guidance-end').addEventListener(",
+        "$('#guidance-done').addEventListener(",
+        "$('#remove-moment-image-button').addEventListener(",
+        "$('#moment-form').addEventListener('submit'",
+        "function openJourney(",
+        "function openConcern(",
+        "$('#concern-form').addEventListener(",
+        "$('#login-form').addEventListener(",
+        "$('#register-form').addEventListener(",
+        "async function signInWith(",
+        "$('#logout-button').addEventListener(",
+        "$('#invite-form').addEventListener(",
+        "function renderLeaveJourney(",
+        "$('#leave-journey-button').addEventListener(",
+        "$('#leave-journey-form').addEventListener('submit'",
+        "async function onProposalClick(",
+        "async function onInvitationClick(",
+        "function reportConnection("
+      ],
+      "allow": [
+        "Updated journey details for ",
+        "Created the ",
+        "Updated payer name on expense: ",
+        "Changed moment theme",
+        " concern: "
       ]
     },
     {

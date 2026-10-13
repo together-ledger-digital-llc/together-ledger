@@ -1,7 +1,6 @@
 {
   "@@locale": "en",
   "@@context": "Together Ledger: a private shared journey for two or more people. English is the source language. Notes for translators are the @ entries; docs/TRANSLATION.md and locales/glossary.json explain the careful words.",
-
   "common.journeySettings.title": "Journey settings",
   "@common.journeySettings.title": {
     "description": "The name of the settings for one journey, shown as the title of that panel on the web and as a heading on the phone. A journey is the shared space two or more people keep together; see the glossary."
@@ -20,7 +19,7 @@
   },
   "common.language.title": "Language",
   "@common.language.title": {
-    "description": "Heading over the menu that chooses the language this person reads the app in, on the web and on the phone. It stays this word in every language, so someone who chose a language by mistake can find the way back."
+    "description": "Heading over the menu that chooses the language this person reads the app in, on the web and on the phone, and the spoken name of the small language menu at the top of the web's welcome page. It stays this word in every language, so someone who chose a language by mistake can find the way back."
   },
   "common.language.followDevice": "Follow my device",
   "@common.language.followDevice": {
@@ -42,7 +41,6 @@
   "@common.time.notRecorded": {
     "description": "Shown in place of a date and time when none was saved."
   },
-
   "settings.dialog.close": "Close settings",
   "@settings.dialog.close": {
     "description": "Spoken label of the × button that closes the journey settings panel on the web. Read by screen readers only."
@@ -123,7 +121,6 @@
   "@settings.privacy.note": {
     "description": "Where journeys live: in this browser, or in the person's account. Signing in never sends the browser's journeys anywhere."
   },
-
   "history.screen.name": "History",
   "@history.screen.name": {
     "description": "The name of the History screen on the phone, shown when it cannot open yet. History is the journey's record of every change, newest first."
@@ -157,7 +154,7 @@
   },
   "history.concern.status": "{status, select, open {Open} other {Resolved}}",
   "@history.concern.status": {
-    "description": "Small label on a conversation to return to: still open, or resolved. Shown in capitals on the phone.",
+    "description": "Small label on a conversation to return to: still open, or resolved. Shown in capitals on the phone; on the web, the two choices of the Status menu when starting or changing one.",
     "placeholders": {
       "status": { "type": "String", "example": "open", "description": "open, or anything else for resolved. Translate only the words inside the braces." }
     }
@@ -220,7 +217,6 @@
       "hash": { "type": "String", "example": "3f9a1c0b77de", "description": "The first twelve characters of the hash." }
     }
   },
-
   "common.historyGuide.title": "How to read your history",
   "@common.historyGuide.title": {
     "description": "The guide that explains a journey's history in plain words: the button that opens it, and its title. The same words on the web and the phone."
@@ -295,7 +291,7 @@
   },
   "common.status.loading": "Loading…",
   "@common.status.loading": {
-    "description": "Shown while a screen is loading."
+    "description": "Shown while a screen is loading, and on the website in place of a journey's name until it has been read."
   },
   "common.welcome.eyebrow": "A shared journey, held with care",
   "@common.welcome.eyebrow": {
@@ -390,7 +386,7 @@
   },
   "common.account.signInTitle": "Sign in",
   "@common.account.signInTitle": {
-    "description": "Title of the sign-in screen. The button that signs in has the same English words: common.account.signIn."
+    "description": "Title of the sign-in screen, and the heading of the website's sign-in form. The button that signs in has the same English words: common.account.signIn."
   },
   "common.account.identifier": "Email or username",
   "@common.account.identifier": {
@@ -402,7 +398,7 @@
   },
   "common.account.signIn": "Sign in",
   "@common.account.signIn": {
-    "description": "Button that signs in. A verb; the screen's title is common.account.signInTitle."
+    "description": "Button that signs in, and the website's header button that opens sign-in. A verb; the screen's title is common.account.signInTitle."
   },
   "common.account.signingIn": "Signing in…",
   "@common.account.signingIn": {
@@ -414,7 +410,7 @@
   },
   "common.account.createAccount": "Create account",
   "@common.account.createAccount": {
-    "description": "Button on sign-in that opens the screen that creates an account. A verb phrase; that screen's title is mobile.screen.register.title."
+    "description": "Button on sign-in that opens the screen that creates an account. A verb phrase; that screen's title is common.screen.register.title."
   },
   "common.account.newAccountName": "A new account starts with your first name. You can change it in Account settings.",
   "@common.account.newAccountName": {
@@ -430,7 +426,7 @@
   },
   "common.register.usernameHint": "3–30 lowercase letters, numbers, or single hyphens. It is for signing in and is not shown to your journeyer. You can choose the names used together when a journey calls for them.",
   "@common.register.usernameHint": {
-    "description": "Under the username field. A journeyer is one of the people sharing a journey; see the glossary."
+    "description": "Under the username field. A journeyer is one of the people sharing a journey; see the glossary. A username is written in Latin letters only, whatever the language."
   },
   "common.register.email": "Email",
   "@common.register.email": {
@@ -494,7 +490,7 @@
   },
   "common.ledger.eyebrow": "Our shared journey",
   "@common.ledger.eyebrow": {
-    "description": "Small line over the list of moments."
+    "description": "Small line over the list of moments, and on the website over the form that holds a moment."
   },
   "common.ledger.lead": "Hold what happened in words that feel true.",
   "@common.ledger.lead": {
@@ -542,7 +538,7 @@
   },
   "common.start.accountReady": "Account ready. Create your first private journey.",
   "@common.start.accountReady": {
-    "description": "On the ledger, signed in with no journey yet."
+    "description": "On the ledger, signed in with no journey yet; on the website, the message after signing in to such an account."
   },
   "common.visibility.private": "Private",
   "@common.visibility.private": {
@@ -669,7 +665,7 @@
   },
   "common.moment.removedPhoto": "Removed photo",
   "@common.moment.removedPhoto": {
-    "description": "Opens the list of photos removed from a moment."
+    "description": "Opens the list of photos removed from a moment; on the website, also the small label on each of them, kept only for the record."
   },
   "common.moment.image": "Image",
   "@common.moment.image": {
@@ -677,7 +673,7 @@
   },
   "common.moment.money": "Practical money context",
   "@common.moment.money": {
-    "description": "Opens the amount of money held with a moment."
+    "description": "An amount of money a moment can hold: the title of the fold that opens it on a moment, and on the website the label of that optional field. Money is context here, never a score."
   },
   "common.moment.heldBy": "Held by {name}",
   "@common.moment.heldBy": {
@@ -696,7 +692,7 @@
   },
   "common.moment.photo": "Photo",
   "@common.moment.photo": {
-    "description": "Small label over a photo's file name on a moment."
+    "description": "Small label over a photo's file name on a moment, and on the website the label of the photo picker."
   },
   "common.moment.editTitle": "Edit this moment",
   "@common.moment.editTitle": {
@@ -783,7 +779,7 @@
   },
   "common.moment.amount": "Amount (optional)",
   "@common.moment.amount": {
-    "description": "Label of the amount field."
+    "description": "Label of the amount field; on the website it is written inside the empty field."
   },
   "common.currency.none": "No currency",
   "@common.currency.none": {
@@ -913,7 +909,6 @@
   "@common.concern.deleteAction": {
     "description": "The button that deletes the conversation. It cannot be undone."
   },
-
   "error.server.authenticationRequired": "Sign in to continue.",
   "@error.server.authenticationRequired": {
     "description": "The action needs the person to be signed in."
@@ -942,7 +937,6 @@
   "@error.moment.conflict": {
     "description": "From the service, when saving a moment: someone changed it elsewhere since this form opened, so nothing was saved."
   },
-
   "mobile.account.checking": "Checking this phone’s account…",
   "@mobile.account.checking": {
     "description": "While the phone asks the service who is signed in."
@@ -982,7 +976,6 @@
   "@common.account.noEmailSupport": {
     "description": "For an account with no email address, which can't be sent one. Selectable so the address can be copied; keep it exactly as it is."
   },
-
   "mobile.action.tryAgain": "Try again",
   "@mobile.action.tryAgain": {
     "description": "Button that tries the same thing again, after something failed or could not be reached."
@@ -991,7 +984,6 @@
   "@mobile.action.saving": {
     "description": "What a button says while it saves."
   },
-
   "mobile.error.offline": "You’re offline. A moment you hold now waits on this phone and is sent when you reconnect. Your journeys will be back then; until then, nothing else can be changed.",
   "@mobile.error.offline": {
     "description": "Shown while the phone has no connection, standing at the top of each screen, and when something is tried without one. Only holding a new moment can wait; nothing else can be changed until the connection returns."
@@ -1002,7 +994,7 @@
   },
   "error.client.accountsUnavailable": "Private accounts are being connected. No account details were sent.",
   "@error.client.accountsUnavailable": {
-    "description": "When the service's address is not set, so nothing could be sent: on the phone, a build made without it. The web says the same."
+    "description": "When the service's address is not set, so nothing could be sent: on the phone, a build made without it; on the website, a copy that can't reach accounts yet."
   },
   "error.client.fallback": "The service could not complete that request.",
   "@error.client.fallback": {
@@ -1012,17 +1004,14 @@
   "@mobile.error.notFromTheApp": {
     "description": "When something can only be done on the website, said without pointing there."
   },
-
   "mobile.history.noJourney": "Your account is ready. Create a private journey, and its history will be here.",
   "@mobile.history.noJourney": {
     "description": "History, signed in but with no journey yet."
   },
-
   "mobile.invitation.haveOne": "Have an invitation?",
   "@mobile.invitation.haveOne": {
     "description": "Button on the welcome, the empty ledger and sign-in, for someone who was invited to join a journey. It opens a place to paste the invitation."
   },
-
   "mobile.journey.opening": "Opening “{journey}”…",
   "@mobile.journey.opening": {
     "description": "Under the row of journeys, while the journey just chosen is loading. The one open stays on screen meanwhile.",
@@ -1048,12 +1037,10 @@
   "@mobile.journey.notLoaded": {
     "description": "When the journeys failed to load for a reason other than the connection. Why is said above it, in the status message."
   },
-
   "mobile.ledger.journeys": "Journey",
   "@mobile.ledger.journeys": {
     "description": "What a screen reader calls the row of journeys to choose between."
   },
-
   "mobile.moment.noRoomForPlace": "This moment has no room for another place. Room belongs to the journey, and is the same on every device. Remove a place to save the moment.",
   "@mobile.moment.noRoomForPlace": {
     "description": "When saving a moment with more places than its journey has room for. Room is not a seat or a slot; see the glossary's another place."
@@ -1066,8 +1053,8 @@
   "@mobile.moment.keptOnPhone": {
     "description": "Brief message after holding a moment while offline."
   },
-  "mobile.moment.photoOf": "Photo held with {title}",
-  "@mobile.moment.photoOf": {
+  "common.moment.photoOf": "Photo held with {title}",
+  "@common.moment.photoOf": {
     "description": "What a screen reader says for a photo on a moment.",
     "placeholders": {
       "title": { "type": "String", "example": "Tea on the porch", "description": "The moment's name, as written." }
@@ -1113,9 +1100,9 @@
   "@mobile.moment.themeTitle": {
     "description": "Heading over the colour treatments a moment can wear."
   },
-  "mobile.moment.themeGroup": "Moment theme",
-  "@mobile.moment.themeGroup": {
-    "description": "What a screen reader calls the list of moment themes."
+  "common.moment.themeGroup": "Moment theme",
+  "@common.moment.themeGroup": {
+    "description": "What a screen reader calls the list of moment themes; on the website, also the label shown over it."
   },
   "mobile.moment.placesTitle": "Places (Optional)",
   "@mobile.moment.placesTitle": {
@@ -1169,7 +1156,6 @@
   "@mobile.moment.deleted": {
     "description": "Brief message after a moment is deleted."
   },
-
   "mobile.navigation.backTo": "Back to {screen}",
   "@mobile.navigation.backTo": {
     "description": "What a screen reader says for Android's back button, which goes to the screen named.",
@@ -1177,7 +1163,6 @@
       "screen": { "type": "String", "example": "Settings", "description": "The title of the screen the button goes back to." }
     }
   },
-
   "mobile.offline.stillSignedIn": "This phone is offline. You’re still signed in.",
   "@mobile.offline.stillSignedIn": {
     "description": "In Settings, under Account settings, while the phone has no connection."
@@ -1198,7 +1183,6 @@
   "@mobile.offline.unreachableHere": {
     "description": "In the ledger or on Account settings, while the service does not answer."
   },
-
   "mobile.screen.welcome.title": "Welcome",
   "@mobile.screen.welcome.title": {
     "description": "The welcome screen's name, said by the back button of the screen opened from it. The welcome itself shows no title bar."
@@ -1215,9 +1199,9 @@
   "@mobile.screen.account.title": {
     "description": "Title of the screen with the person's own account (name, email, signing out), and the back button of screens opened from it."
   },
-  "mobile.screen.register.title": "Create account",
-  "@mobile.screen.register.title": {
-    "description": "Title of the screen that creates a new account. A noun phrase naming the screen; the button that opens it is common.account.createAccount."
+  "common.screen.register.title": "Create account",
+  "@common.screen.register.title": {
+    "description": "Title of the screen that creates a new account, and the heading of the website's form that does. A noun phrase naming the screen; the button that opens it is common.account.createAccount."
   },
   "mobile.screen.recovery.title": "Account recovery",
   "@mobile.screen.recovery.title": {
@@ -1239,31 +1223,30 @@
   "@mobile.screen.deleteAccount.title": {
     "description": "Title of the screen that explains and deletes the account. It cannot be undone."
   },
-  "mobile.screen.moment.title": "Hold a moment",
-  "@mobile.screen.moment.title": {
-    "description": "Title of the form that adds a new moment. To hold a moment is this product's way of saying to record or keep it; see the glossary."
+  "common.screen.moment.title": "Hold a moment",
+  "@common.screen.moment.title": {
+    "description": "Title of the form that adds a new moment: the phone's screen and the website's dialog. To hold a moment is this product's way of saying to record or keep it; see the glossary."
   },
   "mobile.screen.newJourney.title": "New journey",
   "@mobile.screen.newJourney.title": {
     "description": "Title of the form that starts a new journey."
   },
-  "mobile.screen.journeySettings.title": "Journey sharing",
-  "@mobile.screen.journeySettings.title": {
-    "description": "Title of the screen with who is in a journey, invitations and proposals."
+  "common.screen.journeySettings.title": "Journey sharing",
+  "@common.screen.journeySettings.title": {
+    "description": "Title of the screen with who is in a journey, invitations and proposals; on the website, the heading of that part of Journey settings."
   },
-  "mobile.screen.privacy.title": "Privacy",
-  "@mobile.screen.privacy.title": {
-    "description": "Title of the screen showing the privacy policy."
+  "common.screen.privacy.title": "Privacy",
+  "@common.screen.privacy.title": {
+    "description": "Title of the phone's screen showing the privacy policy, and the link in the welcome page's header to the section about where a person's words are kept."
   },
   "mobile.screen.terms.title": "Terms of use",
   "@mobile.screen.terms.title": {
     "description": "Title of the screen showing the terms of use."
   },
-  "mobile.screen.concern.title": "Return-to conversation",
-  "@mobile.screen.concern.title": {
-    "description": "Title of the form for one conversation the people in a journey want to come back to together."
+  "common.screen.concern.title": "Return-to conversation",
+  "@common.screen.concern.title": {
+    "description": "The name of the form for one conversation the people in a journey want to come back to together: the phone's screen title, and the small line over the website's form."
   },
-
   "mobile.settings.open": "Settings",
   "@mobile.settings.open": {
     "description": "The button that opens Settings, on the welcome and in the ledger's top bar. A gear is drawn before it and is never read aloud. The screen's own title is mobile.screen.settings.title."
@@ -1331,7 +1314,6 @@
       "build": { "type": "String", "example": "0.1.0 (12) · 3f9a1c0", "description": "The version, build number and commit. Never translated." }
     }
   },
-
   "mobile.signIn.connectTitle": "{provider, select, apple {Connect Apple to your account} other {Connect Google to your account}}",
   "@mobile.signIn.connectTitle": {
     "description": "Heading when a Google or Apple sign-in uses an email that already has a password account: the password is asked for once to connect them. Apple and Google are names and are never translated.",
@@ -1346,7 +1328,6 @@
       "email": { "type": "String", "example": "asha@example.com", "description": "The account's email, or \"this email\"." }
     }
   },
-
   "mobile.signOut.waitingTitle": "Sign out with moments waiting?",
   "@mobile.signOut.waitingTitle": {
     "description": "Question asked before signing out while moments held offline have not been sent."
@@ -1365,7 +1346,6 @@
       "count": { "type": "int", "example": "2", "description": "How many moments wait, at least 1." }
     }
   },
-
   "mobile.signOutEverywhere.waitingTitle": "Sign out everywhere with moments waiting?",
   "@mobile.signOutEverywhere.waitingTitle": {
     "description": "The same question, while moments held offline have not been sent."
@@ -1385,12 +1365,10 @@
       "count": { "type": "int", "example": "2", "description": "How many moments wait, at least 1." }
     }
   },
-
   "mobile.start.signedOut": "Your private journeys appear here once you sign in on this phone.",
   "@mobile.start.signedOut": {
     "description": "On the ledger, when nobody is signed in on this phone."
   },
-
   "mobile.store.restore": "Restore purchases",
   "@mobile.store.restore": {
     "description": "The row in Settings that asks the App Store or Google Play for what this account bought, so it is honoured again on this phone."
@@ -1399,7 +1377,6 @@
   "@mobile.store.restoring": {
     "description": "What Restore purchases says while it asks the App Store or Google Play."
   },
-
   "mobile.theme.followPhone": "Match this phone",
   "@mobile.theme.followPhone": {
     "description": "The first theme choice: follow the phone's own light or dark setting."
@@ -1408,14 +1385,6 @@
   "@mobile.theme.followsPhone": {
     "description": "Brief message after choosing Match this phone."
   },
-  "mobile.theme.applied": "{theme} applied.",
-  "@mobile.theme.applied": {
-    "description": "Brief message after choosing a theme.",
-    "placeholders": {
-      "theme": { "type": "String", "example": "Dark", "description": "The name of the theme chosen (common.theme.name.*)." }
-    }
-  },
-
   "mobile.welcome.begin": "Begin your ledger →",
   "@mobile.welcome.begin": {
     "description": "The welcome's main button, which opens the ledger for the first time. The arrow stays."
@@ -1425,6 +1394,13 @@
     "description": "A language in a language menu that is offered before it is approved: its own name, then the word Preview, in the reader’s language.",
     "placeholders": {
       "language": { "type": "String", "example": "हिन्दी", "description": "The language’s own name, in its own script." }
+    }
+  },
+  "common.language.comingSoon": "{language} · Coming soon",
+  "@common.language.comingSoon": {
+    "description": "A language in a language menu that is still being translated: its own name, then the words Coming soon, in the reader’s language. It is shown so people can see it is on its way, and it can’t be chosen yet.",
+    "placeholders": {
+      "language": { "type": "String", "example": "বাংলা", "description": "The language’s own name, in its own script." }
     }
   },
   "mobile.language.current": "Language: {language}",
@@ -1437,5 +1413,1322 @@
   "common.moment.nameMissing": "Give this moment a short name.",
   "@common.moment.nameMissing": {
     "description": "Under the name field, when a moment is saved without a name. The form scrolls to the field."
+  },
+  "common.action.close": "Close",
+  "@common.action.close": {
+    "description": "Button, or the spoken name of the × button, that closes a dialog or a photo."
+  },
+  "common.action.open": "Open",
+  "@common.action.open": {
+    "description": "Button that opens one return-to conversation to read or change it."
+  },
+  "common.action.dismiss": "Dismiss",
+  "@common.action.dismiss": {
+    "description": "Button that hides a message shown above the page once the person has read it."
+  },
+  "common.field.optional": "Optional",
+  "@common.field.optional": {
+    "description": "Small word beside a field’s name: the field can be left empty."
+  },
+  "common.account.soon": "Accounts soon",
+  "@common.account.soon": {
+    "description": "Shown in place of Sign in when this copy of the website cannot create accounts yet."
+  },
+  "common.theme.applied": "{theme} applied.",
+  "@common.theme.applied": {
+    "description": "Short message after choosing a colour theme.",
+    "placeholders": {
+      "theme": { "type": "String", "example": "Dark", "description": "The theme’s name, as the menu shows it." }
+    }
+  },
+  "common.time.noEnd": "No end time recorded",
+  "@common.time.noEnd": {
+    "description": "Shown in place of a countdown when the time it counts to is missing."
+  },
+  "common.time.none": "No time left",
+  "@common.time.none": {
+    "description": "A countdown that has reached its end."
+  },
+  "common.time.underAMinute": "Less than a minute left",
+  "@common.time.underAMinute": {
+    "description": "A countdown with under a minute to go."
+  },
+  "common.time.days": "{days, number, ::group-off}d {hours, number, ::integer-width/*00}h {minutes, number, ::integer-width/*00}m left",
+  "@common.time.days": {
+    "description": "A countdown with a day or more to go: days, hours and minutes, the hours and minutes always two digits (3d 04h 07m left). d, h and m are the units; use your language’s short forms.",
+    "placeholders": {
+      "days": { "type": "Number", "example": "3", "description": "Whole days left." },
+      "hours": { "type": "Number", "example": "4", "description": "Hours left after the days, 0 to 23." },
+      "minutes": { "type": "Number", "example": "7", "description": "Minutes left after the hours, 0 to 59." }
+    }
+  },
+  "common.time.hours": "{hours, number, ::group-off}h {minutes, number, ::integer-width/*00}m left",
+  "@common.time.hours": {
+    "description": "A countdown with under a day to go: hours, then minutes as two digits (4h 07m left).",
+    "placeholders": {
+      "hours": { "type": "Number", "example": "4", "description": "Whole hours left." },
+      "minutes": { "type": "Number", "example": "7", "description": "Minutes left after the hours, 0 to 59." }
+    }
+  },
+  "common.time.minutes": "{minutes, number, ::group-off}m left",
+  "@common.time.minutes": {
+    "description": "A countdown with under an hour to go (12m left).",
+    "placeholders": {
+      "minutes": { "type": "Number", "example": "12", "description": "Whole minutes left." }
+    }
+  },
+  "common.leave.title": "Leave this journey",
+  "@common.leave.title": {
+    "description": "Heading of the danger zone in Journey settings, on the web and the phone, where a person can leave a journey. Leaving can’t be undone. Nobody is removed: the person leaves."
+  },
+  "common.leave.note": "Leaving is yours to decide. Nobody else has to agree, and nobody is asked. It can’t be undone: to come back, you would need a new invitation that everyone here agrees to.",
+  "@common.leave.note": {
+    "description": "Under the Leave this journey heading."
+  },
+  "common.leave.ownerFirst": "You hold this journey for everyone in it, so you can’t leave it yet. Make someone else here the owner first, under Journey record. Then you can leave.",
+  "@common.leave.ownerFirst": {
+    "description": "Shown to the journey’s owner instead of a Leave button while anyone else is in the journey. Journey record is the name of a section above it."
+  },
+  "common.leave.safety": "If someone keeps contacting you after you leave, write to ledger-support@together-ledger.com. Together Ledger is not an emergency service; if you are in danger, call your local emergency number.",
+  "@common.leave.safety": {
+    "description": "Safety note at the bottom of the leave zone. Keep the email address exactly as it is. The product name stays as it is."
+  },
+  "common.leave.start": "Leave this journey",
+  "@common.leave.start": {
+    "description": "Button that starts leaving: it opens the question that says what will happen. Same words as the heading, different job."
+  },
+  "common.leave.fieldLabel": "Type {word}",
+  "@common.leave.fieldLabel": {
+    "description": "Label of the box where the person types the word that confirms leaving.",
+    "placeholders": {
+      "word": { "type": "String", "example": "LEAVE", "description": "The word to type, LEAVE. It is checked exactly as it is, so it is never translated." }
+    }
+  },
+  "common.leave.fieldHint": "This is the last step. Nothing happens until you type {word} and press Leave this journey now.",
+  "@common.leave.fieldHint": {
+    "description": "Under the box where the confirming word is typed. Leave this journey now is the name of the button beside it.",
+    "placeholders": {
+      "word": { "type": "String", "example": "LEAVE", "description": "The word to type, LEAVE. Never translated." }
+    }
+  },
+  "common.leave.confirm": "Leave this journey now",
+  "@common.leave.confirm": {
+    "description": "Button that leaves the journey, after the word is typed. It can’t be undone."
+  },
+  "common.leave.pending": "Leaving…",
+  "@common.leave.pending": {
+    "description": "Shown on the Leave this journey now button while leaving is being done."
+  },
+  "common.leave.stay": "Stay in this journey",
+  "@common.leave.stay": {
+    "description": "Button that stops leaving and keeps the person in the journey."
+  },
+  "common.leave.consequenceTitle": "Leave “{journey}”?",
+  "@common.leave.consequenceTitle": {
+    "description": "Title of the question asked before leaving a journey. It cannot be undone. Use your language’s own quotation marks around the name.",
+    "placeholders": {
+      "journey": { "type": "String", "example": "Home in Fall", "description": "The journey’s name, as its journeyers wrote it, in any script." }
+    }
+  },
+  "common.leave.consequence": "Your private moments here, and those you were keeping to share later, are deleted with their places and photos. Moments you shared stay with the others, still showing that you held them. Any proposal you made or invitation you sent that is still waiting is withdrawn. The journey’s History records that you left, and when. Nobody is sent an email or a notification. If you pay on the web for room in this journey, that payment has to end first. Room you pay for in the App Store or Google Play stays with this journey, and leaving doesn’t cancel it. Cancel it with Apple or Google, or it keeps renewing.",
+  "@common.leave.consequence": {
+    "description": "What happens when a person leaves a journey, said before anything is typed. App Store and Google Play are the stores’ own names."
+  },
+  "common.leave.continue": "Continue",
+  "@common.leave.continue": {
+    "description": "Button on the leave question: go on to the last step, typing the confirming word. Nothing has happened yet."
+  },
+  "common.leave.left": "You have left “{journey}”. It is no longer among your journeys.",
+  "@common.leave.left": {
+    "description": "Message after a person has left a journey.",
+    "placeholders": {
+      "journey": { "type": "String", "example": "Home in Fall", "description": "The journey’s name, as its journeyers wrote it, in any script." }
+    }
+  },
+  "header.skip.story": "Skip to the main story",
+  "@header.skip.story": {
+    "description": "Link for keyboard and screen reader users, first on the welcome page: jumps past the header to the welcome’s heading."
+  },
+  "header.skip.ledger": "Skip to the shared ledger",
+  "@header.skip.ledger": {
+    "description": "Link for keyboard and screen reader users, first on the ledger: jumps past the header to the moments. The ledger is the shared space a journey keeps."
+  },
+  "header.brand.home": "Together Ledger home",
+  "@header.brand.home": {
+    "description": "Spoken name of the product’s logo and name in the header, which leads back to the top of the page. Keep the product name as it is."
+  },
+  "header.brand.tagline": "A shared journey, held with care.",
+  "@header.brand.tagline": {
+    "description": "Small line under the product’s name in the header."
+  },
+  "header.nav.welcome": "Welcome navigation",
+  "@header.nav.welcome": {
+    "description": "Spoken name of the row of links in the welcome page’s header."
+  },
+  "header.nav.mobileWelcome": "Mobile welcome navigation",
+  "@header.nav.mobileWelcome": {
+    "description": "Spoken name of the same links inside the menu on a narrow screen."
+  },
+  "header.nav.howItWorks": "How it works",
+  "@header.nav.howItWorks": {
+    "description": "Link in the welcome page’s header to the section that explains the product."
+  },
+  "header.nav.possibilities": "Possibilities",
+  "@header.nav.possibilities": {
+    "description": "Link in the welcome page’s header to the section of examples of what a ledger can hold."
+  },
+  "header.menu.open": "Open welcome menu",
+  "@header.menu.open": {
+    "description": "Spoken name of the menu button in the header on a narrow screen."
+  },
+  "header.theme.mobileMenuLabel": "Mobile color theme",
+  "@header.theme.mobileMenuLabel": {
+    "description": "Spoken name of the theme menu inside the header’s menu on a narrow screen."
+  },
+  "header.theme.workspaceMenuLabel": "Workspace color theme",
+  "@header.theme.workspaceMenuLabel": {
+    "description": "Spoken name of the theme menu in the ledger’s header."
+  },
+  "welcome.action.beginLedger": "Begin a ledger",
+  "@welcome.action.beginLedger": {
+    "description": "Button in the welcome page’s header that opens an empty ledger in this browser. Nothing is created on a server and nothing is uploaded."
+  },
+  "welcome.action.beginYourLedger": "Begin your ledger",
+  "@welcome.action.beginYourLedger": {
+    "description": "The welcome page’s main button, shown at the top and again at the end. It opens an empty ledger in this browser. An arrow is drawn after it."
+  },
+  "welcome.action.seeHow": "See how it works",
+  "@welcome.action.seeHow": {
+    "description": "Link under the welcome’s heading to the section that explains the product."
+  },
+  "welcome.hero.boundaryTitle": "Browser only until you choose otherwise.",
+  "@welcome.hero.boundaryTitle": {
+    "description": "Bold sentence under the welcome’s buttons: beginning keeps everything in this browser."
+  },
+  "welcome.hero.boundaryNote": "Beginning here creates no account and uploads nothing.",
+  "@welcome.hero.boundaryNote": {
+    "description": "Follows welcome.hero.boundaryTitle in the same line."
+  },
+  "welcome.example.label": "Example shared ledger for fictional journeyers Maya and Theo",
+  "@welcome.example.label": {
+    "description": "Spoken name of the example ledger drawn beside the welcome’s heading. Maya and Theo are invented people; you may give them names that read naturally in your language, the same everywhere they appear."
+  },
+  "welcome.example.title": "Our ledger",
+  "@welcome.example.title": {
+    "description": "Title of the example ledger on the welcome page."
+  },
+  "welcome.example.people": "Maya and Theo",
+  "@welcome.example.people": {
+    "description": "Spoken name of the two initials (M and T) in the example ledger. Keep the same names as in welcome.example.label."
+  },
+  "welcome.example.chapter": "Chapter 04",
+  "@welcome.example.chapter": {
+    "description": "Small line in the example ledger: this is the fourth part of their story."
+  },
+  "welcome.example.heading": "The summer we chose slowly",
+  "@welcome.example.heading": {
+    "description": "Heading of the example ledger: the name the two invented people gave this part of their story."
+  },
+  "welcome.example.lead": "Three fictional moments, held between Maya and Theo",
+  "@welcome.example.lead": {
+    "description": "Under the example ledger’s heading. Keep the same names as in welcome.example.label."
+  },
+  "welcome.example.promiseTitle": "A promise for the season",
+  "@welcome.example.promiseTitle": {
+    "description": "The first example moment’s name."
+  },
+  "welcome.example.promiseDetail": "Choose one unhurried day each week.",
+  "@welcome.example.promiseDetail": {
+    "description": "The first example moment’s words."
+  },
+  "welcome.example.shared": "Shared intentionally",
+  "@welcome.example.shared": {
+    "description": "Under an example moment: it was shared on purpose."
+  },
+  "welcome.example.roadTitle": "The road near Marlow",
+  "@welcome.example.roadTitle": {
+    "description": "The second example moment’s name. Marlow is a small English town; you may name another place."
+  },
+  "welcome.example.roadDetail": "We missed the turn and found the view we still talk about.",
+  "@welcome.example.roadDetail": {
+    "description": "The second example moment’s words."
+  },
+  "welcome.example.nextTitle": "For next time",
+  "@welcome.example.nextTitle": {
+    "description": "The third example moment’s name."
+  },
+  "welcome.example.nextDetail": "Bring the old camera. Stay until the light changes.",
+  "@welcome.example.nextDetail": {
+    "description": "The third example moment’s words."
+  },
+  "welcome.example.later": "Share later · local cue",
+  "@welcome.example.later": {
+    "description": "Under the third example moment: it waits to be shared, and in a browser-only ledger that is a cue, not a privacy control."
+  },
+  "welcome.statement.eyebrow": "Made for two",
+  "@welcome.statement.eyebrow": {
+    "description": "Small line above the How it works section’s heading."
+  },
+  "welcome.statement.title": "Not another place to post. A place to remember.",
+  "@welcome.statement.title": {
+    "description": "Heading of the How it works section. The words in welcome.statement.titleEmphasis are drawn in italics."
+  },
+  "welcome.statement.titleEmphasis": "remember.",
+  "@welcome.statement.titleEmphasis": {
+    "description": "The words of welcome.statement.title drawn in italics. Copy them exactly as they appear in your welcome.statement.title."
+  },
+  "welcome.statement.body": "You decide what belongs, how it is named, and when it is ready to be shared. The ledger begins empty because your story should not arrive prewritten. A journey holds two people to begin with, and can make room for more when you decide it should.",
+  "@welcome.statement.body": {
+    "description": "Under the How it works heading. “Make room for more” is a careful phrase: never seats or slots; see the glossary."
+  },
+  "welcome.step.holdTitle": "Hold one thing",
+  "@welcome.step.holdTitle": {
+    "description": "First of three steps. “Hold” is how the product says keeping a moment."
+  },
+  "welcome.step.holdBody": "A memory, promise, feeling, boundary, practical detail, or your own kind of moment.",
+  "@welcome.step.holdBody": {
+    "description": "Under the first step."
+  },
+  "welcome.step.nameTitle": "Name its place",
+  "@welcome.step.nameTitle": {
+    "description": "Second of three steps: choose who can see a moment."
+  },
+  "welcome.step.nameBody": "Choose a local visibility cue and use words that feel true to the two people involved.",
+  "@welcome.step.nameBody": {
+    "description": "Under the second step."
+  },
+  "welcome.step.returnTitle": "Return with care",
+  "@welcome.step.returnTitle": {
+    "description": "Third of three steps."
+  },
+  "welcome.step.returnBody": "Come back to recent moments and conversations without turning the relationship into a score.",
+  "@welcome.step.returnBody": {
+    "description": "Under the third step."
+  },
+  "welcome.possibilities.eyebrow": "Every ledger takes its own shape",
+  "@welcome.possibilities.eyebrow": {
+    "description": "Small line above the Possibilities section’s heading."
+  },
+  "welcome.possibilities.title": "Keep the ordinary things that become a life.",
+  "@welcome.possibilities.title": {
+    "description": "Heading of the Possibilities section."
+  },
+  "welcome.possibilities.momentTitle": "A moment worth keeping",
+  "@welcome.possibilities.momentTitle": {
+    "description": "First example of what a ledger can hold."
+  },
+  "welcome.possibilities.momentBody": "The call you made, the thing you learned, or the quiet apology after dinner.",
+  "@welcome.possibilities.momentBody": {
+    "description": "Under the first example."
+  },
+  "welcome.possibilities.promiseTitle": "A promise without a score",
+  "@welcome.possibilities.promiseTitle": {
+    "description": "Second example of what a ledger can hold."
+  },
+  "welcome.possibilities.promiseBody": "Something you want to remember together, without totals, rankings, or a feed.",
+  "@welcome.possibilities.promiseBody": {
+    "description": "Under the second example."
+  },
+  "welcome.possibilities.conversationTitle": "A conversation to return to",
+  "@welcome.possibilities.conversationTitle": {
+    "description": "Third example of what a ledger can hold."
+  },
+  "welcome.possibilities.conversationBody": "An open thread can rest here until both people have room to meet it again.",
+  "@welcome.possibilities.conversationBody": {
+    "description": "Under the third example. A thread is a conversation still open."
+  },
+  "welcome.privacy.eyebrow": "Privacy before performance",
+  "@welcome.privacy.eyebrow": {
+    "description": "Small line above the Privacy section’s heading."
+  },
+  "welcome.privacy.title": "Know where your words live before you write them.",
+  "@welcome.privacy.title": {
+    "description": "Heading of the Privacy section."
+  },
+  "welcome.privacy.body": "Together Ledger names the boundary at the moment it matters. The browser-local space and a signed-in private journey are separate homes.",
+  "@welcome.privacy.body": {
+    "description": "Under the Privacy heading. Keep the product name as it is."
+  },
+  "common.sync.browserOnly": "Browser only",
+  "@common.sync.browserOnly": {
+    "description": "Where a ledger is kept: only in this browser. A term explained on the welcome page, and the status shown on the ledger."
+  },
+  "welcome.privacy.browserBody": "Your first ledger stays on this device unless you export it. Beginning does not create an account.",
+  "@welcome.privacy.browserBody": {
+    "description": "Explains Browser only."
+  },
+  "common.sync.accountReady": "Account ready",
+  "@common.sync.accountReady": {
+    "description": "Signed in, with no private journey open yet. A term explained on the welcome page, and the status shown on the ledger."
+  },
+  "welcome.privacy.accountBody": "Signing in never uploads or merges the ledger already held in this browser.",
+  "@welcome.privacy.accountBody": {
+    "description": "Explains Account ready."
+  },
+  "common.sync.privateSync": "Private sync",
+  "@common.sync.privateSync": {
+    "description": "A journey kept by the account service and shared between its journeyers. A term explained on the welcome page, and the status shown on the ledger."
+  },
+  "welcome.privacy.syncBody": "Private and Share later moments stay with their creator. Shared now moments are visible to everyone in the journey, including anyone who joins later.",
+  "@welcome.privacy.syncBody": {
+    "description": "Explains Private sync. Private, Share later and Shared now are the three visibility choices; use the same words as common.visibility.*."
+  },
+  "welcome.closing.eyebrow": "Begin without performing",
+  "@welcome.closing.eyebrow": {
+    "description": "Small line above the welcome page’s last heading."
+  },
+  "welcome.closing.title": "Start with one thing worth keeping.",
+  "@welcome.closing.title": {
+    "description": "The welcome page’s last heading, above its last Begin button."
+  },
+  "welcome.closing.body": "No feed to fill. No relationship score to improve. Nothing is added until you decide.",
+  "@welcome.closing.body": {
+    "description": "Under the last heading."
+  },
+  "footer.page.note": "Local-first and open source. Not financial advice, couples therapy, or a substitute for professional support.",
+  "@footer.page.note": {
+    "description": "The page’s footer, on every screen."
+  },
+  "home.sections.label": "Ledger sections",
+  "@home.sections.label": {
+    "description": "Spoken name of the row of links to the ledger’s sections."
+  },
+  "home.sections.moments": "Moments",
+  "@home.sections.moments": {
+    "description": "Link to the ledger’s moments."
+  },
+  "home.sections.returnTo": "Return to",
+  "@home.sections.returnTo": {
+    "description": "Link to the ledger’s return-to conversations: things to come back to together."
+  },
+  "home.trip.empty": "Nothing has been written here yet.",
+  "@home.trip.empty": {
+    "description": "Under the journey’s name while the ledger is empty."
+  },
+  "home.trip.eventHistory": "See event history ({count, number, ::group-off})",
+  "@home.trip.eventHistory": {
+    "description": "Button that opens the journey’s history of recorded changes, with how many there are.",
+    "placeholders": {
+      "count": { "type": "Number", "example": "12", "description": "How many changes are recorded." }
+    }
+  },
+  "home.trip.editJourney": "Edit journey",
+  "@home.trip.editJourney": {
+    "description": "Button that opens the journey’s details (its name, place, dates) to change them."
+  },
+  "home.actor.label": "Acting as",
+  "@home.actor.label": {
+    "description": "Label of the menu that picks which of the two people in a browser-only ledger is writing now."
+  },
+  "home.actor.menuLabel": "Choose the local actor for new events",
+  "@home.actor.menuLabel": {
+    "description": "Spoken name of that menu: whose name new changes are recorded under, in this browser only."
+  },
+  "home.actor.changed": "New local events will be attributed to {name}.",
+  "@home.actor.changed": {
+    "description": "Message after choosing who is writing in a browser-only ledger.",
+    "placeholders": {
+      "name": { "type": "String", "example": "Asha", "description": "A journeyer’s name, as they wrote it, in any script." }
+    }
+  },
+  "home.moment.hold": "Hold a moment",
+  "@home.moment.hold": {
+    "description": "Button that opens the form to keep a new moment. “Hold” is how the product says keeping something with care. A ＋ is drawn before it."
+  },
+  "home.moment.begin": "Begin",
+  "@home.moment.begin": {
+    "description": "The same button while the ledger is still empty."
+  },
+  "home.journey.create": "Create a journey",
+  "@home.journey.create": {
+    "description": "Button shown to someone signed in who has no private journey yet: it opens the form to make one."
+  },
+  "home.journey.new": "New journey",
+  "@home.journey.new": {
+    "description": "Button under the row of journeys: opens the form to begin another journey. A ＋ is drawn before it."
+  },
+  "home.journeyRow.label": "Switch journey",
+  "@home.journeyRow.label": {
+    "description": "Label of the row of journeys: choosing one opens it."
+  },
+  "home.journeyRow.switched": "Journey switched.",
+  "@home.journeyRow.switched": {
+    "description": "Message after opening another journey from the row."
+  },
+  "home.settings.button": "{count, plural, =0 {Journey settings} other {Journey settings · {count, number, ::group-off} to answer}}",
+  "@home.settings.button": {
+    "description": "The button that opens Journey settings. When proposals to add someone are waiting for this person’s answer, it says how many.",
+    "placeholders": {
+      "count": { "type": "Number", "example": "2", "description": "How many proposals are waiting for this person to answer; 0 for none." }
+    }
+  },
+  "home.guidance.eyebrow": "A small place to begin",
+  "@home.guidance.eyebrow": {
+    "description": "Small line above the optional check-in question on the ledger."
+  },
+  "home.guidance.title": "One question, if now is a good time.",
+  "@home.guidance.title": {
+    "description": "Title of the optional check-in. It opens only when chosen."
+  },
+  "home.guidance.note": "Nothing you say here is saved. Open only if this feels useful today.",
+  "@home.guidance.note": {
+    "description": "Under the check-in’s title."
+  },
+  "home.guidance.progress": "Check-in {current, number, ::group-off} of {total, number, ::group-off}",
+  "@home.guidance.progress": {
+    "description": "Which of the check-in’s questions is showing.",
+    "placeholders": {
+      "current": { "type": "Number", "example": "1", "description": "The question showing." },
+      "total": { "type": "Number", "example": "5", "description": "How many questions there are." }
+    }
+  },
+  "home.guidance.next": "Next question",
+  "@home.guidance.next": {
+    "description": "Button: show the next check-in question."
+  },
+  "home.guidance.back": "Back",
+  "@home.guidance.back": {
+    "description": "Button: show the previous check-in question."
+  },
+  "home.guidance.end": "End for today",
+  "@home.guidance.end": {
+    "description": "Button: put the check-in away until tomorrow, before the last question."
+  },
+  "home.guidance.finish": "Finish for today",
+  "@home.guidance.finish": {
+    "description": "Button on the last check-in question: done until tomorrow."
+  },
+  "home.guidance.ended": "Check-in set aside for today.",
+  "@home.guidance.ended": {
+    "description": "Message after End for today."
+  },
+  "home.guidance.finished": "Check-in complete. It can rest until tomorrow.",
+  "@home.guidance.finished": {
+    "description": "Message after Finish for today."
+  },
+  "home.guidance.nameWithCare": "What feels important to name with care today?",
+  "@home.guidance.nameWithCare": {
+    "description": "First check-in question. Gentle, never demanding."
+  },
+  "home.guidance.appreciated": "What is one thing you noticed and appreciated?",
+  "@home.guidance.appreciated": {
+    "description": "Second check-in question."
+  },
+  "home.guidance.lighterThread": "Is there an open thread that would feel lighter with a small next step?",
+  "@home.guidance.lighterThread": {
+    "description": "Third check-in question. A thread is a conversation still open."
+  },
+  "home.guidance.spaciousBoundary": "What boundary would help this journey feel more spacious?",
+  "@home.guidance.spaciousBoundary": {
+    "description": "Fourth check-in question."
+  },
+  "home.guidance.rememberSeason": "What do we want to remember about this season together?",
+  "@home.guidance.rememberSeason": {
+    "description": "Fifth check-in question."
+  },
+  "home.moments.title": "Recent moments",
+  "@home.moments.title": {
+    "description": "Heading over the most recent moments."
+  },
+  "home.moments.showRecent": "Show recent",
+  "@home.moments.showRecent": {
+    "description": "Button that goes back to showing only the recent moments."
+  },
+  "home.moments.addYourOwn": "Add your own moment",
+  "@home.moments.addYourOwn": {
+    "description": "Button among those suggestions: hold a moment of a kind the person names. A ＋ is drawn before it."
+  },
+  "home.threads.start": "Start a conversation",
+  "@home.threads.start": {
+    "description": "Button that opens the form to start a return-to conversation. A ＋ is drawn before it."
+  },
+  "home.threads.open": "open",
+  "@home.threads.open": {
+    "description": "Small lowercase tag on a conversation that is still open."
+  },
+  "home.quickAction.label": "Quick action",
+  "@home.quickAction.label": {
+    "description": "Spoken name of the bar at the bottom of a narrow screen that holds the Hold a moment button."
+  },
+  "moment.photo.open": "Open photo {name}",
+  "@moment.photo.open": {
+    "description": "Spoken name of a photo on a moment: opens it larger.",
+    "placeholders": {
+      "name": { "type": "String", "example": "IMG_0412.jpg", "description": "The photo’s file name, or the word Image." }
+    }
+  },
+  "moment.photo.openLarger": "Open larger",
+  "@moment.photo.openLarger": {
+    "description": "Under a photo on a moment: selecting it opens it larger."
+  },
+  "moment.photo.openRemoved": "Open removed photo {name}",
+  "@moment.photo.openRemoved": {
+    "description": "Spoken name of a removed photo: opens it larger.",
+    "placeholders": {
+      "name": { "type": "String", "example": "IMG_0412.jpg", "description": "The photo’s file name, or the word Image." }
+    }
+  },
+  "moment.photo.unavailable": "Photo could not be loaded. Select to try again.",
+  "@moment.photo.unavailable": {
+    "description": "Shown in place of a photo that did not load."
+  },
+  "moment.viewer.eyebrow": "Moment photo",
+  "@moment.viewer.eyebrow": {
+    "description": "Small line above a photo opened larger."
+  },
+  "moment.viewer.close": "Close photo",
+  "@moment.viewer.close": {
+    "description": "Spoken name of the × that closes a photo opened larger."
+  },
+  "moment.form.localCopy": "Choose visibility with care. In browser-only mode, it is a local cue, not separate-account privacy.",
+  "@moment.form.localCopy": {
+    "description": "Under the form’s title, in a ledger kept only in this browser."
+  },
+  "moment.form.kindHelp": "Choose a suggestion from the menu, or make one your own.",
+  "@moment.form.kindHelp": {
+    "description": "Under the Kind of moment menu."
+  },
+  "moment.form.kindName": "Name this kind of moment",
+  "@moment.form.kindName": {
+    "description": "Label of the box for naming a kind of moment the person made their own."
+  },
+  "moment.form.detail": "What would you like to hold?",
+  "@moment.form.detail": {
+    "description": "Label of the box for the moment’s own words. Optional is shown beside it."
+  },
+  "moment.form.photoIncluded": "One image is included with every hosted moment",
+  "@moment.form.photoIncluded": {
+    "description": "Small line beside Photo."
+  },
+  "moment.form.photoHelp": "JPEG, PNG, or WebP, up to 25 MB. One image is included with every hosted moment.",
+  "@moment.form.photoHelp": {
+    "description": "Under the photo picker. JPEG, PNG and WebP are file types; MB is megabytes."
+  },
+  "moment.form.photoHelpAddOn": "JPEG, PNG, or WebP, up to 25 MB. Another image will be available as a $1/month add-on.",
+  "@moment.form.photoHelpAddOn": {
+    "description": "Under the photo picker before the form has read the moment. Keep the price exactly as it is."
+  },
+  "moment.form.photoHeld": "This moment already holds its included image. Another image is a $1/month add-on.",
+  "@moment.form.photoHeld": {
+    "description": "Under the photo picker when the moment already has its photo. Keep the price exactly as it is."
+  },
+  "moment.form.photoReady": "Your $1/month image add-on is ready. Choose the additional image, up to 25 MB.",
+  "@moment.form.photoReady": {
+    "description": "Under the photo picker once a paid extra image is ready. Keep the price exactly as it is."
+  },
+  "moment.form.photoMetadataRemoved": "Its location and camera details have been removed on this device, before it is uploaded.",
+  "@moment.form.photoMetadataRemoved": {
+    "description": "Under the photo picker once a photo is chosen: where it was taken and what took it have been stripped from the file on this device, before it is sent anywhere. It says what has already happened, never a promise."
+  },
+  "moment.form.removePhoto": "Remove photo",
+  "@moment.form.removePhoto": {
+    "description": "Button that takes the photo off this moment."
+  },
+  "moment.form.buyImage": "Add another image · $1/month",
+  "@moment.form.buyImage": {
+    "description": "Button that opens payment for a second image on this moment. Keep the price exactly as it is."
+  },
+  "moment.form.places": "Places",
+  "@moment.form.places": {
+    "description": "Label of the places a moment can hold. Optional is shown beside it."
+  },
+  "moment.form.placesPrice": "First place included · each additional place is $1/month",
+  "@moment.form.placesPrice": {
+    "description": "Beside Places. Keep the price exactly as it is."
+  },
+  "moment.form.placesHelp": "Add only what helps tell the story. Your device location is requested only when you choose it—never in the background.",
+  "@moment.form.placesHelp": {
+    "description": "Under Places."
+  },
+  "moment.form.useLocation": "Use my device location",
+  "@moment.form.useLocation": {
+    "description": "Button that asks the browser for this device’s location, once."
+  },
+  "moment.form.findingLocation": "Finding your location…",
+  "@moment.form.findingLocation": {
+    "description": "Shown on that button while the browser finds the location."
+  },
+  "moment.form.deviceLocation": "Device location ({latitude}, {longitude})",
+  "@moment.form.deviceLocation": {
+    "description": "The name given to a place taken from the device: its coordinates. It is kept with the moment as written.",
+    "placeholders": {
+      "latitude": { "type": "String", "example": "51.5072", "description": "Latitude, four decimals, written as numbers are in code." },
+      "longitude": { "type": "String", "example": "-0.1276", "description": "Longitude, four decimals." }
+    }
+  },
+  "moment.form.placeIncluded": "Included",
+  "@moment.form.placeIncluded": {
+    "description": "Beside the first place: it costs nothing."
+  },
+  "moment.form.placePrice": "$1/month",
+  "@moment.form.placePrice": {
+    "description": "Beside each place after the first. Keep the price exactly as it is."
+  },
+  "moment.form.buyPlace": "Add another place · $1/month",
+  "@moment.form.buyPlace": {
+    "description": "Button that opens payment for another place on this moment. Keep the price exactly as it is."
+  },
+  "moment.form.noGeolocation": "This browser cannot share a device location. You can still enter a place.",
+  "@moment.form.noGeolocation": {
+    "description": "Shown when the browser has no way to give a location."
+  },
+  "moment.form.locationRefused": "Location was not shared. You can still enter a place in your own words.",
+  "@moment.form.locationRefused": {
+    "description": "Shown when the location was refused or could not be found."
+  },
+  "moment.form.visibilityLocal": "Browser only: Private and Share later are local cues, not separate-account privacy controls.",
+  "@moment.form.visibilityLocal": {
+    "description": "Under the visibility choice in a ledger kept only in this browser."
+  },
+  "moment.form.moneyNote": "Optional; never counted as a score",
+  "@moment.form.moneyNote": {
+    "description": "Beside that label."
+  },
+  "moment.form.amount": "Amount",
+  "@moment.form.amount": {
+    "description": "Spoken name of the amount box."
+  },
+  "moment.form.currency": "Currency",
+  "@moment.form.currency": {
+    "description": "Spoken name of the currency menu."
+  },
+  "moment.form.heldLocally": "Moment held in this browser.",
+  "@moment.form.heldLocally": {
+    "description": "Message after holding a moment in a ledger kept only in this browser."
+  },
+  "moment.removePhoto.title": "Remove this photo?",
+  "@moment.removePhoto.title": {
+    "description": "Question before removing a moment’s photo."
+  },
+  "moment.removePhoto.consequence": "This cannot be undone. Removing the photo does not cancel a paid image add-on.",
+  "@moment.removePhoto.consequence": {
+    "description": "What removing the photo means."
+  },
+  "moment.removePhoto.pending": "Removing photo…",
+  "@moment.removePhoto.pending": {
+    "description": "Shown on the button while the photo is removed."
+  },
+  "moment.removePhoto.done": "Photo removed from this moment.",
+  "@moment.removePhoto.done": {
+    "description": "Message after removing a photo."
+  },
+  "journey.form.localEyebrow": "Local journey details",
+  "@journey.form.localEyebrow": {
+    "description": "Small line above the journey form in a ledger kept only in this browser."
+  },
+  "journey.form.privateEyebrow": "Private journey details",
+  "@journey.form.privateEyebrow": {
+    "description": "Small line above the journey form when signed in."
+  },
+  "journey.form.title": "Begin a shared journey",
+  "@journey.form.title": {
+    "description": "Title of the form that begins a new journey."
+  },
+  "journey.form.editTitle": "Edit journey details",
+  "@journey.form.editTitle": {
+    "description": "Title of the same form when changing a journey."
+  },
+  "journey.form.localCopy": "Two people share the journey. The information stays in this browser until you export it.",
+  "@journey.form.localCopy": {
+    "description": "Under the form’s title in a ledger kept only in this browser."
+  },
+  "journey.form.privateCopy": "Begin with a name. The optional details can wait until they feel useful.",
+  "@journey.form.privateCopy": {
+    "description": "Under the form’s title when signed in."
+  },
+  "journey.form.name": "Journey name",
+  "@journey.form.name": {
+    "description": "Label of the journey’s name."
+  },
+  "journey.form.namePlaceholder": "e.g. Mountain weekend",
+  "@journey.form.namePlaceholder": {
+    "description": "Example inside the name box."
+  },
+  "journey.form.place": "Place or season",
+  "@journey.form.place": {
+    "description": "Label of an optional place or time of year. Optional is shown beside it."
+  },
+  "journey.form.placePlaceholder": "Add this only if it helps you recognize the journey",
+  "@journey.form.placePlaceholder": {
+    "description": "Inside that box."
+  },
+  "journey.form.began": "When it began",
+  "@journey.form.began": {
+    "description": "Label of the menu for when the journey began."
+  },
+  "journey.form.knowDate": "I know the date",
+  "@journey.form.knowDate": {
+    "description": "Choice in When it began."
+  },
+  "journey.form.unknownDate": "I don’t remember exactly",
+  "@journey.form.unknownDate": {
+    "description": "Choice in When it began."
+  },
+  "journey.form.startDate": "Exact start date",
+  "@journey.form.startDate": {
+    "description": "Label of the date the journey began."
+  },
+  "journey.form.lasts": "How long it lasts",
+  "@journey.form.lasts": {
+    "description": "Label of the menu for when the journey ends."
+  },
+  "journey.form.forever": "Forever — no end date planned",
+  "@journey.form.forever": {
+    "description": "Choice in How long it lasts."
+  },
+  "journey.form.unsure": "Not sure yet",
+  "@journey.form.unsure": {
+    "description": "Choice in How long it lasts."
+  },
+  "journey.form.chooseEnd": "Choose an end date",
+  "@journey.form.chooseEnd": {
+    "description": "Choice in How long it lasts."
+  },
+  "journey.form.endDate": "Exact end date",
+  "@journey.form.endDate": {
+    "description": "Label of the date the journey ends."
+  },
+  "journey.form.firstPerson": "First person",
+  "@journey.form.firstPerson": {
+    "description": "Label of the first person’s name, in a ledger kept only in this browser."
+  },
+  "journey.form.secondPerson": "Second person",
+  "@journey.form.secondPerson": {
+    "description": "Label of the second person’s name."
+  },
+  "journey.form.personPlaceholder": "Name",
+  "@journey.form.personPlaceholder": {
+    "description": "Inside each person’s name box."
+  },
+  "journey.form.create": "Create journey",
+  "@journey.form.create": {
+    "description": "Button that begins the journey."
+  },
+  "journey.form.saveChanges": "Save journey changes",
+  "@journey.form.saveChanges": {
+    "description": "Button that saves changes to a journey."
+  },
+  "journey.form.synced": "Journey changes synced.",
+  "@journey.form.synced": {
+    "description": "Message after changing a private journey."
+  },
+  "journey.form.createdPrivate": "Private journey created. Invite your journeyer in Settings.",
+  "@journey.form.createdPrivate": {
+    "description": "Message after creating a private journey. Settings is Journey settings."
+  },
+  "journey.form.updatedLocal": "Journey details updated.",
+  "@journey.form.updatedLocal": {
+    "description": "Message after changing a journey kept in this browser."
+  },
+  "journey.form.createdLocal": "New journey created in this browser.",
+  "@journey.form.createdLocal": {
+    "description": "Message after creating a journey kept in this browser."
+  },
+  "concern.form.title": "Start a return-to conversation",
+  "@concern.form.title": {
+    "description": "Title of the form that starts one."
+  },
+  "concern.form.editTitle": "Edit return-to conversation",
+  "@concern.form.editTitle": {
+    "description": "Title of the same form when changing one."
+  },
+  "concern.form.lead": "Use this for something you want to come back to together. It stays open until you choose otherwise.",
+  "@concern.form.lead": {
+    "description": "Under the form’s title."
+  },
+  "concern.form.close": "Close concern",
+  "@concern.form.close": {
+    "description": "Spoken name of the × that closes the form."
+  },
+  "concern.form.subject": "What would you like to return to?",
+  "@concern.form.subject": {
+    "description": "Label of the conversation’s short name."
+  },
+  "concern.form.subjectPlaceholder": "What would feel good to return to?",
+  "@concern.form.subjectPlaceholder": {
+    "description": "Inside that box."
+  },
+  "concern.form.context": "A little context",
+  "@concern.form.context": {
+    "description": "Label of optional words about it. Optional is shown beside it."
+  },
+  "concern.form.contextPlaceholder": "Record only what everyone in this journey should see",
+  "@concern.form.contextPlaceholder": {
+    "description": "Inside that box."
+  },
+  "concern.form.status": "Status",
+  "@concern.form.status": {
+    "description": "Label of the menu: Open or Resolved."
+  },
+  "concern.form.keepOpen": "Keep this open",
+  "@concern.form.keepOpen": {
+    "description": "Button that starts the conversation."
+  },
+  "concern.form.saveChanges": "Save conversation changes",
+  "@concern.form.saveChanges": {
+    "description": "Button that saves changes to it."
+  },
+  "concern.form.synced": "Concern changes synced.",
+  "@concern.form.synced": {
+    "description": "Message after changing a conversation in a private journey."
+  },
+  "concern.form.created": "Concern securely synced.",
+  "@concern.form.created": {
+    "description": "Message after starting a conversation in a private journey."
+  },
+  "concern.form.updatedLocal": "Concern updated.",
+  "@concern.form.updatedLocal": {
+    "description": "Message after changing a conversation kept in this browser."
+  },
+  "concern.form.createdLocal": "Concern logged in this browser.",
+  "@concern.form.createdLocal": {
+    "description": "Message after starting a conversation kept in this browser."
+  },
+  "account.dialog.unavailable": "The private account service is not live on this public page yet.",
+  "@account.dialog.unavailable": {
+    "description": "Under the Account settings title when this copy of the website can’t create accounts."
+  },
+  "account.dialog.close": "Close account settings",
+  "@account.dialog.close": {
+    "description": "Spoken name of the × that closes Account settings."
+  },
+  "signIn.dialog.boundary": "Signing in never uploads, merges, or removes the ledger already held in this browser. Hosted journeys use a separate account home.",
+  "@signIn.dialog.boundary": {
+    "description": "Above the ways to sign in."
+  },
+  "signIn.social.apple": "Continue with Apple",
+  "@signIn.social.apple": {
+    "description": "Apple’s sign-in button. Apple asks for these exact words in English; use the wording Apple gives for your language."
+  },
+  "signIn.toast.refreshed": "Private journeys refreshed.",
+  "@signIn.toast.refreshed": {
+    "description": "Message after signing in, once the private journeys are read."
+  },
+  "signIn.toast.invitedEmail": "Sign in with the invited email, then reopen the invitation link.",
+  "@signIn.toast.invitedEmail": {
+    "description": "Message when an invitation link is opened while signed out."
+  },
+  "sharing.copy.signedOut": "Sign in and create a private journey to invite another journeyer.",
+  "@sharing.copy.signedOut": {
+    "description": "Under Journey sharing when not signed in."
+  },
+  "sharing.copy.needsJourney": "Your account is ready. Create a private journey to invite another journeyer.",
+  "@sharing.copy.needsJourney": {
+    "description": "Under Journey sharing when signed in with no private journey open."
+  },
+  "sharing.copy.here": "{count, plural, one {{count, number, ::group-off} person is here.} other {{count, number, ::group-off} people are here.}}",
+  "@sharing.copy.here": {
+    "description": "First sentence under Journey sharing: how many people are in the journey.",
+    "placeholders": {
+      "count": { "type": "Number", "example": "2", "description": "How many people are in the journey." }
+    }
+  },
+  "sharing.copy.room": "There is room to add another person, and everybody here has to agree to them.",
+  "@sharing.copy.room": {
+    "description": "Follows the count when someone more can be added."
+  },
+  "sharing.copy.noRoom": "There is no open place right now.",
+  "@sharing.copy.noRoom": {
+    "description": "Follows the count when nobody more can be added. Never “seat” or “slot”; see the glossary."
+  },
+  "sharing.copy.reservedOne": "1 place is reserved for {person}, waiting for them to accept the invitation.",
+  "@sharing.copy.reservedOne": {
+    "description": "Follows the count when the only open place is held for one person invited.",
+    "placeholders": {
+      "person": { "type": "String", "example": "as•••@example.com", "description": "The person invited: their name once they have joined, otherwise their email, partly hidden with dots." }
+    }
+  },
+  "sharing.copy.reservedMany": "{count, plural, other {{count, number, ::group-off} places are reserved, waiting for the people invited to accept.}}",
+  "@sharing.copy.reservedMany": {
+    "description": "Follows the count when the open places are held for several people invited (always two or more).",
+    "placeholders": {
+      "count": { "type": "Number", "example": "2", "description": "How many places are held." }
+    }
+  },
+  "sharing.copy.separately": "Each person signs in separately.",
+  "@sharing.copy.separately": {
+    "description": "Last sentence under Journey sharing."
+  },
+  "sharing.invite.email": "Propose a journeyer by email",
+  "@sharing.invite.email": {
+    "description": "Label of the email box for proposing someone. Proposing asks everyone already in the journey first."
+  },
+  "sharing.invite.emailPlaceholder": "journeyer@example.com",
+  "@sharing.invite.emailPlaceholder": {
+    "description": "Example address inside the email box. Keep @example.com; the name before it may be a word in your language, in Latin letters."
+  },
+  "sharing.invite.emailNote": "Everyone already in this journey has to agree before anything is sent. Until they all do, nothing reaches this person and they learn nothing about the journey.",
+  "@sharing.invite.emailNote": {
+    "description": "Under the email box."
+  },
+  "sharing.invite.who": "Who they are",
+  "@sharing.invite.who": {
+    "description": "Label of an optional note about the person proposed."
+  },
+  "sharing.invite.whoPlaceholder": "My sister, who has been asking after you",
+  "@sharing.invite.whoPlaceholder": {
+    "description": "Example inside that box."
+  },
+  "sharing.invite.whoNote": "Optional, and shown to the journeyers deciding, so they answer about a person rather than an address.",
+  "@sharing.invite.whoNote": {
+    "description": "Under that box."
+  },
+  "sharing.invite.submit": "Propose this person",
+  "@sharing.invite.submit": {
+    "description": "Button that asks everyone in the journey about this person."
+  },
+  "sharing.invite.pending": "Proposing…",
+  "@sharing.invite.pending": {
+    "description": "Shown on that button while it works."
+  },
+  "sharing.invite.sent": "Invitation sent. The journeyer must use their own verified account.",
+  "@sharing.invite.sent": {
+    "description": "Message when the invitation went straight out (nobody else was there to ask)."
+  },
+  "sharing.invite.proposed": "Proposed. Nothing is sent to them until every journeyer agrees.",
+  "@sharing.invite.proposed": {
+    "description": "Message after proposing someone."
+  },
+  "sharing.record.title": "Journey record",
+  "@sharing.record.title": {
+    "description": "Heading over the people in the journey and when each joined."
+  },
+  "sharing.record.reserved": "Places reserved",
+  "@sharing.record.reserved": {
+    "description": "Heading over places held for people invited."
+  },
+  "sharing.record.deciding": "People being decided on",
+  "@sharing.record.deciding": {
+    "description": "Heading over proposals still waiting for answers."
+  },
+  "sharing.record.settled": "Proposals already settled",
+  "@sharing.record.settled": {
+    "description": "Heading over proposals that are decided."
+  },
+  "sharing.record.invitations": "Invitation history",
+  "@sharing.record.invitations": {
+    "description": "Heading over every invitation sent."
+  },
+  "sharing.member.createdBy": "Created by {name}",
+  "@sharing.member.createdBy": {
+    "description": "A row in Journey record: who created the journey.",
+    "placeholders": {
+      "name": { "type": "String", "example": "Asha", "description": "A journeyer’s name, as they wrote it, in any script." }
+    }
+  },
+  "sharing.member.joined": "{name} joined the journey",
+  "@sharing.member.joined": {
+    "description": "A row in Journey record: someone who joined.",
+    "placeholders": {
+      "name": { "type": "String", "example": "Asha", "description": "A journeyer’s name, as they wrote it, in any script." }
+    }
+  },
+  "sharing.member.createdAt": "Created {time}",
+  "@sharing.member.createdAt": {
+    "description": "Under the creator’s row: when.",
+    "placeholders": {
+      "time": { "type": "Object", "example": "Oct 12, 2026, 3:04 PM", "description": "A date and time, already written for the reader’s language. Drawn as a time element." }
+    }
+  },
+  "sharing.member.joinedAt": "Joined {time}",
+  "@sharing.member.joinedAt": {
+    "description": "Under a row: when they joined.",
+    "placeholders": {
+      "time": { "type": "Object", "example": "Oct 12, 2026, 3:04 PM", "description": "A date and time, already written for the reader’s language. Drawn as a time element." }
+    }
+  },
+  "sharing.member.role": "{role, select, owner {Owner} creator {Creator} other {Journeyer}}",
+  "@sharing.member.role": {
+    "description": "A person’s part in the journey, beside their row. Owner holds the journey for everyone; Creator made it; Journeyer is anyone else.",
+    "placeholders": {
+      "role": { "type": "String", "example": "owner", "description": "owner, creator or journeyer. Chosen by, never shown." }
+    }
+  },
+  "sharing.member.roleYou": "{role, select, owner {Owner · You} creator {Creator · You} other {Journeyer · You}}",
+  "@sharing.member.roleYou": {
+    "description": "The same, on the reader’s own row.",
+    "placeholders": {
+      "role": { "type": "String", "example": "owner", "description": "owner, creator or journeyer. Chosen by, never shown." }
+    }
+  },
+  "sharing.member.makeOwner": "Make owner",
+  "@sharing.member.makeOwner": {
+    "description": "Button the owner sees beside another person: hand the journey to them."
+  },
+  "sharing.member.showOthers": "{count, plural, one {Show the other {count, number, ::group-off} person} other {Show the other {count, number, ::group-off} people}}",
+  "@sharing.member.showOthers": {
+    "description": "Opens the rest of a long list of people.",
+    "placeholders": {
+      "count": { "type": "Number", "example": "93", "description": "How many more people there are." }
+    }
+  },
+  "sharing.member.emptyTitle": "No one is listed yet",
+  "@sharing.member.emptyTitle": {
+    "description": "Shown while the list of people is empty."
+  },
+  "sharing.member.emptyBody": "The people in this journey appear here once the account service answers.",
+  "@sharing.member.emptyBody": {
+    "description": "Under No one is listed yet."
+  },
+  "sharing.reserved.title": "1 place reserved — waiting for {person} to accept the invitation",
+  "@sharing.reserved.title": {
+    "description": "A row under Places reserved.",
+    "placeholders": {
+      "person": { "type": "String", "example": "as•••@example.com", "description": "The person invited: their name once they have joined, otherwise their email, partly hidden with dots." }
+    }
+  },
+  "sharing.invitation.sentBy": "Sent by {name} · {time}",
+  "@sharing.invitation.sentBy": {
+    "description": "Under an invitation: who sent it, and when.",
+    "placeholders": {
+      "name": { "type": "String", "example": "Asha", "description": "A journeyer’s name, as they wrote it, in any script." },
+      "time": { "type": "Object", "example": "Oct 12, 2026, 3:04 PM", "description": "A date and time, already written for the reader’s language. Drawn as a time element." }
+    }
+  },
+  "sharing.invitation.sentTo": "Invitation sent to {person}",
+  "@sharing.invitation.sentTo": {
+    "description": "A row in Invitation history.",
+    "placeholders": {
+      "person": { "type": "String", "example": "as•••@example.com", "description": "The person invited: their name once they have joined, otherwise their email, partly hidden with dots." }
+    }
+  },
+  "sharing.invitation.timeToJoin": "Time to join: {left}",
+  "@sharing.invitation.timeToJoin": {
+    "description": "How long the person invited has left to accept.",
+    "placeholders": {
+      "left": { "type": "String", "example": "3d 04h 07m left", "description": "The time left, already written (common.time.*)." }
+    }
+  },
+  "sharing.invitation.withdraw": "Withdraw the invitation",
+  "@sharing.invitation.withdraw": {
+    "description": "Button that takes an invitation back; also the button in the question that follows."
+  },
+  "sharing.invitation.sendAgainNote": "Everyone has already agreed, so it can be sent again until {time} without asking them again.",
+  "@sharing.invitation.sendAgainNote": {
+    "description": "Under an invitation that can be sent again.",
+    "placeholders": {
+      "time": { "type": "String", "example": "Oct 12, 2026, 3:04 PM", "description": "A date and time, already written." }
+    }
+  },
+  "sharing.invitation.sendAgain": "Send it again",
+  "@sharing.invitation.sendAgain": {
+    "description": "Button that sends the invitation again."
+  },
+  "sharing.invitation.status": "{status, select, accepted {Accepted} expired {Expired} pending {Pending} revoked {Revoked} withdrawn {Withdrawn} other {Recorded}}",
+  "@sharing.invitation.status": {
+    "description": "Tag beside an invitation: what happened to it.",
+    "placeholders": {
+      "status": { "type": "String", "example": "pending", "description": "The invitation’s state. Chosen by, never shown." }
+    }
+  },
+  "sharing.invitation.withdrawTitle": "Withdraw the invitation to {email}?",
+  "@sharing.invitation.withdrawTitle": {
+    "description": "Question before taking an invitation back.",
+    "placeholders": {
+      "email": { "type": "String", "example": "as•••@example.com", "description": "An email address, partly hidden with dots. Never translated." }
+    }
+  },
+  "sharing.invitation.withdrawConsequence": "Their link stops working, and the place it held is free again straight away. The journey’s history keeps a record that it was withdrawn.",
+  "@sharing.invitation.withdrawConsequence": {
+    "description": "What taking it back means."
+  },
+  "sharing.invitation.withdrawn": "Withdrawn. The link no longer works, and the place is free again.",
+  "@sharing.invitation.withdrawn": {
+    "description": "Message afterwards."
+  },
+  "sharing.invitation.sentAgain": "Sent again. Everyone had already agreed, so nobody was asked again.",
+  "@sharing.invitation.sentAgain": {
+    "description": "Message after sending again."
+  },
+  "sharing.proposal.proposedBy": "Proposed by {name} · {time}",
+  "@sharing.proposal.proposedBy": {
+    "description": "Under a proposal: who proposed the person, and when.",
+    "placeholders": {
+      "name": { "type": "String", "example": "Asha", "description": "A journeyer’s name, as they wrote it, in any script." },
+      "time": { "type": "Object", "example": "Oct 12, 2026, 3:04 PM", "description": "A date and time, already written for the reader’s language. Drawn as a time element." }
+    }
+  },
+  "sharing.proposal.waiting": "{agreed, number, ::group-off} of {asked, number, ::group-off} have agreed · {pending, number, ::group-off} still to answer",
+  "@sharing.proposal.waiting": {
+    "description": "Under a proposal still being decided.",
+    "placeholders": {
+      "agreed": { "type": "Number", "example": "1", "description": "How many agreed." },
+      "asked": { "type": "Number", "example": "3", "description": "How many were asked." },
+      "pending": { "type": "Number", "example": "2", "description": "How many have not answered." }
+    }
+  },
+  "sharing.proposal.agreedCount": "{agreed, number, ::group-off} of {asked, number, ::group-off} agreed",
+  "@sharing.proposal.agreedCount": {
+    "description": "Under a settled proposal.",
+    "placeholders": {
+      "agreed": { "type": "Number", "example": "3", "description": "How many agreed." },
+      "asked": { "type": "Number", "example": "3", "description": "How many were asked." }
+    }
+  },
+  "sharing.proposal.timeToAnswer": "Time to answer: {left}",
+  "@sharing.proposal.timeToAnswer": {
+    "description": "How long the journeyers have left to answer.",
+    "placeholders": {
+      "left": { "type": "String", "example": "3d 04h 07m left", "description": "The time left, already written (common.time.*)." }
+    }
+  },
+  "sharing.proposal.agree": "Agree to add them",
+  "@sharing.proposal.agree": {
+    "description": "Button: agree to add the person proposed. Drawn with the same weight as Decline, on purpose."
+  },
+  "sharing.proposal.decline": "Decline",
+  "@sharing.proposal.decline": {
+    "description": "Button: decline adding the person proposed."
+  },
+  "sharing.proposal.withdraw": "Withdraw",
+  "@sharing.proposal.withdraw": {
+    "description": "Button for whoever proposed the person, or the owner: take the question back."
+  },
+  "sharing.proposal.whoWasAsked": "Who was asked, and when",
+  "@sharing.proposal.whoWasAsked": {
+    "description": "Opens the record of each person asked and their answer."
+  },
+  "sharing.proposal.askedWaiting": "Asked {time} · has not answered yet",
+  "@sharing.proposal.askedWaiting": {
+    "description": "One person’s row in the record of a proposal: when they were asked, and that they have not answered.",
+    "placeholders": {
+      "time": { "type": "Object", "example": "Oct 12, 2026, 3:04 PM", "description": "A date and time, already written for the reader’s language. Drawn as a time element." }
+    }
+  },
+  "sharing.proposal.askedAnswered": "Asked {time} · {decision, select, agree {agreed} other {declined}} {answeredAt}",
+  "@sharing.proposal.askedAnswered": {
+    "description": "One person’s row in the record of a proposal: when they were asked, what they answered, and when.",
+    "placeholders": {
+      "time": { "type": "Object", "example": "Oct 12, 2026, 3:04 PM", "description": "A date and time, already written for the reader’s language. Drawn as a time element." },
+      "decision": { "type": "String", "example": "agree", "description": "agree or decline. Chosen by, never shown." },
+      "answeredAt": { "type": "String", "example": "Oct 12, 2026, 3:04 PM", "description": "When they answered, already written." }
+    }
+  },
+  "sharing.proposal.status": "{status, select, open {Waiting on everyone} agreed {Agreed} declined {Declined} withdrawn {Withdrawn} lapsed {Lapsed} other {Recorded}}",
+  "@sharing.proposal.status": {
+    "description": "Tag beside a proposal: where it stands.",
+    "placeholders": {
+      "status": { "type": "String", "example": "open", "description": "The proposal’s state. Chosen by, never shown." }
+    }
+  },
+  "sharing.proposal.decision": "{decision, select, agree {Agreed} decline {Declined} pending {Waiting} other {Recorded}}",
+  "@sharing.proposal.decision": {
+    "description": "Tag beside one person’s answer.",
+    "placeholders": {
+      "decision": { "type": "String", "example": "pending", "description": "Their answer. Chosen by, never shown." }
+    }
+  },
+  "sharing.proposal.withdrawTitle": "Withdraw the proposal to add {email}?",
+  "@sharing.proposal.withdrawTitle": {
+    "description": "Question before taking a proposal back.",
+    "placeholders": {
+      "email": { "type": "String", "example": "as•••@example.com", "description": "An email address, partly hidden with dots. Never translated." }
+    }
+  },
+  "sharing.proposal.withdrawConsequence": "The question is taken back, and nothing is sent to them. Nobody is recorded as having refused, and this person can be proposed again later.",
+  "@sharing.proposal.withdrawConsequence": {
+    "description": "What taking it back means."
+  },
+  "sharing.proposal.withdrawConfirm": "Withdraw the proposal",
+  "@sharing.proposal.withdrawConfirm": {
+    "description": "Button that takes it back."
+  },
+  "sharing.proposal.withdrawn": "Withdrawn. Nothing was sent, and nobody was added.",
+  "@sharing.proposal.withdrawn": {
+    "description": "Message afterwards."
+  },
+  "sharing.proposal.agreeTitle": "Agree to add {email}?",
+  "@sharing.proposal.agreeTitle": {
+    "description": "Question before agreeing.",
+    "placeholders": {
+      "email": { "type": "String", "example": "as•••@example.com", "description": "An email address, partly hidden with dots. Never translated." }
+    }
+  },
+  "sharing.proposal.agreeConsequence": "Once every journeyer has agreed and they join, they can read every moment this journey has shared, including moments shared long before they arrived. Moments you kept private stay private.",
+  "@sharing.proposal.agreeConsequence": {
+    "description": "What agreeing means."
+  },
+  "sharing.proposal.declineTitle": "Decline adding {email}?",
+  "@sharing.proposal.declineTitle": {
+    "description": "Question before declining.",
+    "placeholders": {
+      "email": { "type": "String", "example": "as•••@example.com", "description": "An email address, partly hidden with dots. Never translated." }
+    }
+  },
+  "sharing.proposal.declineConsequence": "This settles it for everybody straight away, and nothing is ever sent to them. Your name and the time are kept with the decision, where the other journeyers can see them.",
+  "@sharing.proposal.declineConsequence": {
+    "description": "What declining means."
+  },
+  "sharing.proposal.everyoneAgreed": "Everyone agreed. The invitation is on its way to them.",
+  "@sharing.proposal.everyoneAgreed": {
+    "description": "Message when the last agreement sends the invitation."
+  },
+  "sharing.proposal.agreed": "Your agreement is recorded. Nothing is sent until everyone has answered.",
+  "@sharing.proposal.agreed": {
+    "description": "Message after agreeing."
+  },
+  "sharing.proposal.declined": "Recorded. Nobody was added, and nothing was sent to them.",
+  "@sharing.proposal.declined": {
+    "description": "Message after declining."
+  },
+  "status.banner.storageFull": "This browser could not save that change. It shows for now, but may not be here the next time this page opens.",
+  "@status.banner.storageFull": {
+    "description": "Shown when the browser refused to keep a change."
+  },
+  "status.banner.offline": "You are offline. This journey is still here, and anything needing the account service will wait until you reconnect.",
+  "@status.banner.offline": {
+    "description": "Shown while the device has no connection. It clears itself."
+  },
+  "error.server.internalError": "The service could not complete the request.",
+  "@error.server.internalError": {
+    "description": "Something went wrong on the service’s side."
+  },
+  "error.server.invalidCsrf": "Refresh the page and try again.",
+  "@error.server.invalidCsrf": {
+    "description": "The page’s security check is out of date."
+  },
+  "error.server.invalidOrigin": "This request did not come from the Together Ledger app.",
+  "@error.server.invalidOrigin": {
+    "description": "A request came from somewhere else. Keep the product name as it is."
+  },
+  "error.server.linkRequired": "You already have an account with this email. Enter its password once to connect it.",
+  "@error.server.linkRequired": {
+    "description": "Signing in with Google or Apple for the first time, with the email of an account that has a password."
+  },
+  "error.server.invitationExists": "An invitation for that person is already waiting.",
+  "@error.server.invitationExists": {
+    "description": "Proposing someone already invited."
+  },
+  "error.server.alreadyMember": "That person is already in this journey.",
+  "@error.server.alreadyMember": {
+    "description": "Proposing someone already in the journey."
+  },
+  "error.server.proposalExists": "This journey is already deciding about that person.",
+  "@error.server.proposalExists": {
+    "description": "Proposing someone already proposed."
+  },
+  "error.server.proposalClosed": "This proposal has already been settled.",
+  "@error.server.proposalClosed": {
+    "description": "Answering a proposal that is decided."
+  },
+  "error.server.proposalLapsed": "This proposal ran out of time, and nobody was added.",
+  "@error.server.proposalLapsed": {
+    "description": "Answering a proposal whose time ran out."
+  },
+  "error.server.alreadyDecided": "You have already answered this proposal.",
+  "@error.server.alreadyDecided": {
+    "description": "Answering a proposal twice."
+  },
+  "error.server.consentIncomplete": "Not everyone in this journey has agreed yet.",
+  "@error.server.consentIncomplete": {
+    "description": "Something needs everyone’s agreement first."
+  },
+  "error.server.invalidInvitation": "This invitation is invalid, expired, or belongs to another email address.",
+  "@error.server.invalidInvitation": {
+    "description": "Opening an invitation link that can’t be used."
+  },
+  "error.server.journeyOfOne": "You are the only person in this journey, so there is nobody to leave it to.",
+  "@error.server.journeyOfOne": {
+    "description": "Leaving a journey nobody else is in."
   }
 }

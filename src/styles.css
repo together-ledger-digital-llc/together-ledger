@@ -238,6 +238,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .text-button { background: transparent; border: 0; color: var(--spruce); font-weight: 800; padding: 8px 0; text-decoration: underline; text-underline-offset: 3px; }
 
 .welcome { overflow: hidden; }
+/* The language choice at the top of the welcome page: small, in the hero's top corner above the
+   heading, and always there (decision 160). The select names the language it is in; the globe
+   says what it is for, in any language. */
+.welcome-language { position: absolute; right: clamp(18px, 4vw, 58px); top: 14px; z-index: 1; }
+.language-control { align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-pill); color: var(--muted); display: inline-flex; gap: 2px; max-width: 100%; min-height: 44px; padding-left: 12px; }
+.language-glyph { flex: none; height: 18px; width: 18px; }
+.language-control select { background: transparent; border: 0; border-radius: var(--radius-pill); color: var(--ink); font-size: 14px; font-weight: 800; max-width: min(300px, calc(100vw - 92px)); min-height: 44px; min-width: 0; padding: 8px 12px 8px 6px; }
 .welcome-hero { align-items: center; background: radial-gradient(circle at 86% 12%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 25%), var(--bg); display: grid; gap: clamp(42px, 6vw, 92px); grid-template-columns: minmax(0, .93fr) minmax(470px, 1.07fr); margin: 0 auto; max-width: 1500px; min-height: calc(100vh - 79px); padding: clamp(70px, 8vw, 120px) clamp(24px, 6vw, 92px); position: relative; }
 .welcome-hero::before { border: 1px solid var(--line); border-radius: 50%; content: ""; height: 650px; left: -440px; pointer-events: none; position: absolute; top: -360px; width: 650px; }
 .welcome-copy { position: relative; z-index: 1; }
@@ -248,7 +255,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .welcome-intro { color: var(--muted); font-size: clamp(18px, 1.7vw, 22px); line-height: 1.65; margin: 31px 0 0; max-width: 590px; }
 .welcome-actions { display: flex; flex-wrap: wrap; gap: 11px; margin-top: 34px; }
 .welcome-actions .button { min-width: 180px; }
-.welcome-actions .button span, .welcome-closing .button span { margin-left: 11px; }
+.welcome-actions .button span[aria-hidden="true"], .welcome-closing .button span[aria-hidden="true"] { margin-left: 11px; }
 .welcome-boundary { align-items: start; color: var(--muted); display: flex; font-size: 14px; gap: 10px; margin: 25px 0 0; max-width: 590px; }
 .welcome-boundary > span:first-child { border: 2px solid var(--accent); border-radius: var(--radius-xs); color: transparent; height: 13px; margin-top: 4px; position: relative; width: 11px; }
 .welcome-boundary > span:first-child::before { border: 2px solid var(--accent); border-bottom: 0; border-radius: var(--radius-s) var(--radius-s) 0 0; content: ""; height: 6px; left: 1px; position: absolute; top: -7px; width: 5px; }
@@ -489,7 +496,9 @@ dialog > .status-banner { margin: 0 0 16px; }
 .detail-head { align-items: start; display: flex; justify-content: space-between; padding: 19px; }
 .detail-head h3 { font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 28px; margin: 0; }
 .detail-head p { color: var(--muted); margin: 4px 0 0; }
-.icon-button { background: transparent; border: 1px solid var(--line); border-radius: 50%; color: inherit; font-size: 25px; height: 44px; width: 44px; }
+/* A flex row (a dialog's head) may not squeeze it: a long title in any language still leaves the
+   × its full 44px (#420). */
+.icon-button { background: transparent; border: 1px solid var(--line); border-radius: 50%; color: inherit; flex: none; font-size: 25px; height: 44px; width: 44px; }
 .category-button { align-items: center; background: var(--card); border: 0; border-top: 1px solid var(--line); color: var(--ink); display: flex; justify-content: space-between; padding: 16px 19px; text-align: left; width: 100%; }
 .category-button span, .category-button strong { display: block; }
 .category-button small { color: var(--muted); }
@@ -802,7 +811,8 @@ footer p { color: var(--on-accent); margin-bottom: 0; opacity: .8; }
   .header-actions .button { min-height: 42px; padding: 7px 12px; }
   .theme-control span { display: none; }
   .theme-control select { min-height: 42px; max-width: 155px; }
-  .welcome-hero { min-height: 0; padding: 65px 15px 78px; }
+  /* The top leaves room under the language choice, which is always there (decision 160). */
+  .welcome-hero { min-height: 0; padding: 80px 15px 78px; }
   .welcome-hero::before { height: 390px; left: -285px; top: -190px; width: 390px; }
   .welcome h1 { font-size: clamp(55px, 17vw, 76px); }
   .welcome-intro { font-size: 18px; line-height: 1.65; }

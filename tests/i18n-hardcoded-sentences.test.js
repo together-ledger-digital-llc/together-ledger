@@ -21,13 +21,17 @@ const texts = (found) => found.map((finding) => `${finding.file}:${finding.text}
 
 test('the moved areas are listed in one place, and none has a sentence written straight in', () => {
   const areas = movedAreas();
-  assert.deepEqual(areas.slice(0, 5).map((area) => area.file), ['index.html', 'src/app.js', 'src/app.js', 'apps/mobile/src/i18n/language-provider.tsx', 'apps/mobile/app/history.tsx']);
-  // The phone's most-seen screens and what they draw from (103A).
+  // The web's (101A, 101B, 102A), then 101's two on the phone, then the phone's most-seen screens (103A).
+  assert.deepEqual(areas.slice(0, 20).map((area) => area.file), [
+    'index.html', 'src/app.js', 'src/app.js',
+    ...Array(14).fill('index.html'), 'src/app.js',
+    'apps/mobile/src/i18n/language-provider.tsx', 'apps/mobile/app/history.tsx',
+  ]);
   const phone = areas.filter((area) => area.movedIn === '103A').map((area) => area.file);
   for (const file of ['apps/mobile/app/index.tsx', 'apps/mobile/app/ledger.tsx', 'apps/mobile/app/settings.tsx', 'apps/mobile/app/account.tsx', 'apps/mobile/app/register.tsx', 'apps/mobile/app/moment.tsx', 'apps/mobile/app/_layout.tsx', 'apps/mobile/src/components/moment-card.tsx', 'apps/mobile/src/components/language-choice.tsx', 'apps/mobile/src/auth/account-messages.ts', 'apps/mobile/src/journey/sharing-view.ts']) {
     assert.ok(phone.includes(file), `${file} is guarded`);
   }
-  assert.equal(new Set(areas.map((area) => `${area.file} ${(area.statements || []).join()}`)).size, areas.length, 'no area is listed twice');
+  assert.equal(new Set(areas.map((area) => `${area.file} ${area.element || ''} ${(area.statements || []).join()}`)).size, areas.length, 'no area is listed twice');
   for (const area of areas) assert.ok(area.name && area.movedIn && ['html', 'script'].includes(area.kind), area.name);
   assert.deepEqual(hardcodedSentences(areas), []);
   assert.match(read('package.json'), /node scripts\/check-hardcoded-sentences\.mjs/, 'npm run check runs it');
@@ -75,15 +79,42 @@ test('it fails on a sentence planted in the phone\'s History: JSX text, a label,
   ]);
 });
 
+// 102A: the welcome page, the ledger's home, holding a moment, signing in, and what Journey
+// sharing's code writes. A listed function is checked to its closing brace, and no further.
+test('it fails on a sentence planted in the areas 102A moved, and a listed function ends where its body does', () => {
+  const found = hardcodedSentences(movedAreas(), planted({
+    'index.html': [
+      ['<h2 id="closing-title" data-i18n="welcome.closing.title"></h2>', '<h2 id="closing-title">Start with one thing.</h2>'],
+      ['data-i18n-placeholder="common.moment.nameExample"', 'placeholder="e.g. A walk"'],
+      ['<h3 data-i18n="common.screen.journeySettings.title"></h3>', '<h3>Journey sharing</h3>'],
+      ['<h3 data-i18n="common.screen.register.title"></h3>', '<h3>Create account</h3>'],
+    ],
+    'src/app.js': [
+      ["return t('sharing.invitation.status', { status });", "return 'Waiting on them';"],
+      ["showToast(t('common.moment.sharedWithJourneyer'));", "showToast('Shared with them.');"],
+      // The line after renderLeaveJourney's body is not part of it, so this one is let through.
+      ["$('#leave-journey-button').addEventListener(", "const after = 'Not checked here.';\n$('#leave-journey-button').addEventListener("],
+    ],
+  }));
+  assert.deepEqual(texts(found), [
+    'index.html:Journey sharing',
+    'index.html:Start with one thing.',
+    'index.html:placeholder="e.g. A walk"',
+    'index.html:Create account',
+    'src/app.js:Waiting on them',
+    'src/app.js:Shared with them.',
+  ]);
+});
+
 test('it leaves alone what hasn\'t moved yet, and what isn\'t a sentence', () => {
   const found = hardcodedSentences(movedAreas(), planted({
-    // Journey sharing and the Leave zone are 102's, and Account settings isn't moved at all.
+    // The resting order and Account settings once signed in haven't moved.
     'index.html': [
-      ['<h4>Journey record</h4>', '<h4>Journey record, still English</h4>'],
-      ['<p class="eyebrow">Account settings</p>', '<p class="eyebrow">Account settings, still English</p>'],
+      ['<h4>If the payment lapses</h4>', '<h4>If the payment lapses, still English</h4>'],
+      ['<h3 id="change-password-title">Change password</h3>', '<h3 id="change-password-title">Change password, still English</h3>'],
     ],
     // Elsewhere in app.js, and keys, paths, style values and select values inside a moved area.
-    'src/app.js': [["return 'Time not recorded';", "return 'Time still not recorded';"]],
+    'src/app.js': [["{ tone: 'waiting', message: 'This journey is waiting for payment confirmation.' }", "{ tone: 'waiting', message: 'This journey is still waiting for payment confirmation.' }"]],
     'apps/mobile/app/history.tsx': [["hasPrevious: event.previousEventId ? 'yes' : 'no',", "hasPrevious: event.previousEventId ? 'yes' : 'no', kind: 'quiet', route: '/history-guide', weight: '700',"]],
   }));
   assert.deepEqual(found, []);
@@ -91,11 +122,14 @@ test('it leaves alone what hasn\'t moved yet, and what isn\'t a sentence', () =>
 
 test('an area that can no longer be found fails too, so the list is kept up to date', () => {
   const found = hardcodedSentences(movedAreas(), planted({
-    'index.html': [['<section id="leave-journey"', '<section id="leave-this-journey"']],
+    'index.html': [['<section id="unpaid-capacity-rest"', '<section id="unpaid-capacity-resting"']],
     'src/app.js': [["$('#reset-button').addEventListener(", "$('#start-fresh-button').addEventListener("]],
   }));
   assert.deepEqual(texts(found), [
-    `index.html:<section id="leave-journey" is no longer in index.html; update ${AREAS_FILE}`,
+    `index.html:<section id="unpaid-capacity-rest" is no longer in index.html; update ${AREAS_FILE}`,
+    // And what it kept out is checked again, since nothing excepts it any more.
+    'index.html:If the payment lapses',
+    'index.html:Nobody is removed and no history is lost. If this journey stays unpaid, you and one person you choose can still add to it, and everyone else can still read everything.',
     `src/app.js:$('#reset-button').addEventListener( is no longer in src/app.js; update ${AREAS_FILE}`,
   ]);
 });

@@ -15,12 +15,18 @@ try {
   assert.match(page.headers.get('content-type'), /text\/html/);
   assert.match(html, /Together Ledger/);
   assert.match(html, /id="welcome-title"/);
-  assert.match(html, /Keep what matters/);
+  // The welcome's words come from locales/en.json, served from the same origin (docs/TRANSLATION.md).
+  assert.match(html, /data-i18n-sentence="common\.welcome\.headline"/);
+  const englishResponse = await fetch(`${origin}/locales/en.json`);
+  assert.equal(englishResponse.status, 200);
+  const english = await englishResponse.json();
+  assert.match(english['common.welcome.headline'], /Keep what matters/);
+  assert.equal(english['common.ledger.eyebrow'], 'Our shared journey');
   assert.match(html, /class="ledger-preview"/);
   assert.match(html, /data-begin-ledger/);
   assert.match(html, /data-open-moment/);
   assert.match(html, /id="moment-timeline"/);
-  assert.match(html, /Our shared journey/);
+  assert.match(html, /data-i18n="common\.ledger\.eyebrow"/);
   assert.match(html, /id="toggle-moments-button"/);
   assert.match(html, /src="\.\/src\/themes\.js"/);
   assert.match(html, /id="theme-select"/);

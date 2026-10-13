@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useSession } from '../auth/session';
 import { loadScriptFonts, setActiveScript } from '../theme/fonts';
 import { scriptOf } from '../theme/scripts';
-import { activeLanguage, OFFERED_LANGUAGES, readLanguageChoice, resolveActiveLanguage, setActiveLanguage, speechLanguageOf } from './index';
+import { activeLanguage, LISTED_LANGUAGES, readLanguageChoice, resolveActiveLanguage, setActiveLanguage, speechLanguageOf } from './index';
 
 type LanguageValue = {
   /** The language the app reads in now. */
@@ -11,10 +11,10 @@ type LanguageValue = {
   /** A language chosen by hand, or null for "Follow my device". */
   choice: string | null;
   /**
-   * What may be chosen by hand, carried in the app: approved languages, then any in preview
-   * (preview: true). Only English is offered today, and then no language choice is shown.
+   * Every language in the manifest, as the Language choice lists it (decision 160): approved
+   * ones and previews may be chosen, the rest are coming soon.
    */
-  offered: typeof OFFERED_LANGUAGES;
+  listed: typeof LISTED_LANGUAGES;
   /** iOS's accessibilityLanguage for the active language, or undefined to leave VoiceOver's own. */
   speech: string | undefined;
   /** Chooses a language, or null to follow the phone: saved to the account when signed in. */
@@ -100,7 +100,7 @@ export function LanguageProvider({ initialChoice, onChoiceChange, children }: {
     }
   }, [signedInAs, client, setUser]);
 
-  const value = useMemo<LanguageValue>(() => ({ active, choice, offered: OFFERED_LANGUAGES, speech: speechLanguageOf(active), choose }), [active, choice, choose]);
+  const value = useMemo<LanguageValue>(() => ({ active, choice, listed: LISTED_LANGUAGES, speech: speechLanguageOf(active), choose }), [active, choice, choose]);
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
@@ -109,5 +109,5 @@ export function useLanguage(): LanguageValue {
   const value = useContext(LanguageContext);
   if (value) return value;
   const active = activeLanguage();
-  return { active, choice: null, offered: OFFERED_LANGUAGES, speech: speechLanguageOf(active), choose: async () => {} };
+  return { active, choice: null, listed: LISTED_LANGUAGES, speech: speechLanguageOf(active), choose: async () => {} };
 }

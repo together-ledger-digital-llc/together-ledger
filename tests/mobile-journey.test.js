@@ -4,6 +4,7 @@ import test from 'node:test';
 import ts from 'typescript';
 import * as model from '../src/model.js';
 import * as momentThemes from '../src/moment-themes.js';
+import { t, webConstant, webFunction } from './fixtures/web-english.js';
 
 const mobile = new URL('../apps/mobile/', import.meta.url);
 const read = (path) => readFile(new URL(path, mobile), 'utf8');
@@ -27,18 +28,9 @@ const view = await importMobile('src/journey/journey-view.ts');
 const english = JSON.parse(await readFile(new URL('../locales/en.json', import.meta.url), 'utf8'));
 const unmarked = (text) => (typeof text === 'string' ? text.replace(/[\u2068\u2069]/g, '') : text);
 
-// The web's own function, lifted out of src/app.js, so the phone is compared with what the web
-// actually runs rather than with a description of it.
-function webFunction(name, ...scope) {
-  const start = web.indexOf(`function ${name}(`);
-  let depth = 0;
-  let end = web.indexOf('{', start);
-  for (; end < web.length; end += 1) {
-    if (web[end] === '{') depth += 1;
-    if (web[end] === '}' && --depth === 0) break;
-  }
-  return new Function(...scope.map(([key]) => key), `${web.slice(start, end + 1)}; return ${name};`)(...scope.map(([, value]) => value));
-}
+// The web's own functions are lifted out of src/app.js (tests/fixtures/web-english.js), so the
+// phone is compared with what the web actually runs, in the English it reads from locales/en.json.
+const momentKindName = webFunction('momentKindName', ['MOMENT_KIND_KEYS', webConstant('MOMENT_KIND_KEYS')]);
 
 test('dates, money and moment types are the web\'s own functions, not copies', () => {
   assert.equal(view.dateLabel, model.dateLabel);
@@ -46,13 +38,14 @@ test('dates, money and moment types are the web\'s own functions, not copies', (
   assert.equal(view.MOMENT_TYPES, model.MOMENT_TYPES);
   assert.equal(view.normalizeMomentTheme, momentThemes.normalizeMomentTheme);
   assert.equal(unmarked(view.moneyContext({ moneyCents: 1250, moneyCurrency: 'USD' })), `${model.money(1250, 'USD')} is held here as context, not a score.`);
-  assert.ok(web.includes('is held here as context, not a score.</p>'));
+  assert.equal(english['common.moment.moneyContext'], '{amount} is held here as context, not a score.');
+  assert.ok(web.includes("<p>${sentenceMarkup('common.moment.moneyContext', { amount: money(moment.moneyCents, moment.moneyCurrency) })}</p>"));
   assert.equal(view.moneyContext({ moneyCents: null }), null);
 });
 
 test('a journey\'s period and a moment\'s label read exactly as the web writes them', () => {
   const journeyPeriod = webFunction('journeyPeriod', ['dateLabel', model.dateLabel]);
-  const momentLabel = webFunction('momentLabel', ['MOMENT_TYPES', model.MOMENT_TYPES]);
+  const momentLabel = webFunction('momentLabel', ['momentKindName', momentKindName]);
   const journeys = [
     { location: 'Marlow', startDate: '2026-05-14', startDateStatus: 'exact', endDate: '2026-06-18', endDateStatus: 'date' },
     { location: '', startDateStatus: 'unknown', endDateStatus: 'forever' },
@@ -63,9 +56,10 @@ test('a journey\'s period and a moment\'s label read exactly as the web writes t
 });
 
 test('every visibility is told by shape and word, and anything unknown reads as private', () => {
-  const cue = webFunction('visibilityCue', ['VISIBILITY_CUES', view.VISIBILITY_CUES]);
+  const webCues = webConstant('VISIBILITY_CUES');
+  const cue = webFunction('visibilityCue', ['VISIBILITY_CUES', webCues]);
   for (const [visibility, { glyph, label }] of Object.entries(view.VISIBILITY_CUES)) {
-    assert.ok(web.includes(`'${visibility}': { glyph: '${glyph}', label: '${label}' }`) || web.includes(`${visibility}: { glyph: '${glyph}', label: '${label}' }`), `${visibility} matches the web`);
+    assert.deepEqual({ glyph: webCues[visibility].glyph, label: t(webCues[visibility].key) }, { glyph, label }, `${visibility} matches the web`);
   }
   for (const visibility of ['private', 'share-later', 'shared-now', 'something-new', '']) assert.deepEqual(view.visibilityCue(visibility), cue(visibility));
   assert.equal(view.visibilityCue('something-new').glyph, '○', 'an unknown visibility takes the private ring');
@@ -91,7 +85,8 @@ test('moments are newest first, carry their photos, and the list opens on three'
   // "See all 1 moment", never "See all 1 moments", on the phone and the web alike (#337).
   assert.equal(view.seeAllLabel(1), 'See all 1 moment');
   assert.equal(view.seeAllLabel(4), 'See all 4 moments');
-  assert.ok(web.includes("`See all ${countOf(recent.length, 'moment', 'moments')}`"), 'the web builds its label the same way');
+  assert.ok(web.includes("t('common.ledger.seeAll', { count: recent.length })"), 'the web builds its label from one sentence');
+  for (const count of [1, 4]) assert.equal(t('common.ledger.seeAll', { count }), view.seeAllLabel(count));
   // Shown only when the ledger is not already showing every moment (the owner, on #337).
   assert.equal(view.seeAllShown, model.seeAllShown, 'the phone uses the web\'s own rule');
   assert.ok(web.includes("$('#toggle-moments-button').hidden = !seeAllShown(recent.length, momentsExpanded);"));
@@ -187,9 +182,11 @@ test('pull to refresh re-reads the snapshot, and the list only draws what is on 
   assert.match(ledger, /<RefreshControl refreshing=\{journey\.refreshing\} onRefresh=\{journey\.refresh\}/);
   assert.match(ledger, /<EmptyState title=\{t\('common\.ledger\.emptyTitle'\)\} body=\{t\('common\.ledger\.emptyBody'\)\} \/>/);
   assert.deepEqual([english['common.ledger.emptyTitle'], english['common.ledger.emptyBody']], ['No moments here yet', 'A small truth is enough to begin.']);
-  assert.ok(web.includes("emptyState('No moments here yet', 'A small truth is enough to begin.')"));
   assert.doesNotMatch(ledger + web, /choose another filter to see more/, 'no sentence that asks for a filter that is gone (#405)');
-  assert.ok(web.includes("emptyState('No open threads', 'That can be a good place to rest.', { compact: true })"));
   assert.match(ledger, /<EmptyState compact title=\{t\('common\.threads\.emptyTitle'\)\} body=\{t\('common\.threads\.emptyBody'\)\} \/>/);
+  assert.deepEqual([english['common.threads.emptyTitle'], english['common.threads.emptyBody']], ['No open threads', 'That can be a good place to rest.']);
+  assert.ok(web.includes("emptyState(escapeHtml(t('common.ledger.emptyTitle')), escapeHtml(t('common.ledger.emptyBody')))"));
+  assert.deepEqual([english['common.ledger.emptyTitle'], english['common.ledger.emptyBody']], ['No moments here yet', 'A small truth is enough to begin.']);
+  assert.ok(web.includes("emptyState(escapeHtml(t('common.threads.emptyTitle')), escapeHtml(t('common.threads.emptyBody')), { compact: true })"));
   assert.deepEqual([english['common.threads.emptyTitle'], english['common.threads.emptyBody']], ['No open threads', 'That can be a good place to rest.']);
 });

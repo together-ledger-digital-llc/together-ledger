@@ -33,7 +33,7 @@ export default function RegisterScreen() {
   }
 
   return (
-    <Screen title={t('mobile.screen.register.title')}>
+    <Screen title={t('common.screen.register.title')}>
       {/* The same buttons as Sign in (#217): a Google or Apple account opens here as well as there. */}
       <SocialSignIn onSignedIn={() => router.replace('/account')} />
       <Field label={t('common.register.username')} hint={t('common.register.usernameHint')} value={username} onChangeText={setUsername} autoCapitalize="none" autoComplete="username-new" textContentType="username" />

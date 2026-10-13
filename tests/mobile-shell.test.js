@@ -98,8 +98,10 @@ test('someone who has begun their ledger opens on it; everyone else meets the we
 test('toast timing, pending wording and the way out are the web\'s own', async () => {
   assert.equal(TOAST_MS, 2600);
   assert.match(web, /setTimeout\(\(\) => toast\.classList\.remove\('show'\), 2600\)/);
-  assert.ok(web.includes(`pendingLabel = '${PENDING_LABEL}'`));
-  assert.ok(web.includes(`keepLabel = '${KEEP_LABEL}'`));
+  // The web's words are in locales/en.json since 102A (tests/fixtures/web-english.js).
+  const { english } = await import('./fixtures/web-english.js');
+  assert.ok(web.includes("pendingLabel = t('common.action.working')") && english['common.action.working'] === PENDING_LABEL);
+  assert.ok(web.includes("keepLabel = t('common.dialog.keep')") && english['common.dialog.keep'] === KEEP_LABEL);
   const ui = await read('src/components/ui.tsx');
   assert.match(ui, /pendingLabel = workingLabel\(\)/);
   assert.match(ui, /accessibilityState=\{\{ disabled: disabled \|\| pending, busy: pending \}\}/, 'a pending button is disabled and says it is busy');

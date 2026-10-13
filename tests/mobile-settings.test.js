@@ -55,7 +55,7 @@ test('the Settings door shows a gear before the word, and is read as "Settings" 
   assert.ok(!Object.keys(pkg.dependencies).some((name) => /vector-icons|expo-symbols|react-native-svg/.test(name)), 'no icon library added for it');
 
   // The welcome: the gear is the shared button's glyph, before the label, never the icon alone.
-  assert.match(welcome, /import \{ languageChoiceShown, SETTINGS_GLYPH \} from '\.\.\/src\/shell\/screens';/);
+  assert.match(welcome, /import \{ SETTINGS_GLYPH \} from '\.\.\/src\/shell\/screens';/);
   const ui = await read('src/components/ui.tsx');
   assert.match(ui, /accessibilityLabel=\{glyph \? words : undefined\}/, 'a button with a glyph is named by its words alone');
   const glyph = ui.indexOf('<Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.buttonText, { color: text }]}>{glyph}</Text>');
@@ -75,13 +75,11 @@ test('the Settings door shows a gear before the word, and is read as "Settings" 
   assert.match(layout, /headerButton: \{ flexDirection: 'row', alignItems: 'center'/);
 });
 
-test('Settings is Appearance, the open journey, then Account settings', () => {
-  assert.deepEqual(screens.settingsSections({ journeyOpen: true }), ['appearance', 'journey', 'account']);
-  assert.deepEqual(screens.settingsSections({ journeyOpen: false }), ['appearance', 'account'], 'no journey open, no journey group');
-  // Language follows Appearance only once there is more than English to choose (103A).
-  assert.deepEqual(screens.settingsSections({ journeyOpen: true, languages: true }), ['appearance', 'language', 'journey', 'account']);
-  assert.deepEqual(screens.settingsSections({ journeyOpen: false, languages: false }), ['appearance', 'account']);
-  assert.match(settings, /settingsSections\(\{ journeyOpen: Boolean\(snapshot\), languages: languageChoiceShown\(offered\) \}\)\.map\(\(section\) => sections\[section\]\)/, 'the screen draws them in that order');
+test('Settings is Appearance, Language, the open journey, then Account settings', () => {
+  // Language follows Appearance, always, English alone included (decision 160).
+  assert.deepEqual(screens.settingsSections({ journeyOpen: true }), ['appearance', 'language', 'journey', 'account']);
+  assert.deepEqual(screens.settingsSections({ journeyOpen: false }), ['appearance', 'language', 'account'], 'no journey open, no journey group');
+  assert.match(settings, /settingsSections\(\{ journeyOpen: Boolean\(snapshot\) \}\)\.map\(\(section\) => sections\[section\]\)/, 'the screen draws them in that order');
   assert.match(settings, /const snapshot = journey\.state\.phase === 'ready' \? journey\.state\.snapshot : null;/, 'a journey is open only once it has loaded');
 
   assert.match(section('appearance'), /<SettingsHeading>\{t\('common\.appearance\.title'\)\}<\/SettingsHeading>\s*<ThemePicker \/>/, 'the theme picker, unchanged');

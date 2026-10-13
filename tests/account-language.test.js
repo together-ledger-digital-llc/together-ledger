@@ -154,6 +154,7 @@ test('a language in preview can be chosen by hand and saved; a draft or one in r
   await register(app, 'asha@example.test');
   const browser = await browserSignIn(app, 'asha@example.test');
   assert.equal((await choose(app, { browser }, { language: 'hi' })).json().data.user.language, 'hi', 'Hindi in preview, chosen by hand');
+  assert.equal(await languageOf(app, { browser }), 'hi', 'kept on the account');
   for (const language of ['bn', 'es-419', 'hi-Latn']) {
     const response = await choose(app, { browser }, { language });
     assert.equal(response.statusCode, 400, language);

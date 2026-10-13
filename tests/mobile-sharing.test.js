@@ -12,6 +12,10 @@ const mobile = new URL('../apps/mobile/', import.meta.url);
 const read = (path) => readFile(new URL(path, mobile), 'utf8');
 const web = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+// The web's English is in locales/en.json since 102A (tests/fixtures/web-english.js), and its
+// functions say it through t().
+const { english, t, webSays } = await import('./fixtures/web-english.js');
+const says = (text) => web.includes(text) || webSays(text);
 
 async function importMobile(path) {
   const url = new URL(path, mobile);
@@ -30,7 +34,8 @@ function webFunction(name, ...scope) {
     if (web[end] === '{') depth += 1;
     if (web[end] === '}' && --depth === 0) break;
   }
-  return new Function(...scope.map(([key]) => key), `${web.slice(start, end + 1)}; return ${name};`)(...scope.map(([, value]) => value));
+  const all = [['t', t], ...scope];
+  return new Function(...all.map(([key]) => key), `${web.slice(start, end + 1)}; return ${name};`)(...all.map(([, value]) => value));
 }
 
 const view = await importMobile('src/journey/sharing-view.ts');
@@ -57,7 +62,9 @@ test('a proposal\'s progress, its answers and who may withdraw it follow the web
   const open = { id: 'p1', email: 'sam@example.test', status: 'open', agreedCount: 1, askedCount: 3, pendingCount: 2, proposedByUserId: 'asker', viewerMayDecide: true, decisions: [] };
   assert.equal(view.proposalProgress(open), '1 of 3 have agreed · 2 still to answer');
   assert.equal(view.proposalProgress({ ...open, status: 'agreed', agreedCount: 3 }), '3 of 3 agreed');
-  assert.ok(web.includes('`${proposal.agreedCount} of ${proposal.askedCount} have agreed · ${proposal.pendingCount} still to answer`'));
+  assert.ok(web.includes("t('sharing.proposal.waiting', { agreed: proposal.agreedCount, asked: proposal.askedCount, pending: proposal.pendingCount })"));
+  assert.equal(t('sharing.proposal.waiting', { agreed: 1, asked: 3, pending: 2 }), view.proposalProgress(open));
+  assert.equal(t('sharing.proposal.agreedCount', { agreed: 3, asked: 3 }), view.proposalProgress({ ...open, status: 'agreed', agreedCount: 3 }));
   assert.equal(view.mayWithdraw(open, { viewerId: 'asker', journeyRole: 'member' }), true, 'whoever asked');
   assert.equal(view.mayWithdraw(open, { viewerId: 'someone', journeyRole: 'owner' }), true, 'or the owner');
   assert.equal(view.mayWithdraw(open, { viewerId: 'someone', journeyRole: 'member' }), false, 'nobody else');
@@ -69,17 +76,19 @@ test('a proposal\'s progress, its answers and who may withdraw it follow the web
 test('every question asked before an act is the web\'s, word for word, and only the irreversible ones are destructive', () => {
   const e = 'sam@example.test';
   const n = 'Sam';
+  // Withdrawing, agreeing and declining read from locales/en.json since 102A; handing over and
+  // taking someone out are still written in src/app.js.
   const pairs = [
-    [view.CONSEQUENCES.withdraw(e), 'Withdraw the proposal to add ${proposal.email}?'],
-    [view.CONSEQUENCES.agree(e), 'Agree to add ${proposal.email}?'],
-    [view.CONSEQUENCES.decline(e), 'Decline adding ${proposal.email}?'],
+    [view.CONSEQUENCES.withdraw(e), t('sharing.proposal.withdrawTitle', { email: e })],
+    [view.CONSEQUENCES.agree(e), t('sharing.proposal.agreeTitle', { email: e })],
+    [view.CONSEQUENCES.decline(e), t('sharing.proposal.declineTitle', { email: e })],
     [view.CONSEQUENCES.transfer(n), 'Make ${memberName} the journey owner?'],
     [view.CONSEQUENCES.remove(n), 'Remove ${memberName} from this journey?'],
   ];
   for (const [phone, webTitle] of pairs) {
-    assert.ok(web.includes(webTitle), `the web still asks ${webTitle}`);
-    assert.ok(web.includes(phone.consequence), `"${phone.consequence.slice(0, 40)}…" is the web's`);
-    assert.ok(web.includes(`confirmLabel: '${phone.confirmLabel}'`), `${phone.confirmLabel} is the web's`);
+    assert.ok(phone.title === webTitle || web.includes(webTitle), `the web still asks ${webTitle}`);
+    assert.ok(says(phone.consequence), `"${phone.consequence.slice(0, 40)}…" is the web's`);
+    assert.ok(web.includes(`confirmLabel: '${phone.confirmLabel}'`) || webSays(phone.confirmLabel), `${phone.confirmLabel} is the web's`);
   }
   assert.ok(web.includes('The event history keeps a deletion tombstone, so the change stays attributable.'));
   assert.equal(view.CONSEQUENCES.agree(e).destructive, undefined, 'agreeing is not a failure');
@@ -89,7 +98,7 @@ test('every question asked before an act is the web\'s, word for word, and only 
   assert.equal(view.CONSEQUENCES.remove(n).destructive, true);
   assert.equal(view.CONSEQUENCES.deleteConcern('Dinner').destructive, true);
   for (const toast of [view.decisionToast(true, true), view.decisionToast(true, false), view.decisionToast(false, false), view.proposeToast(true), view.proposeToast(false)]) {
-    assert.ok(web.includes(toast), `"${toast}" is the web's`);
+    assert.ok(says(toast), `"${toast}" is the web's`);
   }
 });
 
@@ -304,7 +313,6 @@ test('a large journey folds on the phone exactly as it folds on the web', () => 
 // the controls that already lead there, in the same words, read out of the web's own source.
 test('a waiting answer is counted the same on the phone as on the web', () => {
   const webCount = webFunction('awaitingYourAnswer');
-  const webSuffix = webFunction('waitingSuffix');
 
   const proposal = (viewerMayDecide) => ({ id: `p${Math.random()}`, viewerMayDecide });
   for (const proposals of [[], [proposal(false)], [proposal(true)], [proposal(true), proposal(false), proposal(true)]]) {
@@ -316,12 +324,13 @@ test('a waiting answer is counted the same on the phone as on the web', () => {
   assert.equal(view.awaitingYourAnswer(null), 0);
   assert.equal(view.awaitingYourAnswer({}), 0);
 
-  for (const count of [0, 1, 2, 7]) assert.equal(view.waitingSuffix(count), webSuffix(count));
+  // The web says the whole label as one sentence (102A); the phone adds the same words to it.
+  for (const count of [0, 1, 2, 7]) assert.equal(`Journey settings${view.waitingSuffix(count)}`, t('home.settings.button', { count }));
   assert.equal(view.waitingSuffix(0), '');
   assert.equal(view.waitingSuffix(1), ' · 1 to answer');
 
   // It is shown where people already are, rather than announced at them.
-  assert.match(web, /\$\('#settings-button'\)\.textContent = `Journey settings\$\{waitingSuffix\(awaitingYourAnswer\(trip\)\)\}`/);
+  assert.ok(web.includes("$('#settings-button').textContent = t('home.settings.button', { count: awaitingYourAnswer(trip) });"));
   assert.match(screens.sharing, /splitMembers/);
   // Nothing is pushed: no toast, no status banner, no dialog raised for a waiting answer.
   assert.doesNotMatch(web, /showToast\([^)]*to answer/);
@@ -332,7 +341,7 @@ test('a full journey says where room comes from on the phone, with no price and 
   assert.match(screens.sharing, /\{canPropose \? \([\s\S]*?\) : <Body>\{ROOM_IS_THE_JOURNEYS\}<\/Body>\}/, 'shown in place of the proposal form, only when there is no room');
   assert.match(view.ROOM_IS_THE_JOURNEYS, /belongs to the journey, so it is the same on every device/);
   assert.doesNotMatch(view.ROOM_IS_THE_JOURNEYS, /\$|\d|month|price|pay|buy|purchase|upgrade|unlock|web|site|browser|seat|slot|licen[cs]e/i);
-  assert.ok(web.includes("'There is no open place right now.'"), 'the web\'s own words are unchanged');
+  assert.ok(webSays('There is no open place right now.'), 'the web\'s own words are unchanged');
 });
 
 // #350 and #347: once everyone has agreed and the invitation is out, the place is reserved for the
@@ -342,10 +351,8 @@ test('a place held for someone invited reads as reserved, the same on the phone 
   const invitedPerson = webFunction('invitedPerson');
   const reservedInvitations = webFunction('reservedInvitations');
   const sharingCopy = webFunction('sharingCopy', ['invitedPerson', invitedPerson]);
-  const reservedPlaceTitle = webFunction('reservedPlaceTitle', ['invitedPerson', invitedPerson]);
   const splitProposals = webFunction('splitProposals');
   const dateTimeLabel = webFunction('dateTimeLabel');
-  const sendAgainNote = webFunction('sendAgainNote', ['dateTimeLabel', dateTimeLabel]);
   const waiting = { id: 'i1', email: 's••d@gmail.com', status: 'pending', invitedByDisplayName: 'Alex', sentAt: '2026-10-08T10:00:00Z', expiresAt: '2026-10-22T10:00:00Z' };
   const another = { ...waiting, id: 'i2', email: 'a••@gmail.com' };
   const joined = { ...waiting, id: 'i3', status: 'accepted', joinedDisplayName: 'Sam' };
@@ -364,31 +371,31 @@ test('a place held for someone invited reads as reserved, the same on the phone 
   assert.equal(view.sharingCopy(1, false, { held: true, invitations: [waiting, another] }), '1 person is here. 2 places are reserved, waiting for the people invited to accept. Each person signs in separately.');
   assert.equal(view.sharingCopy(2, false, { held: false, invitations: [] }), '2 people are here. There is no open place right now. Each person signs in separately.');
   assert.equal(view.reservedPlaceTitle(waiting), '1 place reserved — waiting for s••d@gmail.com to accept the invitation');
-  assert.equal(view.reservedPlaceTitle(waiting), reservedPlaceTitle(waiting));
+  assert.equal(view.reservedPlaceTitle(waiting), t('sharing.reserved.title', { person: invitedPerson(waiting) }));
   assert.deepEqual(view.reservedInvitations([waiting, joined, ranOut]), reservedInvitations([waiting, joined, ranOut]));
   assert.deepEqual(view.reservedInvitations([waiting, joined, ranOut]).map((entry) => entry.id), ['i1']);
   // Once they've joined, their name; until then, only the mask the server sent.
   assert.equal(view.invitedPerson(joined), 'Sam');
   assert.equal(view.invitedPerson(waiting), invitedPerson(waiting));
-  assert.equal(view.sendAgainNote(ranOut), sendAgainNote(ranOut));
+  assert.equal(view.sendAgainNote(ranOut), t('sharing.invitation.sendAgainNote', { time: dateTimeLabel(ranOut.sendAgainUntil) }));
   // "Being decided on" is only for people the journey hasn't finished agreeing on.
   const proposals = ['open', 'agreed', 'declined', 'withdrawn', 'lapsed'].map((status) => ({ id: status, status }));
   assert.deepEqual(view.splitProposals(proposals), splitProposals(proposals));
   assert.deepEqual(view.splitProposals(proposals).deciding.map((entry) => entry.id), ['open']);
-  assert.match(html, /<h4>Places reserved<\/h4>/);
+  assert.ok(html.includes('<h4 data-i18n="sharing.record.reserved"></h4>') && english['sharing.record.reserved'] === 'Places reserved');
   assert.match(screens.sharing, /<Section title="Places reserved">/);
-  assert.match(html, /<h4>Proposals already settled<\/h4>/);
+  assert.ok(html.includes('<h4 data-i18n="sharing.record.settled"></h4>') && english['sharing.record.settled'] === 'Proposals already settled');
   assert.match(screens.sharing, /<Section title="Proposals already settled">/);
   assert.match(screens.sharing, /deciding\.map\(\(proposal\) =>/);
   // Withdraw and send again, in the web's words, on both.
   const withdraw = view.CONSEQUENCES.withdrawInvitation(waiting.email);
-  assert.ok(web.includes('Withdraw the invitation to ${invitation.email}?'));
-  assert.ok(web.includes(withdraw.consequence));
-  assert.ok(web.includes(`confirmLabel: '${withdraw.confirmLabel}'`));
+  assert.equal(withdraw.title, t('sharing.invitation.withdrawTitle', { email: waiting.email }));
+  assert.ok(webSays(withdraw.consequence));
+  assert.ok(webSays(withdraw.confirmLabel));
   assert.equal(withdraw.destructive, undefined, 'withdrawing is not a failure, and the person can be proposed again');
-  for (const toast of [view.INVITATION_WITHDRAWN, view.INVITATION_SENT_AGAIN]) assert.ok(web.includes(toast), toast);
-  assert.ok(web.includes('>Withdraw the invitation</button>') && screens.sharing.includes('label="Withdraw the invitation"'));
-  assert.ok(web.includes('>Send it again</button>') && screens.sharing.includes('label="Send it again"'));
+  for (const toast of [view.INVITATION_WITHDRAWN, view.INVITATION_SENT_AGAIN]) assert.ok(webSays(toast), toast);
+  assert.ok(web.includes("${escapeHtml(t('sharing.invitation.withdraw'))}</button>") && webSays('Withdraw the invitation') && screens.sharing.includes('label="Withdraw the invitation"'));
+  assert.ok(web.includes("${escapeHtml(t('sharing.invitation.sendAgain'))}</button>") && webSays('Send it again') && screens.sharing.includes('label="Send it again"'));
   assert.match(screens.sharing, /invitation\.viewerMayWithdraw \?/);
   assert.match(screens.sharing, /invitation\.viewerMaySendAgain \?/);
 });
@@ -396,8 +403,9 @@ test('a place held for someone invited reads as reserved, the same on the phone 
 // #282: the countdowns said "left" twice ("Time left to join: 29m left").
 test('each countdown says "left" once, and the special values still read naturally, on both', () => {
   assert.deepEqual({ ...view.COUNTDOWN }, { join: 'Time to join', answer: 'Time to answer' });
-  for (const prefix of Object.values(view.COUNTDOWN)) {
-    assert.ok(web.includes(`'${prefix}'`), `the web's prefix is ${prefix}`);
+  for (const [prefix, key] of [[view.COUNTDOWN.join, 'sharing.invitation.timeToJoin'], [view.COUNTDOWN.answer, 'sharing.proposal.timeToAnswer']]) {
+    assert.equal(t(key, { left: '3d 04h 07m left' }), `${prefix}: 3d 04h 07m left`, `the web's prefix is ${prefix}`);
+    assert.ok(web.includes(`'${key}'`));
     assert.doesNotMatch(prefix, /left/);
   }
   assert.doesNotMatch(web, /Time left to (join|answer)/);
@@ -411,6 +419,7 @@ test('each countdown says "left" once, and the special values still read natural
   for (const label of [view.countdown(view.COUNTDOWN.join, '2026-10-22T09:30:00Z', now), view.countdown(view.COUNTDOWN.answer, '2026-10-08T10:29:00Z', now)]) {
     assert.equal(label.match(/\bleft\b/g).length, 1, label);
   }
-  // The web redraws in place with the same prefix and the same function.
-  assert.ok(web.includes('element.textContent = `${element.dataset.countdownPrefix}: ${remainingLabel(element.dataset.expiresAt)}`;'));
+  // The web redraws in place with the same sentence, and remainingText, which says what
+  // remainingLabel says (tests/i18n-shared-words.test.js).
+  assert.ok(web.includes('element.textContent = t(element.dataset.countdownKey, { left: remainingText(element.dataset.expiresAt) });'));
 });
