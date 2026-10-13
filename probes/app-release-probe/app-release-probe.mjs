@@ -37,6 +37,23 @@ async function containsRequiredText(response) {
   }
 }
 
+// The page draws its sentences from /locales/en.json, so the words may be there instead of in
+// the page. Same bound as the page, and the same answer for anything that is not the file.
+async function englishFileHasRequiredText(response) {
+  const declaredLength = Number(response.headers.get('content-length'));
+  if (Number.isFinite(declaredLength) && declaredLength > maximumHomepageBytes) return false;
+  const text = await response.text();
+  if (text.length > maximumHomepageBytes) return false;
+  let english;
+  try {
+    english = JSON.parse(text);
+  } catch {
+    return false;
+  }
+  if (!english || typeof english !== 'object' || Array.isArray(english)) return false;
+  return Object.values(english).some((sentence) => typeof sentence === 'string' && sentence.includes(REQUIRED_TEXT));
+}
+
 export function createAppReleaseProbe(fetchImpl = fetch) {
   return {
     async fetch(request) {
@@ -57,8 +74,12 @@ export function createAppReleaseProbe(fetchImpl = fetch) {
         if (!markerResponse.ok || !homepageResponse.ok) return json({ verified: false, revision }, 503);
 
         const marker = await markerResponse.json();
-        if (marker.revision !== revision || !(await containsRequiredText(homepageResponse))) {
-          return json({ verified: false, revision }, 503);
+        if (marker.revision !== revision) return json({ verified: false, revision }, 503);
+        if (!(await containsRequiredText(homepageResponse))) {
+          const englishResponse = await fetchImpl(new URL('/locales/en.json', APP_ORIGIN), { headers: { 'cache-control': 'no-cache' } });
+          if (!englishResponse.ok || !(await englishFileHasRequiredText(englishResponse))) {
+            return json({ verified: false, revision }, 503);
+          }
         }
         return json({ verified: true, revision }, 200);
       } catch {
