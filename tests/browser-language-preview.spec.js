@@ -23,10 +23,12 @@ const FILES = {
 const json = (route, body) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
 
 async function withStatuses(page, statuses) {
+  // A language not named here is a draft, whatever the shipped manifest says today: these tests are
+  // about what each status does, not about which languages have been approved so far.
   const languages = manifest.languages.map((language) => {
-    const status = statuses[language.tag];
-    if (!status) return language;
-    return { ...language, status, ...(status === 'approved' ? { reviewer: 'A fluent reviewer', approvedOn: '2026-10-12' } : {}) };
+    if (language.tag === manifest.source) return language;
+    const status = statuses[language.tag] || 'draft';
+    return { ...language, status, reviewer: null, approvedOn: null, ...(status === 'approved' ? { reviewer: 'A fluent reviewer', approvedOn: '2026-10-12' } : {}) };
   });
   await page.route('**/locales/languages.json', (route) => json(route, { ...manifest, languages }));
   const fetched = [];

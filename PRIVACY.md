@@ -1,6 +1,6 @@
 # Privacy
 
-Effective 8 October 2026.
+Effective 13 October 2026.
 
 Together Ledger is a relationship-resilience workspace. People may record memories, feelings, boundaries, repair requests, practical details, places, photos, and conversations they want to return to. This policy explains what stays in your browser, what our private service stores, who can see it, who else handles it, how long it is kept, and what you can ask of us.
 
@@ -31,6 +31,8 @@ After you create an account and start a private journey, that journey is stored 
 - proposals to add someone, including the proposed email address, any note, and each journeyer's answer. A proposal lapses after 30 days if it is not agreed. Nothing is sent to the proposed person unless everyone already in the journey agrees;
 - membership and billing records if you pay for another person, another place, or an extra photo, as described under Payments;
 - technical timestamps and record versions.
+
+The language you choose to read Together Ledger in is kept on your account, so every browser and phone you sign in on opens in it; deleting your account clears it.
 
 Raw passwords and raw tokens are never stored. On the web, session cookies are HTTP-only, secure, same-site, and paired with an origin-bound CSRF value, and a signed-in session lasts up to 7 days. The phone app keeps its sign-in keys in the phone's secure keychain; its access key lasts 30 minutes and is renewed with a key that lasts up to 30 days. The server records when each sign-in key is first used, so that a renewal whose reply was lost on the way can be asked for again without signing you out. Email links for verification and recovery expire after 30 minutes, and an invitation's link after 14 days. A signed-in browser may keep a local copy of what it last loaded; anyone with access to an unlocked signed-in device may see it. If the phone app can’t reach our service when you hold a moment, it keeps that moment on the phone, for your account only, and sends it once it can; it is then removed from the phone. Until it is sent, anyone with access to the unlocked phone may see it, and it is included in the phone’s own backups.
 

@@ -23,7 +23,16 @@ const FILES = {
 const json = (route, body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 
 async function approve(page, ...tags) {
-  const approved = { ...manifest, languages: manifest.languages.map((language) => (tags.includes(language.tag) ? { ...language, status: 'approved', reviewer: 'A fluent reviewer', approvedOn: '2026-10-12' } : language)) };
+  // Every translation not named is a draft, whatever the shipped manifest says today.
+  const approved = {
+    ...manifest,
+    languages: manifest.languages.map((language) => {
+      if (language.tag === manifest.source) return language;
+      return tags.includes(language.tag)
+        ? { ...language, status: 'approved', reviewer: 'A fluent reviewer', approvedOn: '2026-10-12' }
+        : { ...language, status: 'draft', reviewer: null, approvedOn: null };
+    }),
+  };
   await page.route('**/locales/languages.json', (route) => json(route, approved));
   for (const tag of tags) await page.route(`**/locales/${tag}.json`, (route) => json(route, FILES[tag]));
 }
@@ -64,6 +73,7 @@ async function openSettings(page) {
 }
 
 test('while English is the only approved language, the Language row offers nothing else yet and the page is English, whatever the browser speaks', async ({ page }) => {
+  await approve(page);
   await browserLanguages(page, ['hi-IN', 'bn-BD', 'es-MX']);
   const asked = [];
   page.on('request', (request) => { if (/\/locales\/(?!en\.json|languages\.json)/.test(request.url())) asked.push(request.url()); });

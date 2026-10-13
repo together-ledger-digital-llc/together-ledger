@@ -20,6 +20,12 @@ const read = (path) => readFileSync(join(root, path), 'utf8');
 const json = (path) => JSON.parse(read(path));
 const fixture = (name) => json(`tests/fixtures/i18n/${name}`);
 const manifest = json('locales/languages.json');
+// The cases below are about the rules for each status, not about what the shipped manifest holds
+// today, so they start from it with every translation back at draft and set what each one needs.
+const draftManifest = {
+  ...manifest,
+  languages: manifest.languages.map((language) => (language.tag === manifest.source ? language : { ...language, status: 'draft', reviewer: null, approvedOn: null })),
+};
 const source = json('locales/en.json');
 
 test('English, the source, is well formed: every key area.thing.element, every key with a note, every sentence parses', () => {
@@ -69,20 +75,20 @@ test('the gate, proved on a fixture: an approved language passes only when it ma
 test('the manifest: five languages, only approved ones offered, and every one falls back to English', () => {
   assert.deepEqual(manifestProblems(manifest), []);
   assert.deepEqual(manifest.languages.map((language) => language.tag), ['en', 'hi', 'bn', 'es-419', 'hi-Latn']);
-  assert.deepEqual(offeredLanguages(manifest).map((language) => language.tag), ['en'], 'no translation is approved yet');
+  assert.deepEqual(offeredLanguages(manifest).map((language) => language.tag), ['en', 'hi', 'bn', 'es-419', 'hi-Latn'], 'all four translations were approved on Oct 13, 2026');
   assert.equal(languageOf(manifest, 'hi-Latn').fallback, 'en', 'Hinglish falls back to English, never to Hindi');
   for (const language of manifest.languages.filter((entry) => entry.tag !== 'en')) {
-    assert.equal(language.status, 'draft', `${language.tag} is a draft`);
-    assert.equal(language.reviewer, null);
-    assert.equal(language.approvedOn, null);
+    assert.equal(language.status, 'approved', `${language.tag} is approved`);
+    assert.equal(language.reviewer, 'Owner');
+    assert.equal(language.approvedOn, '2026-10-13');
   }
-  assert.equal(languageOf(manifest, 'bn').formatting.numberingSystem, null, 'Bengali digits are the owner\'s call in 106');
+  assert.equal(languageOf(manifest, 'bn').formatting.numberingSystem, 'beng', 'Bengali digits, the owner\'s choice (decision 170)');
 
-  const approvedUnreviewed = { ...manifest, languages: manifest.languages.map((language) => (language.tag === 'hi' ? { ...language, status: 'approved' } : language)) };
+  const approvedUnreviewed = { ...draftManifest, languages: draftManifest.languages.map((language) => (language.tag === 'hi' ? { ...language, status: 'approved' } : language)) };
   assert.deepEqual(manifestProblems(approvedUnreviewed), ['hi is approved with no reviewer', 'hi is approved with no approval date']);
   const hinglishToHindi = { ...manifest, languages: manifest.languages.map((language) => (language.tag === 'hi-Latn' ? { ...language, fallback: 'hi' } : language)) };
   assert.deepEqual(manifestProblems(hinglishToHindi), ['hi-Latn falls back to "hi"; every language falls back to the source, en']);
-  const unknownStatus = { ...manifest, languages: manifest.languages.map((language) => (language.tag === 'bn' ? { ...language, status: 'live' } : language)) };
+  const unknownStatus = { ...draftManifest, languages: draftManifest.languages.map((language) => (language.tag === 'bn' ? { ...language, status: 'live' } : language)) };
   assert.deepEqual(manifestProblems(unknownStatus), ['bn has the status "live"; it must be one of draft, in-review, preview, approved']);
 });
 
@@ -91,8 +97,8 @@ test('the manifest: five languages, only approved ones offered, and every one fa
 test('a preview can be chosen by hand but is never offered for a device to match, and a draft or one in review is neither', () => {
   const statuses = { hi: 'preview', bn: 'in-review', 'es-419': 'draft', 'hi-Latn': 'approved' };
   const mixed = {
-    ...manifest,
-    languages: manifest.languages.map((language) => (statuses[language.tag]
+    ...draftManifest,
+    languages: draftManifest.languages.map((language) => (statuses[language.tag]
       ? { ...language, status: statuses[language.tag], ...(statuses[language.tag] === 'approved' ? { reviewer: 'A fluent reviewer', approvedOn: '2026-10-12' } : {}) }
       : language)),
   };
@@ -117,16 +123,18 @@ test('every language in preview has its file, and every sentence in it passes th
 });
 
 test('the Language choice lists every language in the manifest: approved, in preview, or coming soon (decision 160)', () => {
-  // As the manifest stands: English may be chosen, and every other language is on its way.
+  // As the manifest stands: every language is approved, so each may be chosen.
   assert.deepEqual(listedLanguages(manifest), [
     { tag: 'en', nativeName: 'English', listing: 'approved' },
-    { tag: 'hi', nativeName: 'हिन्दी', listing: 'comingSoon' },
-    { tag: 'bn', nativeName: 'বাংলা', listing: 'comingSoon' },
-    { tag: 'es-419', nativeName: 'Español (Latinoamérica)', listing: 'comingSoon' },
-    { tag: 'hi-Latn', nativeName: 'Hinglish (Hindi in Latin script)', listing: 'comingSoon' },
+    { tag: 'hi', nativeName: 'हिन्दी', listing: 'approved' },
+    { tag: 'bn', nativeName: 'বাংলা', listing: 'approved' },
+    { tag: 'es-419', nativeName: 'Español (Latinoamérica)', listing: 'approved' },
+    { tag: 'hi-Latn', nativeName: 'Hinglish (Hindi in Latin script)', listing: 'approved' },
   ]);
+  // With every translation still a draft, English may be chosen and every other language is on its way.
+  assert.deepEqual(listedLanguages(draftManifest).map(({ tag, listing }) => [tag, listing]), [['en', 'approved'], ['hi', 'comingSoon'], ['bn', 'comingSoon'], ['es-419', 'comingSoon'], ['hi-Latn', 'comingSoon']]);
   const statuses = { hi: 'preview', bn: 'approved', 'es-419': 'in-review', 'hi-Latn': 'draft' };
-  const mixed = { ...manifest, languages: manifest.languages.map((language) => (statuses[language.tag] ? { ...language, status: statuses[language.tag] } : language)) };
+  const mixed = { ...draftManifest, languages: draftManifest.languages.map((language) => (statuses[language.tag] ? { ...language, status: statuses[language.tag] } : language)) };
   assert.deepEqual(listedLanguages(mixed).map(({ tag, listing }) => [tag, listing]), [['en', 'approved'], ['hi', 'preview'], ['bn', 'approved'], ['es-419', 'comingSoon'], ['hi-Latn', 'comingSoon']], 'in the manifest\'s order, each as its status allows');
   // An app that doesn't carry a language's file yet can't read it, so lists it as coming soon.
   assert.deepEqual(listedLanguages(mixed, (tag) => tag !== 'bn').map(({ tag, listing }) => [tag, listing]), [['en', 'approved'], ['hi', 'preview'], ['bn', 'comingSoon'], ['es-419', 'comingSoon'], ['hi-Latn', 'comingSoon']]);
@@ -137,13 +145,14 @@ test('the Language choice lists every language in the manifest: approved, in pre
 
 test('a language in preview may be chosen by hand, says so, and is never offered without being asked for (decision 145)', () => {
   const statuses = { hi: 'preview', bn: 'in-review', 'hi-Latn': 'preview' };
-  const withPreview = { ...manifest, languages: manifest.languages.map((language) => (statuses[language.tag] ? { ...language, status: statuses[language.tag] } : language)) };
+  const withPreview = { ...draftManifest, languages: draftManifest.languages.map((language) => (statuses[language.tag] ? { ...language, status: statuses[language.tag] } : language)) };
   assert.deepEqual(manifestProblems(withPreview), [], 'a preview needs no reviewer or approval date');
   assert.deepEqual(offeredLanguages(withPreview).map((language) => language.tag), ['en'], 'never matched from a device');
   assert.deepEqual(choosableLanguages(withPreview).map((language) => [language.tag, isPreview(language)]), [['en', false], ['hi', true], ['hi-Latn', true]], 'draft and in-review are never shown');
   const datedPreview = { ...withPreview, languages: withPreview.languages.map((language) => (language.tag === 'hi' ? { ...language, approvedOn: '2026-10-12' } : language)) };
   assert.deepEqual(manifestProblems(datedPreview), ['hi has an approval date but is preview']);
-  assert.deepEqual(choosableLanguages(manifest).map((language) => language.tag), ['en'], 'today: only English may be chosen');
+  assert.deepEqual(choosableLanguages(draftManifest).map((language) => language.tag), ['en'], 'with every translation a draft, only English may be chosen');
+  assert.deepEqual(choosableLanguages(manifest).map((language) => language.tag), ['en', 'hi', 'bn', 'es-419', 'hi-Latn'], 'today: all five');
 
   // Its file may lack sentences, which read in English, but what it holds must keep English's placeholders.
   const fixtureSource = fixture('en.json');
@@ -211,8 +220,11 @@ test('web and phone read the same translation files, and there is no second copy
   const copies = collectFiles(root)
     .map((path) => relative(root, path))
     .filter((path) => /(^|\/)(en|hi|bn|es-419|hi-Latn)\.(json|arb)$/.test(path) && !path.startsWith('tests/fixtures/') && !path.startsWith('apps/mobile/ios/') && !path.startsWith('apps/mobile/android/'));
-  assert.deepEqual(copies, ['locales/en.json']);
+  assert.deepEqual(copies.sort(), ['locales/bn.json', 'locales/en.json', 'locales/es-419.json', 'locales/hi-Latn.json', 'locales/hi.json']);
   assert.match(read('src/i18n/web.js'), /new URL\(`\.\.\/\.\.\/locales\/\$\{name\}`, import\.meta\.url\)/);
+  for (const name of ['bn', 'es-419', 'hi', 'hi-Latn']) {
+    assert.match(read('apps/mobile/src/i18n/index.ts'), new RegExp(`from '\\.\\./\\.\\./\\.\\./\\.\\./locales/${name}\\.json';`), `the phone bundles ${name}`);
+  }
   assert.match(read('apps/mobile/src/i18n/index.ts'), /import source from '\.\.\/\.\.\/\.\.\/\.\.\/locales\/en\.json';/);
   assert.match(read('apps/mobile/src/i18n/index.ts'), /from '\.\.\/\.\.\/\.\.\/\.\.\/src\/i18n\/translator\.js'/, 'the phone runs the web\'s own t()');
 });
