@@ -56,7 +56,7 @@ test('a compact row is the date, the title on one line, the kind and the visibil
   const row = await read('src/components/moment-row.tsx');
   const body = row.slice(row.indexOf('export function MomentRow'), row.indexOf('const styles'));
   assert.match(body, /<Text numberOfLines=\{1\} ellipsizeMode="tail" style=\{\[styles\.title, fonts\.serif, \{ color: colors\.fg \}\]\}>\{moment\.title\}<\/Text>/, 'the title on one line, cut with an ellipsis');
-  assert.match(body, /\{dateLabel\(moment\.occurredOn\)\} · \{momentLabel\(moment\.kind, moment\.kindLabel\)\}/, 'the date and the kind');
+  assert.match(body, /\{shownDate\(moment\.occurredOn\)\} · \{momentLabel\(moment\.kind, moment\.kindLabel\)\}/, 'the date and the kind');
   assert.match(body, /const cue = visibilityCue\(moment\.visibility\)/);
   assert.match(body, /\{cue\.glyph\} <\/Text>\s*\{cue\.label\}/, 'the cue\'s shape and word');
   assert.match(body, /styles\.chip, \{ borderColor: colors\.border/, 'inside its own border');
