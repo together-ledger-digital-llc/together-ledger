@@ -1,8 +1,12 @@
 # Switch Access Checklist
 
-People who cannot use a touchscreen use their phone with one or two switches. This checklist verifies that the app is fully usable with Switch Control on iPhone and Switch Access on Android.
+People who cannot use a touchscreen because of limited movement use their phone with one or two switches. This checklist verifies that the app is fully usable with Switch Control on iPhone and Switch Access on Android.
 
 ## Setup
+
+To make sure you never get stuck, set up the shortcut to turn it off quickly first:
+- **iPhone**: set Settings → Accessibility → Accessibility Shortcut to Switch Control first; then triple-click the side button (or Home button) turns it on and off.
+- **Android**: turn on the Switch Access shortcut first; then holding both volume keys for 3 seconds turns it on and off.
 
 You do not need extra hardware to test this: the screen itself can be used as the switch.
 - **iPhone**: Settings → Accessibility → Switch Control (choose "Screen" as the switch).
