@@ -440,7 +440,7 @@ function capacityQuantity() {
 function updateCapacityTotal(offer) {
   const total = $('#billing-capacity-total');
   if (!offer) { total.textContent = ''; return; }
-  total.textContent = `${money(offer.unitAmount * capacityQuantity(), offer.currency)} / month`;
+  total.textContent = `${money(offer.unitAmount * capacityQuantity(), offer.currency, format)} / month`;
 }
 
 function syncCapacityFromRange() {
@@ -1178,8 +1178,8 @@ function guidanceEndedToday() {
 function journeyPeriod(trip) {
   const pieces = [];
   if (trip.location) pieces.push(trip.location);
-  pieces.push(trip.startDateStatus === 'unknown' ? t('common.journey.beganUnknown') : t('common.journey.began', { date: dateLabel(trip.startDate) }));
-  pieces.push(trip.endDateStatus === 'forever' ? t('common.journey.noEnd') : trip.endDateStatus === 'unsure' ? t('common.journey.endUnsure') : t('common.journey.ends', { date: dateLabel(trip.endDate) }));
+  pieces.push(trip.startDateStatus === 'unknown' ? t('common.journey.beganUnknown') : t('common.journey.began', { date: dateLabel(trip.startDate, undefined, format) }));
+  pieces.push(trip.endDateStatus === 'forever' ? t('common.journey.noEnd') : trip.endDateStatus === 'unsure' ? t('common.journey.endUnsure') : t('common.journey.ends', { date: dateLabel(trip.endDate, undefined, format) }));
   return pieces.join(' · ');
 }
 
@@ -1232,8 +1232,8 @@ function momentCardMarkup(trip, moment) {
   const removed = moment.removedImages?.length ? `<details class="moment-removed-photos"><summary>${escapeHtml(t('common.moment.removedPhoto'))}</summary>${moment.removedImages.map((image) => `<button type="button" class="moment-image-attachment" data-open-moment-image="${escapeHtml(image.id)}" aria-label="${escapeHtml(t('moment.photo.openRemoved', { name: photoName(image) }))}"><span class="moment-image-attachment-copy"><span>${escapeHtml(t('common.moment.removedPhoto'))}</span><strong>${escapeHtml(photoName(image))}</strong><small>${escapeHtml(t('moment.photo.openLarger'))}</small></span></button>`).join('')}</details>` : '';
   const locations = Array.isArray(moment.locations) ? moment.locations : [];
   const locationContext = locations.length ? `<div class="location-context">${escapeHtml(locations.map((location) => location.label).join(' · '))}</div>` : '';
-  const moneyContext = moment.moneyCents != null ? `<details class="money-context"><summary>${escapeHtml(t('common.moment.money'))}</summary><p>${sentenceMarkup('common.moment.moneyContext', { amount: money(moment.moneyCents, moment.moneyCurrency) })}</p></details>` : '';
-  return `<article class="moment-card ${moment.visibility}"${momentThemeAttribute(moment.theme)}><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn)}</span><span class="visibility-chip ${moment.visibility}"><span class="visibility-glyph" aria-hidden="true">${visibilityCue(moment.visibility).glyph}</span>${escapeHtml(visibilityCue(moment.visibility).label)}</span></div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${locationContext}${attachments}${removed}${moneyContext}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">${escapeHtml(t('common.action.edit'))}</button></div></article>`;
+  const moneyContext = moment.moneyCents != null ? `<details class="money-context"><summary>${escapeHtml(t('common.moment.money'))}</summary><p>${sentenceMarkup('common.moment.moneyContext', { amount: money(moment.moneyCents, moment.moneyCurrency, format) })}</p></details>` : '';
+  return `<article class="moment-card ${moment.visibility}"${momentThemeAttribute(moment.theme)}><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn, undefined, format)}</span><span class="visibility-chip ${moment.visibility}"><span class="visibility-glyph" aria-hidden="true">${visibilityCue(moment.visibility).glyph}</span>${escapeHtml(visibilityCue(moment.visibility).label)}</span></div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${locationContext}${attachments}${removed}${moneyContext}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">${escapeHtml(t('common.action.edit'))}</button></div></article>`;
 }
 
 async function imageUrlForMoment(trip, moment, image) {
@@ -1436,9 +1436,9 @@ function eventRecord(input) {
 
 function renderSummary(summary, count) {
   const cards = [
-    ['Total trip cost', money(summary.totalCents), `${count} ${count === 1 ? 'expense' : 'expenses'}`, ''],
-    ['Budget left', money(summary.budgetLeftCents), `${money(summary.budgetCents)} planned`, summary.budgetLeftCents < 0 ? 'alert' : ''],
-    ['Still due', money(summary.dueCents), summary.dueCents ? 'Worth agreeing on next' : 'Nothing waiting', summary.dueCents ? 'alert' : ''],
+    ['Total trip cost', money(summary.totalCents, undefined, format), `${count} ${count === 1 ? 'expense' : 'expenses'}`, ''],
+    ['Budget left', money(summary.budgetLeftCents, undefined, format), `${money(summary.budgetCents, undefined, format)} planned`, summary.budgetLeftCents < 0 ? 'alert' : ''],
+    ['Still due', money(summary.dueCents, undefined, format), summary.dueCents ? 'Worth agreeing on next' : 'Nothing waiting', summary.dueCents ? 'alert' : ''],
     ['Shared clarity', count ? 'Up to date' : 'Start here', count ? 'A common picture for the next talk' : 'Add the first cost together', ''],
   ];
   $('#summary-grid').innerHTML = cards.map(([label, value, note, className]) => `<article class="card summary ${className}"><span>${label}</span><strong>${value}</strong><small>${note}</small></article>`).join('');
@@ -1447,13 +1447,13 @@ function renderSummary(summary, count) {
 function renderCategoryChart(summary) {
   const rows = Object.entries(summary.byCategory).sort((a, b) => b[1] - a[1]);
   const max = rows[0]?.[1] || 1;
-  $('#category-chart').innerHTML = rows.length ? rows.map(([category, total]) => `<div class="bar-row"><div class="bar-copy"><span>${escapeHtml(category)}</span><strong>${money(total)}</strong></div><div class="bar-track"><i style="width:${Math.max(1, total / max * 100)}%"></i></div></div>`).join('') : '<p class="empty">Add an expense to see the category mix.</p>';
+  $('#category-chart').innerHTML = rows.length ? rows.map(([category, total]) => `<div class="bar-row"><div class="bar-copy"><span>${escapeHtml(category)}</span><strong>${money(total, undefined, format)}</strong></div><div class="bar-track"><i style="width:${Math.max(1, total / max * 100)}%"></i></div></div>`).join('') : '<p class="empty">Add an expense to see the category mix.</p>';
 }
 
 function renderPayerChart(summary, members) {
   const totals = members.map((member) => [member, summary.byPayer[member] || 0]);
   const combined = totals.reduce((total, [, amount]) => total + amount, 0) || 1;
-  $('#payer-chart').innerHTML = `<div class="payer-track" role="img" aria-label="${totals.map(([name, amount]) => `${name} ${money(amount)}`).join(', ')}">${totals.map(([, amount]) => `<i style="width:${amount / combined * 100}%"></i>`).join('')}</div><div class="payer-key">${totals.map(([name, amount]) => `<div><span>${escapeHtml(name)}</span><strong>${money(amount)}</strong></div>`).join('')}</div>`;
+  $('#payer-chart').innerHTML = `<div class="payer-track" role="img" aria-label="${totals.map(([name, amount]) => `${name} ${money(amount, undefined, format)}`).join(', ')}">${totals.map(([, amount]) => `<i style="width:${amount / combined * 100}%"></i>`).join('')}</div><div class="payer-key">${totals.map(([name, amount]) => `<div><span>${escapeHtml(name)}</span><strong>${money(amount, undefined, format)}</strong></div>`).join('')}</div>`;
 }
 
 function renderFilters() {
@@ -1482,8 +1482,8 @@ function renderLedger(entries) {
   }
   $('#ledger').innerHTML = list.map((entry) => `<article class="entry">
     <span class="entry-icon" aria-hidden="true">${CATEGORY_ICONS[entry.category] || '·'}</span>
-    <div class="entry-main"><strong>${escapeHtml(entry.merchant)}</strong><div class="entry-meta"><span>${escapeHtml(entry.category)}</span><span>${dateLabel(entry.occurredOn)}</span><span>Paid by ${escapeHtml(entry.paidBy)}</span>${entry.account ? `<span>From ${escapeHtml(entry.account)}</span>` : ''}${entry.reference ? `<span>Ref ${escapeHtml(entry.reference)}</span>` : ''}</div></div>
-    <div class="entry-amount"><strong>${money(entry.amountCents)}</strong><small>${entry.status === 'due' ? 'Still due' : 'Paid'}</small></div>
+    <div class="entry-main"><strong>${escapeHtml(entry.merchant)}</strong><div class="entry-meta"><span>${escapeHtml(entry.category)}</span><span>${dateLabel(entry.occurredOn, undefined, format)}</span><span>Paid by ${escapeHtml(entry.paidBy)}</span>${entry.account ? `<span>From ${escapeHtml(entry.account)}</span>` : ''}${entry.reference ? `<span>Ref ${escapeHtml(entry.reference)}</span>` : ''}</div></div>
+    <div class="entry-amount"><strong>${money(entry.amountCents, undefined, format)}</strong><small>${entry.status === 'due' ? 'Still due' : 'Paid'}</small></div>
     <div class="entry-actions"><button data-edit="${escapeHtml(entry.id)}">Edit</button><button data-remove="${escapeHtml(entry.id)}">Remove</button></div>
   </article>`).join('');
   $$('[data-edit]').forEach((button) => button.addEventListener('click', () => openExpense(button.dataset.edit)));
@@ -1496,7 +1496,7 @@ function renderTimeline(trip, entries, summary) {
   $('#timeline-chart').innerHTML = days.map((date) => {
     const total = summary.byDay[date] || 0;
     const height = total ? Math.max(3, total / peak * 100) : 1;
-    return `<button class="day-button${selectedDay === date ? ' selected' : ''}" data-day="${date}" aria-pressed="${selectedDay === date}" aria-label="${dateLabel(date, { weekday: 'long', month: 'long', day: 'numeric' })}: ${money(total)}. Show details."><span class="day-bar-space"><i class="day-bar" style="height:${height}%">${total ? `<em>${money(total)}</em>` : ''}</i></span><span class="day-label">${dateLabel(date)}<br>${dateLabel(date, { weekday: 'short' })}</span></button>`;
+    return `<button class="day-button${selectedDay === date ? ' selected' : ''}" data-day="${date}" aria-pressed="${selectedDay === date}" aria-label="${dateLabel(date, { weekday: 'long', month: 'long', day: 'numeric' }, format)}: ${money(total, undefined, format)}. Show details."><span class="day-bar-space"><i class="day-bar" style="height:${height}%">${total ? `<em>${money(total, undefined, format)}</em>` : ''}</i></span><span class="day-label">${dateLabel(date, undefined, format)}<br>${dateLabel(date, { weekday: 'short' }, format)}</span></button>`;
   }).join('');
   $$('[data-day]').forEach((button) => button.addEventListener('click', () => {
     selectedDay = button.dataset.day;
@@ -1518,15 +1518,15 @@ function renderTimelineDetail(entries) {
   const groups = groupDayByCategory(entries, selectedDay);
   const dayEntries = Object.values(groups).flat();
   const dayTotal = dayEntries.reduce((total, entry) => total + entry.amountCents, 0);
-  const head = `<div class="detail-head"><div><h3>${dateLabel(selectedDay, { weekday: 'long', month: 'long', day: 'numeric' })}</h3><p>${money(dayTotal)} across ${dayEntries.length} ${dayEntries.length === 1 ? 'entry' : 'entries'}</p></div><button class="icon-button" data-close-day aria-label="Close day details">×</button></div>`;
+  const head = `<div class="detail-head"><div><h3>${dateLabel(selectedDay, { weekday: 'long', month: 'long', day: 'numeric' }, format)}</h3><p>${money(dayTotal, undefined, format)} across ${dayEntries.length} ${dayEntries.length === 1 ? 'entry' : 'entries'}</p></div><button class="icon-button" data-close-day aria-label="Close day details">×</button></div>`;
   if (!dayEntries.length) {
     detail.innerHTML = `${head}<p class="empty">No spending is recorded for this day.</p>`;
   } else if (!selectedCategory) {
     const categories = Object.entries(groups).map(([category, items]) => [category, items.reduce((total, entry) => total + entry.amountCents, 0), items.length]).sort((a, b) => b[1] - a[1]);
-    detail.innerHTML = head + categories.map(([category, total, count]) => `<button class="category-button" data-detail-category="${escapeHtml(category)}"><span><strong>${escapeHtml(category)}</strong><small>${count} ${count === 1 ? 'entry' : 'entries'}</small></span><strong>${money(total)} →</strong></button>`).join('');
+    detail.innerHTML = head + categories.map(([category, total, count]) => `<button class="category-button" data-detail-category="${escapeHtml(category)}"><span><strong>${escapeHtml(category)}</strong><small>${count} ${count === 1 ? 'entry' : 'entries'}</small></span><strong>${money(total, undefined, format)} →</strong></button>`).join('');
   } else {
     const categoryEntries = groups[selectedCategory] || [];
-    detail.innerHTML = `${head}<button class="back-button" data-back-day>← All spending for this day</button>${categoryEntries.map((entry) => `<div class="detail-entry"><span><strong>${escapeHtml(entry.merchant)}</strong><small>${escapeHtml(entry.paidBy)} · ${entry.status === 'due' ? 'Still due' : 'Paid'}</small></span><strong>${money(entry.amountCents)}</strong></div>`).join('')}`;
+    detail.innerHTML = `${head}<button class="back-button" data-back-day>← All spending for this day</button>${categoryEntries.map((entry) => `<div class="detail-entry"><span><strong>${escapeHtml(entry.merchant)}</strong><small>${escapeHtml(entry.paidBy)} · ${entry.status === 'due' ? 'Still due' : 'Paid'}</small></span><strong>${money(entry.amountCents, undefined, format)}</strong></div>`).join('')}`;
   }
   $('[data-close-day]')?.addEventListener('click', () => {
     selectedDay = null;
@@ -1626,7 +1626,7 @@ function meaningfulChanges(before, after) {
 
 function valueLabel(key, value) {
   if (value == null || value === '') return 'none';
-  if (key === 'budgetCents' || key === 'amountCents') return money(value);
+  if (key === 'budgetCents' || key === 'amountCents') return money(value, undefined, format);
   if (key === 'theme') return momentThemeLabel(value);
   // A list of places is a list of values: each is written out, rather than read as [object Object].
   if (Array.isArray(value)) return value.map((item) => (item && typeof item === 'object' ? JSON.stringify(item) : String(item))).join(', ');

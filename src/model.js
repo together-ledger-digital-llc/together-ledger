@@ -146,8 +146,9 @@ export function conversationPrompts() {
   return ['What feels important to name with care today?', 'What is one thing you noticed and appreciated?', 'Is there an open thread that would feel lighter with a small next step?', 'What boundary would help this journey feel more spacious?', 'What do we want to remember about this season together?'];
 }
 
-export function money(cents, currency = 'USD') {
+export function money(cents, currency = 'USD', formatter = null) {
   const value = (Number(cents) || 0) / 100;
+  if (formatter) return formatter.money(value, currency);
   if (!currency) return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
   try { return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value); } catch { return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value); }
 }
@@ -176,7 +177,7 @@ export function countOf(count, one, many) {
   return `${count} ${count === 1 ? one : many}`;
 }
 
-export function dateLabel(date, options = { month: 'short', day: 'numeric' }) { if (!date) return 'Date not set'; return new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', ...options }).format(new Date(`${date}T12:00:00Z`)); }
+export function dateLabel(date, options = { month: 'short', day: 'numeric' }, formatter = null) { if (!date) return 'Date not set'; if (formatter) return formatter.date(new Date(`${date}T12:00:00Z`), { timeZone: 'UTC', ...options }); return new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', ...options }).format(new Date(`${date}T12:00:00Z`)); }
 export function makeId(prefix = 'entry') { return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`; }
 
 export function appendJourneyEvent(state, input) {
