@@ -90,6 +90,8 @@
   "common.account.changePassword": "Password change karein",
   "common.account.signInTitle": "Sign in",
   "common.account.identifier": "Email ya username",
+  "common.password.hide": "Password chhupayein",
+  "common.password.show": "Password dikhayein",
   "common.account.password": "Password",
   "common.account.signIn": "Sign in",
   "common.account.signingIn": "Sign in ho raha hai…",

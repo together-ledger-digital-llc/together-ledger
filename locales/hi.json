@@ -90,6 +90,8 @@
   "common.account.changePassword": "पासवर्ड चेंज करें",
   "common.account.signInTitle": "साइन इन",
   "common.account.identifier": "ईमेल या यूज़रनेम",
+  "common.password.hide": "पासवर्ड छिपाएँ",
+  "common.password.show": "पासवर्ड दिखाएँ",
   "common.account.password": "पासवर्ड",
   "common.account.signIn": "साइन इन",
   "common.account.signingIn": "साइन इन हो रहा है…",

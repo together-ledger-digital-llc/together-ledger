@@ -392,6 +392,14 @@
   "@common.account.identifier": {
     "description": "Label of the sign-in field that takes either the email or the username."
   },
+  "common.password.hide": "Hide password",
+  "@common.password.hide": {
+    "description": "Accessible name for the button that hides the typed password again."
+  },
+  "common.password.show": "Show password",
+  "@common.password.show": {
+    "description": "Accessible name for the button that makes the typed password visible."
+  },
   "common.account.password": "Password",
   "@common.account.password": {
     "description": "Label of the password field, on sign-in and on creating an account."
