@@ -1,5 +1,5 @@
 import type { InvitationPreview } from '../api/client';
-import { t } from '../i18n/sentences.js';
+import { formatter, t } from '../i18n/sentences.js';
 import type { PastedInvitation } from './invitation-link';
 
 /**
@@ -70,5 +70,8 @@ export function isSettled(preview: InvitationPreview): boolean {
 
 export function invitationDate(value: string | null | undefined): string | null {
   const date = value ? new Date(value) : null;
-  return date && !Number.isNaN(date.getTime()) ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date) : null;
+  if (!date || Number.isNaN(date.getTime())) return null;
+  const f = formatter();
+  if (f) return f.date(date, { dateStyle: 'medium' });
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date);
 }
