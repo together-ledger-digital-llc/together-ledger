@@ -28,6 +28,25 @@ export function setTranslator(next) {
   translate = next;
 }
 
+/** @type {any} */
+let activeFormatter = null;
+
+/**
+ * Makes next the formatter every helper can read. Called by index.ts only.
+ * @param {any} next
+ */
+export function setFormatter(next) {
+  activeFormatter = next;
+}
+
+/**
+ * The active language's formatter.
+ * @returns {any}
+ */
+export function formatter() {
+  return activeFormatter;
+}
+
 /**
  * The sentence for key in the active language, falling back to English. A person's own text
  * inserted as a value (a name, a journey) is isolated.
