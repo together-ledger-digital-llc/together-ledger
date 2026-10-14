@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import { AppState } from 'react-native';
 import { accountMessage } from '../auth/account-messages';
 import { useSession } from '../auth/session';
+import { formatter } from '../i18n/sentences.js';
 import { useJourney } from '../journey/use-journey';
 import { useShell } from '../shell/shell-provider';
 import { asStoreKit, loadStoreKit, storePlatform, type ExpoIap } from './store-kit';
@@ -66,7 +67,10 @@ type Intent = { journeyId: string; momentId: string | null };
 
 function dateLabel(value: string | null | undefined) {
   const date = new Date(value || '');
-  return value && !Number.isNaN(date.getTime()) ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date) : null;
+  if (!value || Number.isNaN(date.getTime())) return null;
+  const f = formatter();
+  if (f) return f.date(date, { dateStyle: 'medium' });
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date);
 }
 
 /** What the person is told once our server has honoured a purchase. */
