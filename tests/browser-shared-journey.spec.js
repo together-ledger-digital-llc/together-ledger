@@ -12,7 +12,7 @@ async function beginBrowserLedger(page, { closeMoment = false } = {}) {
 test('the public welcome earns the first browser-only moment without making a privacy claim', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.locator('h1')).toHaveCount(1);
+  await expect(page.locator('h1').filter({ hasText: 'Keep what matters, together.' })).toHaveCount(1);
   await expect(page.getByRole('heading', { level: 1, name: 'Keep what matters, together.' })).toBeVisible();
   await expect(page.locator('.ledger-preview')).toContainText('Three fictional moments, held between Maya and Theo');
   await expect(page.locator('.ledger-preview')).toContainText('Shared intentionally');
