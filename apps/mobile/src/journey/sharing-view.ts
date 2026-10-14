@@ -9,7 +9,7 @@
  * tests/mobile-sharing.test.js can run it directly and compare it with the web's functions.
  */
 import { money, remainingLabel } from '../../../../src/model.js';
-import { t } from '../i18n/sentences.js';
+import { t, formatter } from '../i18n/sentences.js';
 import { momentThemeName } from '../i18n/theme-names.js';
 
 export { remainingLabel };
@@ -115,6 +115,8 @@ export type SharingSnapshot = {
 export function dateTimeLabel(value: string | null | undefined) {
   const date = new Date(value || '');
   if (!value || Number.isNaN(date.getTime())) return 'Time not recorded';
+  const format = formatter();
+  if (format) return format.dateTime(date, { dateStyle: 'medium', timeStyle: 'short' });
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 }
 
@@ -400,7 +402,7 @@ export function meaningfulChanges(before: Record<string, unknown> | null, after:
 
 export function valueLabel(key: string, value: unknown) {
   if (value == null || value === '') return t('common.history.none');
-  if (key === 'budgetCents' || key === 'amountCents') return money(value as number);
+  if (key === 'budgetCents' || key === 'amountCents') return money(value as number, undefined, formatter());
   if (key === 'theme') return momentThemeName(value as string);
   // A list of places is a list of values: each is written out, rather than read as [object Object].
   if (Array.isArray(value)) return value.map((item) => (item && typeof item === 'object' ? JSON.stringify(item) : String(item))).join(', ');
