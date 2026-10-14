@@ -21,7 +21,7 @@ import { readChoice, resolveLanguage, speechLanguage } from '../../../../src/i18
 import { createTranslator } from '../../../../src/i18n/translator.js';
 import { savedLanguageNow } from '../storage/phone-storage';
 import { NATIVE_INTL } from './intl-native';
-import { setTranslator, t as sentence } from './sentences.js';
+import { setFormatter, setTranslator, t as sentence } from './sentences.js';
 
 type Formatting = { locale: string; regionalDates: boolean; numberingSystem: string | null };
 export type MessageValues = Record<string, string | number | Date | null | undefined>;
@@ -93,6 +93,7 @@ let ready = false;
 
 /** The dates, numbers and money of the active language. */
 export let format = createFormatter((languageOf(manifest, active) as { formatting: Formatting }).formatting);
+setFormatter(format);
 
 /** Makes tag the active language; anything that may not be chosen is English. */
 export function setActiveLanguage(tag: string): string {
@@ -101,6 +102,7 @@ export function setActiveLanguage(tag: string): string {
   ready = true;
   active = next;
   format = createFormatter((languageOf(manifest, next) as { formatting: Formatting }).formatting);
+  setFormatter(format);
   setTranslator(createTranslator({
     locale: next,
     messages: catalogs[next],
