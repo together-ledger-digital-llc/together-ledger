@@ -4,6 +4,7 @@ import { useSession } from '../auth/session';
 import { locationContext, momentLabel, moneyContext, normalizeMomentTheme, visibilityCue, visibilityRole, shownDate, type MomentImage, type ShownMoment } from '../journey/journey-view';
 import { t } from '../i18n';
 import { fonts, getTheme, leading, scriptStyles, targetSize, tracking, useTheme, type ThemeColors } from '../theme';
+import { PhotoViewer } from './photo-viewer';
 
 /**
  * One moment, as the web's .moment-card draws it (TL-M-07, #182). A moment with its own
@@ -115,6 +116,7 @@ function MomentPhoto({ image, moment, colors, radius }: { image: MomentImage; mo
   const { client } = useSession();
   const [source, setSource] = useState<{ uri: string; headers: Record<string, string> } | null>(null);
   const [failed, setFailed] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
   useEffect(() => {
     let current = true;
     client.imageSource(moment.journeyId, moment.id, image.id).then(
@@ -123,8 +125,10 @@ function MomentPhoto({ image, moment, colors, radius }: { image: MomentImage; mo
     );
     return () => { current = false; };
   }, [client, moment.journeyId, moment.id, image.id]);
-  return (
-    <View style={[styles.photo, { borderColor: colors.border, borderRadius: radius }]}>
+
+  const name = image.filename || t('common.moment.image');
+  const inner = (
+    <>
       <View style={[styles.thumb, { backgroundColor: colors.metaBg, borderRadius: 4 }]}>
         {source && !failed ? (
           <Image source={source} onError={() => setFailed(true)} accessibilityLabel={t('common.moment.photoOf', { title: moment.title })} style={styles.thumbImage} />
@@ -132,9 +136,39 @@ function MomentPhoto({ image, moment, colors, radius }: { image: MomentImage; mo
       </View>
       <View style={styles.photoCopy}>
         <Text style={[styles.photoKind, { color: colors.accent }]}>{t('common.moment.photo')}</Text>
-        <Text numberOfLines={1} style={[styles.photoName, { color: colors.fg }]}>{image.filename || t('common.moment.image')}</Text>
+        <Text numberOfLines={1} style={[styles.photoName, { color: colors.fg }]}>{name}</Text>
         {failed ? <Text style={[styles.photoNote, { color: colors.muted }]}>{t('mobile.moment.photoFailed')}</Text> : null}
       </View>
+      {source && !failed && viewerOpen ? (
+        <PhotoViewer
+          visible={viewerOpen}
+          onClose={() => setViewerOpen(false)}
+          source={source}
+          name={name}
+        />
+      ) : null}
+    </>
+  );
+
+  if (source && !failed) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${t('moment.photo.openLarger')} ${name}`}
+        onPress={() => setViewerOpen(true)}
+        style={({ pressed }) => [
+          styles.photo,
+          { borderColor: colors.border, borderRadius: radius, opacity: pressed ? 0.7 : 1 },
+        ]}
+      >
+        {inner}
+      </Pressable>
+    );
+  }
+
+  return (
+    <View style={[styles.photo, { borderColor: colors.border, borderRadius: radius }]}>
+      {inner}
     </View>
   );
 }
