@@ -295,11 +295,11 @@ test('a browser journey can begin on a date still to come, and still cannot end 
 
 test('dateLabel and money respect the active language via the format argument', async () => {
   const { createFormatter } = await import('../src/i18n/format.js');
-  const en = createFormatter({ locale: 'en-US', regionalDates: true, numberingSystem: 'latn' });
-  const hi = createFormatter({ locale: 'hi-IN', regionalDates: true, numberingSystem: 'latn' });
-  const bn = createFormatter({ locale: 'bn', regionalDates: true, numberingSystem: 'beng' });
-  const es = createFormatter({ locale: 'es-419', regionalDates: true, numberingSystem: 'latn' });
-  const hiLatn = createFormatter({ locale: 'en-IN', regionalDates: true, numberingSystem: 'latn' });
+  const en = createFormatter({ locale: 'en-US', regionalDates: true, numberingSystem: 'latn', device: 'en-US' });
+  const hi = createFormatter({ locale: 'hi-IN', regionalDates: true, numberingSystem: 'latn', device: 'en-US' });
+  const bn = createFormatter({ locale: 'bn', regionalDates: true, numberingSystem: 'beng', device: 'en-US' });
+  const es = createFormatter({ locale: 'es-419', regionalDates: true, numberingSystem: 'latn', device: 'en-US' });
+  const hiLatn = createFormatter({ locale: 'en-IN', regionalDates: true, numberingSystem: 'latn', device: 'en-US' });
 
   // dateLabel tests
   assert.equal(dateLabel('2026-10-11', undefined, en), 'Oct 11');
