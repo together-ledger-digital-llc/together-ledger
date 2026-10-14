@@ -105,6 +105,8 @@ test('moments are newest first, carry their photos, and the list opens on three'
   assert.equal(view.chooseJourney([{ id: 'x' }, { id: 'y' }], 'y'), 'y');
   assert.equal(view.chooseJourney([{ id: 'x' }, { id: 'y' }], 'gone'), 'x');
   assert.equal(view.chooseJourney([], null), null);
+
+  assert.equal(view.shownDate(''), 'Date not set');
 });
 
 test('a moment\'s own atmosphere is painted in the same colours on the phone as on the web', () => {

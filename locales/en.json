@@ -576,6 +576,10 @@
     "description": "Under a journey's name, when it has no end."
   },
   "common.journey.endUnsure": "Ending not decided yet",
+  "common.date.notSet": "Date not set",
+  "@common.date.notSet": {
+    "description": "In place of a moment's date when it has none. Short: it sits beside the moment's kind."
+  },
   "@common.journey.endUnsure": {
     "description": "Under a journey's name, when its end is not decided."
   },
