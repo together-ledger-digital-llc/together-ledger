@@ -129,7 +129,11 @@
   "@history.screen.title": {
     "description": "Title of the History screen on the phone: the journey's own name, then 'history'.",
     "placeholders": {
-      "journey": { "type": "String", "example": "Home in Fall", "description": "The journey's name, written by the people in it, in any script." }
+      "journey": {
+        "type": "String",
+        "example": "Home in Fall",
+        "description": "The journey's name, written by the people in it, in any script."
+      }
     }
   },
   "history.screen.lead": "Server-authoritative, account-attributed history. HMAC chaining makes database changes detectable; deleted records retain privacy-bounded tombstones.",
@@ -156,14 +160,22 @@
   "@history.concern.status": {
     "description": "Small label on a conversation to return to: still open, or resolved. Shown in capitals on the phone; on the web, the two choices of the Status menu when starting or changing one.",
     "placeholders": {
-      "status": { "type": "String", "example": "open", "description": "open, or anything else for resolved. Translate only the words inside the braces." }
+      "status": {
+        "type": "String",
+        "example": "open",
+        "description": "open, or anything else for resolved. Translate only the words inside the braces."
+      }
     }
   },
   "history.concern.updated": "Updated {time}",
   "@history.concern.updated": {
     "description": "When a conversation to return to last changed.",
     "placeholders": {
-      "time": { "type": "String", "example": "Oct 12, 2026, 3:04 PM", "description": "The date and time, already written for the language." }
+      "time": {
+        "type": "String",
+        "example": "Oct 12, 2026, 3:04 PM",
+        "description": "The date and time, already written for the language."
+      }
     }
   },
   "history.concern.deleted": "Conversation deleted. The history keeps a tombstone.",
@@ -182,24 +194,48 @@
   "@history.event.heading": {
     "description": "One change in the record: its number in order, then what happened. Keep the number without thousands separators.",
     "placeholders": {
-      "sequence": { "type": "int", "example": "12", "description": "Where this change comes in order, from 1." },
-      "summary": { "type": "String", "example": "Added a moment", "description": "What happened, as the server recorded it." }
+      "sequence": {
+        "type": "int",
+        "example": "12",
+        "description": "Where this change comes in order, from 1."
+      },
+      "summary": {
+        "type": "String",
+        "example": "Added a moment",
+        "description": "What happened, as the server recorded it."
+      }
     }
   },
   "history.event.byline": "{actor} · {time}",
   "@history.event.byline": {
     "description": "Who made a change, and when.",
     "placeholders": {
-      "actor": { "type": "String", "example": "Asha", "description": "The person's name, in any script, or 'Former journeyer'." },
-      "time": { "type": "String", "example": "Oct 12, 2026, 3:04 PM", "description": "The date and time, already written for the language." }
+      "actor": {
+        "type": "String",
+        "example": "Asha",
+        "description": "The person's name, in any script, or 'Former journeyer'."
+      },
+      "time": {
+        "type": "String",
+        "example": "Oct 12, 2026, 3:04 PM",
+        "description": "The date and time, already written for the language."
+      }
     }
   },
   "history.event.change": "{before} → {after}",
   "@history.event.change": {
     "description": "One value that changed, from what it was to what it became. It follows the name of the value, which is shown in bold and not translated.",
     "placeholders": {
-      "before": { "type": "String", "example": "$12.50", "description": "The old value." },
-      "after": { "type": "String", "example": "$20.00", "description": "The new value." }
+      "before": {
+        "type": "String",
+        "example": "$12.50",
+        "description": "The old value."
+      },
+      "after": {
+        "type": "String",
+        "example": "$20.00",
+        "description": "The new value."
+      }
     }
   },
   "history.event.noChange": "No field-level value change was stored for this event.",
@@ -210,11 +246,31 @@
   "@history.event.record": {
     "description": "The technical record of one change: its ID, the ID of the change before it (or none), that the server keeps it, and the start of its tamper-evident hash when there is one. IDs and the hash are machine text; keep them as they come.",
     "placeholders": {
-      "id": { "type": "String", "example": "8c1f0e7a-…", "description": "This change's ID." },
-      "hasPrevious": { "type": "String", "example": "yes", "description": "yes when there is a change before this one. Translate only the words inside the braces." },
-      "previous": { "type": "String", "example": "77b2c9d4-…", "description": "The previous change's ID." },
-      "hasHash": { "type": "String", "example": "yes", "description": "yes when the change has a hash. Translate only the words inside the braces." },
-      "hash": { "type": "String", "example": "3f9a1c0b77de", "description": "The first twelve characters of the hash." }
+      "id": {
+        "type": "String",
+        "example": "8c1f0e7a-…",
+        "description": "This change's ID."
+      },
+      "hasPrevious": {
+        "type": "String",
+        "example": "yes",
+        "description": "yes when there is a change before this one. Translate only the words inside the braces."
+      },
+      "previous": {
+        "type": "String",
+        "example": "77b2c9d4-…",
+        "description": "The previous change's ID."
+      },
+      "hasHash": {
+        "type": "String",
+        "example": "yes",
+        "description": "yes when the change has a hash. Translate only the words inside the braces."
+      },
+      "hash": {
+        "type": "String",
+        "example": "3f9a1c0b77de",
+        "description": "The first twelve characters of the hash."
+      }
     }
   },
   "common.historyGuide.title": "How to read your history",
@@ -301,7 +357,11 @@
   "@common.welcome.headline": {
     "description": "The welcome headline. {together} is the end of the sentence (common.welcome.headlineTogether), set in italics; keep it where it belongs in your sentence.",
     "placeholders": {
-      "together": { "type": "String", "example": "together.", "description": "common.welcome.headlineTogether, drawn in italics." }
+      "together": {
+        "type": "String",
+        "example": "together.",
+        "description": "common.welcome.headlineTogether, drawn in italics."
+      }
     }
   },
   "common.welcome.headlineTogether": "together.",
@@ -568,7 +628,11 @@
   "@common.journey.began": {
     "description": "Under a journey's name: when it began.",
     "placeholders": {
-      "date": { "type": "String", "example": "Oct 12", "description": "The day it began." }
+      "date": {
+        "type": "String",
+        "example": "Oct 12",
+        "description": "The day it began."
+      }
     }
   },
   "common.journey.noEnd": "No end date planned",
@@ -583,21 +647,33 @@
   "@common.journey.ends": {
     "description": "Under a journey's name: when it ends.",
     "placeholders": {
-      "date": { "type": "String", "example": "Dec 20", "description": "The day it ends." }
+      "date": {
+        "type": "String",
+        "example": "Dec 20",
+        "description": "The day it ends."
+      }
     }
   },
   "common.ledger.seeAll": "{count, plural, one {See all {count, number, ::group-off} moment} other {See all {count, number, ::group-off} moments}}",
   "@common.ledger.seeAll": {
     "description": "Button that shows every moment, not only the most recent.",
     "placeholders": {
-      "count": { "type": "int", "example": "7", "description": "How many moments the journey holds." }
+      "count": {
+        "type": "int",
+        "example": "7",
+        "description": "How many moments the journey holds."
+      }
     }
   },
   "common.moment.moneyContext": "{amount} is held here as context, not a score.",
   "@common.moment.moneyContext": {
     "description": "An amount of money held with a moment, which is never added up or compared.",
     "placeholders": {
-      "amount": { "type": "String", "example": "$12.50", "description": "The amount with its currency." }
+      "amount": {
+        "type": "String",
+        "example": "$12.50",
+        "description": "The amount with its currency."
+      }
     }
   },
   "common.momentKind.promise": "Promise",
@@ -660,7 +736,11 @@
   "@common.moment.visibilitySpoken": {
     "description": "What a screen reader says for a moment's visibility mark.",
     "placeholders": {
-      "visibility": { "type": "String", "example": "Shared now", "description": "Private, Share later or Shared now (common.visibility.*)." }
+      "visibility": {
+        "type": "String",
+        "example": "Shared now",
+        "description": "Private, Share later or Shared now (common.visibility.*)."
+      }
     }
   },
   "common.moment.removedPhoto": "Removed photo",
@@ -679,7 +759,11 @@
   "@common.moment.heldBy": {
     "description": "Under a moment: who held it.",
     "placeholders": {
-      "name": { "type": "String", "example": "Asha", "description": "A person's name as they chose it, in any script." }
+      "name": {
+        "type": "String",
+        "example": "Asha",
+        "description": "A person's name as they chose it, in any script."
+      }
     }
   },
   "common.person.journeyMember": "Journey member",
@@ -758,7 +842,11 @@
   "@common.moment.removePlace": {
     "description": "What a screen reader says for the button that removes one place.",
     "placeholders": {
-      "place": { "type": "String", "example": "Kolkata", "description": "The place, as typed." }
+      "place": {
+        "type": "String",
+        "example": "Kolkata",
+        "description": "The place, as typed."
+      }
     }
   },
   "common.action.remove": "Remove",
@@ -821,7 +909,11 @@
   "@common.moment.previewHelp": {
     "description": "Under Live preview.",
     "placeholders": {
-      "theme": { "type": "String", "example": "Use my theme", "description": "The moment theme chosen." }
+      "theme": {
+        "type": "String",
+        "example": "Use my theme",
+        "description": "The moment theme chosen."
+      }
     }
   },
   "common.moment.save": "Save moment",
@@ -860,14 +952,22 @@
   "@common.moment.deleteSharedConsequence": {
     "description": "Asked before deleting a shared moment. It cannot be undone.",
     "placeholders": {
-      "title": { "type": "String", "example": "Tea on the porch", "description": "The moment's name, as written." }
+      "title": {
+        "type": "String",
+        "example": "Tea on the porch",
+        "description": "The moment's name, as written."
+      }
     }
   },
   "common.moment.deletePrivateConsequence": "“{title}” will be removed. Only you could see it, so it leaves nothing behind that anyone else can see.",
   "@common.moment.deletePrivateConsequence": {
     "description": "Asked before deleting a moment only this person could see. It cannot be undone.",
     "placeholders": {
-      "title": { "type": "String", "example": "Tea on the porch", "description": "The moment's name, as written." }
+      "title": {
+        "type": "String",
+        "example": "Tea on the porch",
+        "description": "The moment's name, as written."
+      }
     }
   },
   "common.moment.shareTitle": "Share this moment now?",
@@ -902,7 +1002,11 @@
   "@common.concern.deleteConsequence": {
     "description": "What deleting a conversation does, asked before it happens. A tombstone is the record that it was deleted, and by whom.",
     "placeholders": {
-      "title": { "type": "String", "example": "Money for the trip", "description": "The conversation's title, as written." }
+      "title": {
+        "type": "String",
+        "example": "Money for the trip",
+        "description": "The conversation's title, as written."
+      }
     }
   },
   "common.concern.deleteAction": "Delete conversation",
@@ -945,8 +1049,16 @@
   "@mobile.account.who": {
     "description": "The person's name and email, on Account settings.",
     "placeholders": {
-      "name": { "type": "String", "example": "Asha", "description": "A person's name as they chose it, in any script." },
-      "email": { "type": "String", "example": "asha@example.com", "description": "The account's email, or words saying Apple shared none." }
+      "name": {
+        "type": "String",
+        "example": "Asha",
+        "description": "A person's name as they chose it, in any script."
+      },
+      "email": {
+        "type": "String",
+        "example": "asha@example.com",
+        "description": "The account's email, or words saying Apple shared none."
+      }
     }
   },
   "mobile.account.emailVerified": "Email verified.",
@@ -961,7 +1073,11 @@
   "@mobile.account.nameHint": {
     "description": "Under the name field.",
     "placeholders": {
-      "handle": { "type": "String", "example": "asha-k", "description": "The account's username, shown after @. Never translated." }
+      "handle": {
+        "type": "String",
+        "example": "asha-k",
+        "description": "The account's username, shown after @. Never translated."
+      }
     }
   },
   "mobile.account.verifiedInBrowser": "I verified it in my browser",
@@ -1016,21 +1132,33 @@
   "@mobile.journey.opening": {
     "description": "Under the row of journeys, while the journey just chosen is loading. The one open stays on screen meanwhile.",
     "placeholders": {
-      "journey": { "type": "String", "example": "Home in Fall", "description": "The journey's name, in any script, as the people in it wrote it." }
+      "journey": {
+        "type": "String",
+        "example": "Home in Fall",
+        "description": "The journey's name, in any script, as the people in it wrote it."
+      }
     }
   },
   "mobile.journey.opensWhenBack": "“{journey}” opens once the connection is back.",
   "@mobile.journey.opensWhenBack": {
     "description": "Under the row of journeys, when a journey was chosen while the connection was lost.",
     "placeholders": {
-      "journey": { "type": "String", "example": "Home in Fall", "description": "The journey's name, in any script, as the people in it wrote it." }
+      "journey": {
+        "type": "String",
+        "example": "Home in Fall",
+        "description": "The journey's name, in any script, as the people in it wrote it."
+      }
     }
   },
   "mobile.journey.screenOpensWhenBack": "{screen} opens once the connection is back.",
   "@mobile.journey.screenOpensWhenBack": {
     "description": "In place of a screen that needs a journey, such as History, while the phone is offline.",
     "placeholders": {
-      "screen": { "type": "String", "example": "History", "description": "The title of the screen." }
+      "screen": {
+        "type": "String",
+        "example": "History",
+        "description": "The title of the screen."
+      }
     }
   },
   "mobile.journey.notLoaded": "Your journeys couldn’t be loaded just now.",
@@ -1057,7 +1185,11 @@
   "@common.moment.photoOf": {
     "description": "What a screen reader says for a photo on a moment.",
     "placeholders": {
-      "title": { "type": "String", "example": "Tea on the porch", "description": "The moment's name, as written." }
+      "title": {
+        "type": "String",
+        "example": "Tea on the porch",
+        "description": "The moment's name, as written."
+      }
     }
   },
   "mobile.moment.photoFailed": "Photo could not be loaded.",
@@ -1160,7 +1292,11 @@
   "@mobile.navigation.backTo": {
     "description": "What a screen reader says for Android's back button, which goes to the screen named.",
     "placeholders": {
-      "screen": { "type": "String", "example": "Settings", "description": "The title of the screen the button goes back to." }
+      "screen": {
+        "type": "String",
+        "example": "Settings",
+        "description": "The title of the screen the button goes back to."
+      }
     }
   },
   "mobile.offline.stillSignedIn": "This phone is offline. You’re still signed in.",
@@ -1255,14 +1391,22 @@
   "@mobile.settings.openWaiting": {
     "description": "The Settings button in the ledger's top bar while there are questions about who joins a journey waiting for this person's answer: the word, then how many. Keep it short; it sits in the top bar.",
     "placeholders": {
-      "count": { "type": "int", "example": "2", "description": "How many questions wait for an answer, at least 1." }
+      "count": {
+        "type": "int",
+        "example": "2",
+        "description": "How many questions wait for an answer, at least 1."
+      }
     }
   },
   "mobile.settings.openWaitingSpoken": "Settings, {count, number} to answer",
   "@mobile.settings.openWaitingSpoken": {
     "description": "What a screen reader says for the Settings button while questions wait for this person's answer (mobile.settings.openWaiting).",
     "placeholders": {
-      "count": { "type": "int", "example": "2", "description": "How many questions wait for an answer, at least 1." }
+      "count": {
+        "type": "int",
+        "example": "2",
+        "description": "How many questions wait for an answer, at least 1."
+      }
     }
   },
   "mobile.settings.signIn": "Sign in or create an account",
@@ -1273,7 +1417,11 @@
   "@mobile.settings.journeyHeading": {
     "description": "Heading of the group in Settings for the journey that is open, with its name.",
     "placeholders": {
-      "journey": { "type": "String", "example": "Home in Fall", "description": "The journey's name, in any script, as the people in it wrote it." }
+      "journey": {
+        "type": "String",
+        "example": "Home in Fall",
+        "description": "The journey's name, in any script, as the people in it wrote it."
+      }
     }
   },
   "mobile.settings.sharing": "Sharing",
@@ -1284,7 +1432,11 @@
   "@mobile.settings.sharingWaiting": {
     "description": "The Sharing row while questions about who joins wait for this person's answer.",
     "placeholders": {
-      "count": { "type": "int", "example": "2", "description": "How many questions wait for an answer, at least 1." }
+      "count": {
+        "type": "int",
+        "example": "2",
+        "description": "How many questions wait for an answer, at least 1."
+      }
     }
   },
   "mobile.settings.history": "History and conversations",
@@ -1311,21 +1463,33 @@
   "@mobile.settings.build": {
     "description": "What a screen reader says for the line at the foot of Settings naming this version of the app, to quote in a report.",
     "placeholders": {
-      "build": { "type": "String", "example": "0.1.0 (12) · 3f9a1c0", "description": "The version, build number and commit. Never translated." }
+      "build": {
+        "type": "String",
+        "example": "0.1.0 (12) · 3f9a1c0",
+        "description": "The version, build number and commit. Never translated."
+      }
     }
   },
   "mobile.signIn.connectTitle": "{provider, select, apple {Connect Apple to your account} other {Connect Google to your account}}",
   "@mobile.signIn.connectTitle": {
     "description": "Heading when a Google or Apple sign-in uses an email that already has a password account: the password is asked for once to connect them. Apple and Google are names and are never translated.",
     "placeholders": {
-      "provider": { "type": "String", "example": "apple", "description": "apple or google; chooses the branch, never shown." }
+      "provider": {
+        "type": "String",
+        "example": "apple",
+        "description": "apple or google; chooses the branch, never shown."
+      }
     }
   },
   "mobile.signIn.connectPassword": "Password for {email}",
   "@mobile.signIn.connectPassword": {
     "description": "Label of the password field when connecting a Google or Apple sign-in to an account.",
     "placeholders": {
-      "email": { "type": "String", "example": "asha@example.com", "description": "The account's email, or \"this email\"." }
+      "email": {
+        "type": "String",
+        "example": "asha@example.com",
+        "description": "The account's email, or \"this email\"."
+      }
     }
   },
   "mobile.signOut.waitingTitle": "Sign out with moments waiting?",
@@ -1336,14 +1500,22 @@
   "@mobile.signOut.waitingConsequence": {
     "description": "What signing out does to moments not sent yet. It cannot be undone.",
     "placeholders": {
-      "count": { "type": "int", "example": "2", "description": "How many moments wait, at least 1." }
+      "count": {
+        "type": "int",
+        "example": "2",
+        "description": "How many moments wait, at least 1."
+      }
     }
   },
   "mobile.signOut.waitingAction": "{count, plural, one {Sign out and remove it} other {Sign out and remove them}}",
   "@mobile.signOut.waitingAction": {
     "description": "The button that signs out and removes the moments not sent yet.",
     "placeholders": {
-      "count": { "type": "int", "example": "2", "description": "How many moments wait, at least 1." }
+      "count": {
+        "type": "int",
+        "example": "2",
+        "description": "How many moments wait, at least 1."
+      }
     }
   },
   "mobile.signOutEverywhere.waitingTitle": "Sign out everywhere with moments waiting?",
@@ -1354,15 +1526,27 @@
   "@mobile.signOutEverywhere.waitingConsequence": {
     "description": "Two sentences together: what signing out everywhere does (common.signOutEverywhere.consequence), then what it does to the moments not sent yet (mobile.signOut.waitingConsequence). Change only the space between them if your language joins sentences differently.",
     "placeholders": {
-      "everywhere": { "type": "String", "example": "Every device signed in…", "description": "common.signOutEverywhere.consequence." },
-      "waiting": { "type": "String", "example": "One moment you held…", "description": "mobile.signOut.waitingConsequence." }
+      "everywhere": {
+        "type": "String",
+        "example": "Every device signed in…",
+        "description": "common.signOutEverywhere.consequence."
+      },
+      "waiting": {
+        "type": "String",
+        "example": "One moment you held…",
+        "description": "mobile.signOut.waitingConsequence."
+      }
     }
   },
   "mobile.signOutEverywhere.waitingAction": "{count, plural, one {Sign out everywhere and remove it} other {Sign out everywhere and remove them}}",
   "@mobile.signOutEverywhere.waitingAction": {
     "description": "The button that signs out on every device and removes the moments not sent yet.",
     "placeholders": {
-      "count": { "type": "int", "example": "2", "description": "How many moments wait, at least 1." }
+      "count": {
+        "type": "int",
+        "example": "2",
+        "description": "How many moments wait, at least 1."
+      }
     }
   },
   "mobile.start.signedOut": "Your private journeys appear here once you sign in on this phone.",
@@ -1376,6 +1560,72 @@
   "mobile.store.restoring": "Checking with the store…",
   "@mobile.store.restoring": {
     "description": "What Restore purchases says while it asks the App Store or Google Play."
+  },
+  "mobile.store.extraPhotoReady": "An extra photo is ready on this moment. It stays with the moment for good.",
+  "@mobile.store.extraPhotoReady": {
+    "description": "What the person is told once our server has honoured a purchase of an extra photo."
+  },
+  "mobile.store.extraPlaceReady": "An extra place is ready on this moment. It stays with the moment for good.",
+  "@mobile.store.extraPlaceReady": {
+    "description": "What the person is told once our server has honoured a purchase of an extra place."
+  },
+  "mobile.store.roomPaidFor": "Room for {people} people is paid for. It starts on {date}, when the room already running ends.",
+  "@mobile.store.roomPaidFor": {
+    "description": "What the person is told once our server has honoured a purchase of room for people that starts later.",
+    "placeholders": {
+      "people": {
+        "type": "int",
+        "example": "4",
+        "description": "How many people the room is for."
+      },
+      "date": {
+        "type": "String",
+        "example": "Oct 12, 2026",
+        "description": "The date the room starts, already formatted."
+      }
+    }
+  },
+  "mobile.store.roomReadyRenewing": "Room for {people} people is ready in this journey, and renews every month.",
+  "@mobile.store.roomReadyRenewing": {
+    "description": "What the person is told once our server has honoured a purchase of room for people that renews monthly.",
+    "placeholders": {
+      "people": {
+        "type": "int",
+        "example": "4",
+        "description": "How many people the room is for."
+      }
+    }
+  },
+  "mobile.store.roomReady": "Room for {people} people is ready in this journey.",
+  "@mobile.store.roomReady": {
+    "description": "What the person is told once our server has honoured a purchase of room for people with no specific end.",
+    "placeholders": {
+      "people": {
+        "type": "int",
+        "example": "4",
+        "description": "How many people the room is for."
+      }
+    }
+  },
+  "mobile.store.roomReadyUntil": "Room for {people} people is ready in this journey until {date}.",
+  "@mobile.store.roomReadyUntil": {
+    "description": "What the person is told once our server has honoured a purchase of room for people until a specific date.",
+    "placeholders": {
+      "people": {
+        "type": "int",
+        "example": "4",
+        "description": "How many people the room is for."
+      },
+      "date": {
+        "type": "String",
+        "example": "Oct 12, 2026",
+        "description": "The date the room ends, already formatted."
+      }
+    }
+  },
+  "mobile.store.purchaseIncomplete": "The store didn’t complete the purchase, so nothing was charged.",
+  "@mobile.store.purchaseIncomplete": {
+    "description": "Message shown when a store purchase is not completed."
   },
   "mobile.theme.followPhone": "Match this phone",
   "@mobile.theme.followPhone": {
@@ -1393,21 +1643,33 @@
   "@common.language.preview": {
     "description": "A language in a language menu that is offered before it is approved: its own name, then the word Preview, in the reader’s language.",
     "placeholders": {
-      "language": { "type": "String", "example": "हिन्दी", "description": "The language’s own name, in its own script." }
+      "language": {
+        "type": "String",
+        "example": "हिन्दी",
+        "description": "The language’s own name, in its own script."
+      }
     }
   },
   "common.language.comingSoon": "{language} · Coming soon",
   "@common.language.comingSoon": {
     "description": "A language in a language menu that is still being translated: its own name, then the words Coming soon, in the reader’s language. It is shown so people can see it is on its way, and it can’t be chosen yet.",
     "placeholders": {
-      "language": { "type": "String", "example": "বাংলা", "description": "The language’s own name, in its own script." }
+      "language": {
+        "type": "String",
+        "example": "বাংলা",
+        "description": "The language’s own name, in its own script."
+      }
     }
   },
   "mobile.language.current": "Language: {language}",
   "@mobile.language.current": {
     "description": "What a screen reader says for the small language control at the top of the welcome, which opens the Language choice.",
     "placeholders": {
-      "language": { "type": "String", "example": "English", "description": "The name of the language the app is in, in its own script." }
+      "language": {
+        "type": "String",
+        "example": "English",
+        "description": "The name of the language the app is in, in its own script."
+      }
     }
   },
   "common.moment.nameMissing": "Give this moment a short name.",
@@ -1438,7 +1700,11 @@
   "@common.theme.applied": {
     "description": "Short message after choosing a colour theme.",
     "placeholders": {
-      "theme": { "type": "String", "example": "Dark", "description": "The theme’s name, as the menu shows it." }
+      "theme": {
+        "type": "String",
+        "example": "Dark",
+        "description": "The theme’s name, as the menu shows it."
+      }
     }
   },
   "common.time.noEnd": "No end time recorded",
@@ -1457,24 +1723,48 @@
   "@common.time.days": {
     "description": "A countdown with a day or more to go: days, hours and minutes, the hours and minutes always two digits (3d 04h 07m left). d, h and m are the units; use your language’s short forms.",
     "placeholders": {
-      "days": { "type": "Number", "example": "3", "description": "Whole days left." },
-      "hours": { "type": "Number", "example": "4", "description": "Hours left after the days, 0 to 23." },
-      "minutes": { "type": "Number", "example": "7", "description": "Minutes left after the hours, 0 to 59." }
+      "days": {
+        "type": "Number",
+        "example": "3",
+        "description": "Whole days left."
+      },
+      "hours": {
+        "type": "Number",
+        "example": "4",
+        "description": "Hours left after the days, 0 to 23."
+      },
+      "minutes": {
+        "type": "Number",
+        "example": "7",
+        "description": "Minutes left after the hours, 0 to 59."
+      }
     }
   },
   "common.time.hours": "{hours, number, ::group-off}h {minutes, number, ::integer-width/*00}m left",
   "@common.time.hours": {
     "description": "A countdown with under a day to go: hours, then minutes as two digits (4h 07m left).",
     "placeholders": {
-      "hours": { "type": "Number", "example": "4", "description": "Whole hours left." },
-      "minutes": { "type": "Number", "example": "7", "description": "Minutes left after the hours, 0 to 59." }
+      "hours": {
+        "type": "Number",
+        "example": "4",
+        "description": "Whole hours left."
+      },
+      "minutes": {
+        "type": "Number",
+        "example": "7",
+        "description": "Minutes left after the hours, 0 to 59."
+      }
     }
   },
   "common.time.minutes": "{minutes, number, ::group-off}m left",
   "@common.time.minutes": {
     "description": "A countdown with under an hour to go (12m left).",
     "placeholders": {
-      "minutes": { "type": "Number", "example": "12", "description": "Whole minutes left." }
+      "minutes": {
+        "type": "Number",
+        "example": "12",
+        "description": "Whole minutes left."
+      }
     }
   },
   "common.leave.title": "Leave this journey",
@@ -1501,14 +1791,22 @@
   "@common.leave.fieldLabel": {
     "description": "Label of the box where the person types the word that confirms leaving.",
     "placeholders": {
-      "word": { "type": "String", "example": "LEAVE", "description": "The word to type, LEAVE. It is checked exactly as it is, so it is never translated." }
+      "word": {
+        "type": "String",
+        "example": "LEAVE",
+        "description": "The word to type, LEAVE. It is checked exactly as it is, so it is never translated."
+      }
     }
   },
   "common.leave.fieldHint": "This is the last step. Nothing happens until you type {word} and press Leave this journey now.",
   "@common.leave.fieldHint": {
     "description": "Under the box where the confirming word is typed. Leave this journey now is the name of the button beside it.",
     "placeholders": {
-      "word": { "type": "String", "example": "LEAVE", "description": "The word to type, LEAVE. Never translated." }
+      "word": {
+        "type": "String",
+        "example": "LEAVE",
+        "description": "The word to type, LEAVE. Never translated."
+      }
     }
   },
   "common.leave.confirm": "Leave this journey now",
@@ -1527,7 +1825,11 @@
   "@common.leave.consequenceTitle": {
     "description": "Title of the question asked before leaving a journey. It cannot be undone. Use your language’s own quotation marks around the name.",
     "placeholders": {
-      "journey": { "type": "String", "example": "Home in Fall", "description": "The journey’s name, as its journeyers wrote it, in any script." }
+      "journey": {
+        "type": "String",
+        "example": "Home in Fall",
+        "description": "The journey’s name, as its journeyers wrote it, in any script."
+      }
     }
   },
   "common.leave.consequence": "Your private moments here, and those you were keeping to share later, are deleted with their places and photos. Moments you shared stay with the others, still showing that you held them. Any proposal you made or invitation you sent that is still waiting is withdrawn. The journey’s History records that you left, and when. Nobody is sent an email or a notification. If you pay on the web for room in this journey, that payment has to end first. Room you pay for in the App Store or Google Play stays with this journey, and leaving doesn’t cancel it. Cancel it with Apple or Google, or it keeps renewing.",
@@ -1542,7 +1844,11 @@
   "@common.leave.left": {
     "description": "Message after a person has left a journey.",
     "placeholders": {
-      "journey": { "type": "String", "example": "Home in Fall", "description": "The journey’s name, as its journeyers wrote it, in any script." }
+      "journey": {
+        "type": "String",
+        "example": "Home in Fall",
+        "description": "The journey’s name, as its journeyers wrote it, in any script."
+      }
     }
   },
   "header.skip.story": "Skip to the main story",
@@ -1809,7 +2115,11 @@
   "@home.trip.eventHistory": {
     "description": "Button that opens the journey’s history of recorded changes, with how many there are.",
     "placeholders": {
-      "count": { "type": "Number", "example": "12", "description": "How many changes are recorded." }
+      "count": {
+        "type": "Number",
+        "example": "12",
+        "description": "How many changes are recorded."
+      }
     }
   },
   "home.trip.editJourney": "Edit journey",
@@ -1828,7 +2138,11 @@
   "@home.actor.changed": {
     "description": "Message after choosing who is writing in a browser-only ledger.",
     "placeholders": {
-      "name": { "type": "String", "example": "Asha", "description": "A journeyer’s name, as they wrote it, in any script." }
+      "name": {
+        "type": "String",
+        "example": "Asha",
+        "description": "A journeyer’s name, as they wrote it, in any script."
+      }
     }
   },
   "home.moment.hold": "Hold a moment",
@@ -1859,7 +2173,11 @@
   "@home.settings.button": {
     "description": "The button that opens Journey settings. When proposals to add someone are waiting for this person’s answer, it says how many.",
     "placeholders": {
-      "count": { "type": "Number", "example": "2", "description": "How many proposals are waiting for this person to answer; 0 for none." }
+      "count": {
+        "type": "Number",
+        "example": "2",
+        "description": "How many proposals are waiting for this person to answer; 0 for none."
+      }
     }
   },
   "home.guidance.eyebrow": "A small place to begin",
@@ -1878,8 +2196,16 @@
   "@home.guidance.progress": {
     "description": "Which of the check-in’s questions is showing.",
     "placeholders": {
-      "current": { "type": "Number", "example": "1", "description": "The question showing." },
-      "total": { "type": "Number", "example": "5", "description": "How many questions there are." }
+      "current": {
+        "type": "Number",
+        "example": "1",
+        "description": "The question showing."
+      },
+      "total": {
+        "type": "Number",
+        "example": "5",
+        "description": "How many questions there are."
+      }
     }
   },
   "home.guidance.next": "Next question",
@@ -1954,7 +2280,11 @@
   "@moment.photo.open": {
     "description": "Spoken name of a photo on a moment: opens it larger.",
     "placeholders": {
-      "name": { "type": "String", "example": "IMG_0412.jpg", "description": "The photo’s file name, or the word Image." }
+      "name": {
+        "type": "String",
+        "example": "IMG_0412.jpg",
+        "description": "The photo’s file name, or the word Image."
+      }
     }
   },
   "moment.photo.openLarger": "Open larger",
@@ -1965,7 +2295,11 @@
   "@moment.photo.openRemoved": {
     "description": "Spoken name of a removed photo: opens it larger.",
     "placeholders": {
-      "name": { "type": "String", "example": "IMG_0412.jpg", "description": "The photo’s file name, or the word Image." }
+      "name": {
+        "type": "String",
+        "example": "IMG_0412.jpg",
+        "description": "The photo’s file name, or the word Image."
+      }
     }
   },
   "moment.photo.unavailable": "Photo could not be loaded. Select to try again.",
@@ -2052,8 +2386,16 @@
   "@moment.form.deviceLocation": {
     "description": "The name given to a place taken from the device: its coordinates. It is kept with the moment as written.",
     "placeholders": {
-      "latitude": { "type": "String", "example": "51.5072", "description": "Latitude, four decimals, written as numbers are in code." },
-      "longitude": { "type": "String", "example": "-0.1276", "description": "Longitude, four decimals." }
+      "latitude": {
+        "type": "String",
+        "example": "51.5072",
+        "description": "Latitude, four decimals, written as numbers are in code."
+      },
+      "longitude": {
+        "type": "String",
+        "example": "-0.1276",
+        "description": "Longitude, four decimals."
+      }
     }
   },
   "moment.form.placeIncluded": "Included",
@@ -2320,7 +2662,11 @@
   "@sharing.copy.here": {
     "description": "First sentence under Journey sharing: how many people are in the journey.",
     "placeholders": {
-      "count": { "type": "Number", "example": "2", "description": "How many people are in the journey." }
+      "count": {
+        "type": "Number",
+        "example": "2",
+        "description": "How many people are in the journey."
+      }
     }
   },
   "sharing.copy.room": "There is room to add another person, and everybody here has to agree to them.",
@@ -2335,14 +2681,22 @@
   "@sharing.copy.reservedOne": {
     "description": "Follows the count when the only open place is held for one person invited.",
     "placeholders": {
-      "person": { "type": "String", "example": "as•••@example.com", "description": "The person invited: their name once they have joined, otherwise their email, partly hidden with dots." }
+      "person": {
+        "type": "String",
+        "example": "as•••@example.com",
+        "description": "The person invited: their name once they have joined, otherwise their email, partly hidden with dots."
+      }
     }
   },
   "sharing.copy.reservedMany": "{count, plural, other {{count, number, ::group-off} places are reserved, waiting for the people invited to accept.}}",
   "@sharing.copy.reservedMany": {
     "description": "Follows the count when the open places are held for several people invited (always two or more).",
     "placeholders": {
-      "count": { "type": "Number", "example": "2", "description": "How many places are held." }
+      "count": {
+        "type": "Number",
+        "example": "2",
+        "description": "How many places are held."
+      }
     }
   },
   "sharing.copy.separately": "Each person signs in separately.",
@@ -2413,42 +2767,66 @@
   "@sharing.member.createdBy": {
     "description": "A row in Journey record: who created the journey.",
     "placeholders": {
-      "name": { "type": "String", "example": "Asha", "description": "A journeyer’s name, as they wrote it, in any script." }
+      "name": {
+        "type": "String",
+        "example": "Asha",
+        "description": "A journeyer’s name, as they wrote it, in any script."
+      }
     }
   },
   "sharing.member.joined": "{name} joined the journey",
   "@sharing.member.joined": {
     "description": "A row in Journey record: someone who joined.",
     "placeholders": {
-      "name": { "type": "String", "example": "Asha", "description": "A journeyer’s name, as they wrote it, in any script." }
+      "name": {
+        "type": "String",
+        "example": "Asha",
+        "description": "A journeyer’s name, as they wrote it, in any script."
+      }
     }
   },
   "sharing.member.createdAt": "Created {time}",
   "@sharing.member.createdAt": {
     "description": "Under the creator’s row: when.",
     "placeholders": {
-      "time": { "type": "Object", "example": "Oct 12, 2026, 3:04 PM", "description": "A date and time, already written for the reader’s language. Drawn as a time element." }
+      "time": {
+        "type": "Object",
+        "example": "Oct 12, 2026, 3:04 PM",
+        "description": "A date and time, already written for the reader’s language. Drawn as a time element."
+      }
     }
   },
   "sharing.member.joinedAt": "Joined {time}",
   "@sharing.member.joinedAt": {
     "description": "Under a row: when they joined.",
     "placeholders": {
-      "time": { "type": "Object", "example": "Oct 12, 2026, 3:04 PM", "description": "A date and time, already written for the reader’s language. Drawn as a time element." }
+      "time": {
+        "type": "Object",
+        "example": "Oct 12, 2026, 3:04 PM",
+        "description": "A date and time, already written for the reader’s language. Drawn as a time element."
+      }
     }
   },
   "sharing.member.role": "{role, select, owner {Owner} creator {Creator} other {Journeyer}}",
   "@sharing.member.role": {
     "description": "A person’s part in the journey, beside their row. Owner holds the journey for everyone; Creator made it; Journeyer is anyone else.",
     "placeholders": {
-      "role": { "type": "String", "example": "owner", "description": "owner, creator or journeyer. Chosen by, never shown." }
+      "role": {
+        "type": "String",
+        "example": "owner",
+        "description": "owner, creator or journeyer. Chosen by, never shown."
+      }
     }
   },
   "sharing.member.roleYou": "{role, select, owner {Owner · You} creator {Creator · You} other {Journeyer · You}}",
   "@sharing.member.roleYou": {
     "description": "The same, on the reader’s own row.",
     "placeholders": {
-      "role": { "type": "String", "example": "owner", "description": "owner, creator or journeyer. Chosen by, never shown." }
+      "role": {
+        "type": "String",
+        "example": "owner",
+        "description": "owner, creator or journeyer. Chosen by, never shown."
+      }
     }
   },
   "sharing.member.makeOwner": "Make owner",
@@ -2459,7 +2837,11 @@
   "@sharing.member.showOthers": {
     "description": "Opens the rest of a long list of people.",
     "placeholders": {
-      "count": { "type": "Number", "example": "93", "description": "How many more people there are." }
+      "count": {
+        "type": "Number",
+        "example": "93",
+        "description": "How many more people there are."
+      }
     }
   },
   "sharing.member.emptyTitle": "No one is listed yet",
@@ -2474,29 +2856,49 @@
   "@sharing.reserved.title": {
     "description": "A row under Places reserved.",
     "placeholders": {
-      "person": { "type": "String", "example": "as•••@example.com", "description": "The person invited: their name once they have joined, otherwise their email, partly hidden with dots." }
+      "person": {
+        "type": "String",
+        "example": "as•••@example.com",
+        "description": "The person invited: their name once they have joined, otherwise their email, partly hidden with dots."
+      }
     }
   },
   "sharing.invitation.sentBy": "Sent by {name} · {time}",
   "@sharing.invitation.sentBy": {
     "description": "Under an invitation: who sent it, and when.",
     "placeholders": {
-      "name": { "type": "String", "example": "Asha", "description": "A journeyer’s name, as they wrote it, in any script." },
-      "time": { "type": "Object", "example": "Oct 12, 2026, 3:04 PM", "description": "A date and time, already written for the reader’s language. Drawn as a time element." }
+      "name": {
+        "type": "String",
+        "example": "Asha",
+        "description": "A journeyer’s name, as they wrote it, in any script."
+      },
+      "time": {
+        "type": "Object",
+        "example": "Oct 12, 2026, 3:04 PM",
+        "description": "A date and time, already written for the reader’s language. Drawn as a time element."
+      }
     }
   },
   "sharing.invitation.sentTo": "Invitation sent to {person}",
   "@sharing.invitation.sentTo": {
     "description": "A row in Invitation history.",
     "placeholders": {
-      "person": { "type": "String", "example": "as•••@example.com", "description": "The person invited: their name once they have joined, otherwise their email, partly hidden with dots." }
+      "person": {
+        "type": "String",
+        "example": "as•••@example.com",
+        "description": "The person invited: their name once they have joined, otherwise their email, partly hidden with dots."
+      }
     }
   },
   "sharing.invitation.timeToJoin": "Time to join: {left}",
   "@sharing.invitation.timeToJoin": {
     "description": "How long the person invited has left to accept.",
     "placeholders": {
-      "left": { "type": "String", "example": "3d 04h 07m left", "description": "The time left, already written (common.time.*)." }
+      "left": {
+        "type": "String",
+        "example": "3d 04h 07m left",
+        "description": "The time left, already written (common.time.*)."
+      }
     }
   },
   "sharing.invitation.withdraw": "Withdraw the invitation",
@@ -2507,7 +2909,11 @@
   "@sharing.invitation.sendAgainNote": {
     "description": "Under an invitation that can be sent again.",
     "placeholders": {
-      "time": { "type": "String", "example": "Oct 12, 2026, 3:04 PM", "description": "A date and time, already written." }
+      "time": {
+        "type": "String",
+        "example": "Oct 12, 2026, 3:04 PM",
+        "description": "A date and time, already written."
+      }
     }
   },
   "sharing.invitation.sendAgain": "Send it again",
@@ -2518,14 +2924,22 @@
   "@sharing.invitation.status": {
     "description": "Tag beside an invitation: what happened to it.",
     "placeholders": {
-      "status": { "type": "String", "example": "pending", "description": "The invitation’s state. Chosen by, never shown." }
+      "status": {
+        "type": "String",
+        "example": "pending",
+        "description": "The invitation’s state. Chosen by, never shown."
+      }
     }
   },
   "sharing.invitation.withdrawTitle": "Withdraw the invitation to {email}?",
   "@sharing.invitation.withdrawTitle": {
     "description": "Question before taking an invitation back.",
     "placeholders": {
-      "email": { "type": "String", "example": "as•••@example.com", "description": "An email address, partly hidden with dots. Never translated." }
+      "email": {
+        "type": "String",
+        "example": "as•••@example.com",
+        "description": "An email address, partly hidden with dots. Never translated."
+      }
     }
   },
   "sharing.invitation.withdrawConsequence": "Their link stops working, and the place it held is free again straight away. The journey’s history keeps a record that it was withdrawn.",
@@ -2544,32 +2958,64 @@
   "@sharing.proposal.proposedBy": {
     "description": "Under a proposal: who proposed the person, and when.",
     "placeholders": {
-      "name": { "type": "String", "example": "Asha", "description": "A journeyer’s name, as they wrote it, in any script." },
-      "time": { "type": "Object", "example": "Oct 12, 2026, 3:04 PM", "description": "A date and time, already written for the reader’s language. Drawn as a time element." }
+      "name": {
+        "type": "String",
+        "example": "Asha",
+        "description": "A journeyer’s name, as they wrote it, in any script."
+      },
+      "time": {
+        "type": "Object",
+        "example": "Oct 12, 2026, 3:04 PM",
+        "description": "A date and time, already written for the reader’s language. Drawn as a time element."
+      }
     }
   },
   "sharing.proposal.waiting": "{agreed, number, ::group-off} of {asked, number, ::group-off} have agreed · {pending, number, ::group-off} still to answer",
   "@sharing.proposal.waiting": {
     "description": "Under a proposal still being decided.",
     "placeholders": {
-      "agreed": { "type": "Number", "example": "1", "description": "How many agreed." },
-      "asked": { "type": "Number", "example": "3", "description": "How many were asked." },
-      "pending": { "type": "Number", "example": "2", "description": "How many have not answered." }
+      "agreed": {
+        "type": "Number",
+        "example": "1",
+        "description": "How many agreed."
+      },
+      "asked": {
+        "type": "Number",
+        "example": "3",
+        "description": "How many were asked."
+      },
+      "pending": {
+        "type": "Number",
+        "example": "2",
+        "description": "How many have not answered."
+      }
     }
   },
   "sharing.proposal.agreedCount": "{agreed, number, ::group-off} of {asked, number, ::group-off} agreed",
   "@sharing.proposal.agreedCount": {
     "description": "Under a settled proposal.",
     "placeholders": {
-      "agreed": { "type": "Number", "example": "3", "description": "How many agreed." },
-      "asked": { "type": "Number", "example": "3", "description": "How many were asked." }
+      "agreed": {
+        "type": "Number",
+        "example": "3",
+        "description": "How many agreed."
+      },
+      "asked": {
+        "type": "Number",
+        "example": "3",
+        "description": "How many were asked."
+      }
     }
   },
   "sharing.proposal.timeToAnswer": "Time to answer: {left}",
   "@sharing.proposal.timeToAnswer": {
     "description": "How long the journeyers have left to answer.",
     "placeholders": {
-      "left": { "type": "String", "example": "3d 04h 07m left", "description": "The time left, already written (common.time.*)." }
+      "left": {
+        "type": "String",
+        "example": "3d 04h 07m left",
+        "description": "The time left, already written (common.time.*)."
+      }
     }
   },
   "sharing.proposal.agree": "Agree to add them",
@@ -2592,37 +3038,65 @@
   "@sharing.proposal.askedWaiting": {
     "description": "One person’s row in the record of a proposal: when they were asked, and that they have not answered.",
     "placeholders": {
-      "time": { "type": "Object", "example": "Oct 12, 2026, 3:04 PM", "description": "A date and time, already written for the reader’s language. Drawn as a time element." }
+      "time": {
+        "type": "Object",
+        "example": "Oct 12, 2026, 3:04 PM",
+        "description": "A date and time, already written for the reader’s language. Drawn as a time element."
+      }
     }
   },
   "sharing.proposal.askedAnswered": "Asked {time} · {decision, select, agree {agreed} other {declined}} {answeredAt}",
   "@sharing.proposal.askedAnswered": {
     "description": "One person’s row in the record of a proposal: when they were asked, what they answered, and when.",
     "placeholders": {
-      "time": { "type": "Object", "example": "Oct 12, 2026, 3:04 PM", "description": "A date and time, already written for the reader’s language. Drawn as a time element." },
-      "decision": { "type": "String", "example": "agree", "description": "agree or decline. Chosen by, never shown." },
-      "answeredAt": { "type": "String", "example": "Oct 12, 2026, 3:04 PM", "description": "When they answered, already written." }
+      "time": {
+        "type": "Object",
+        "example": "Oct 12, 2026, 3:04 PM",
+        "description": "A date and time, already written for the reader’s language. Drawn as a time element."
+      },
+      "decision": {
+        "type": "String",
+        "example": "agree",
+        "description": "agree or decline. Chosen by, never shown."
+      },
+      "answeredAt": {
+        "type": "String",
+        "example": "Oct 12, 2026, 3:04 PM",
+        "description": "When they answered, already written."
+      }
     }
   },
   "sharing.proposal.status": "{status, select, open {Waiting on everyone} agreed {Agreed} declined {Declined} withdrawn {Withdrawn} lapsed {Lapsed} other {Recorded}}",
   "@sharing.proposal.status": {
     "description": "Tag beside a proposal: where it stands.",
     "placeholders": {
-      "status": { "type": "String", "example": "open", "description": "The proposal’s state. Chosen by, never shown." }
+      "status": {
+        "type": "String",
+        "example": "open",
+        "description": "The proposal’s state. Chosen by, never shown."
+      }
     }
   },
   "sharing.proposal.decision": "{decision, select, agree {Agreed} decline {Declined} pending {Waiting} other {Recorded}}",
   "@sharing.proposal.decision": {
     "description": "Tag beside one person’s answer.",
     "placeholders": {
-      "decision": { "type": "String", "example": "pending", "description": "Their answer. Chosen by, never shown." }
+      "decision": {
+        "type": "String",
+        "example": "pending",
+        "description": "Their answer. Chosen by, never shown."
+      }
     }
   },
   "sharing.proposal.withdrawTitle": "Withdraw the proposal to add {email}?",
   "@sharing.proposal.withdrawTitle": {
     "description": "Question before taking a proposal back.",
     "placeholders": {
-      "email": { "type": "String", "example": "as•••@example.com", "description": "An email address, partly hidden with dots. Never translated." }
+      "email": {
+        "type": "String",
+        "example": "as•••@example.com",
+        "description": "An email address, partly hidden with dots. Never translated."
+      }
     }
   },
   "sharing.proposal.withdrawConsequence": "The question is taken back, and nothing is sent to them. Nobody is recorded as having refused, and this person can be proposed again later.",
@@ -2641,7 +3115,11 @@
   "@sharing.proposal.agreeTitle": {
     "description": "Question before agreeing.",
     "placeholders": {
-      "email": { "type": "String", "example": "as•••@example.com", "description": "An email address, partly hidden with dots. Never translated." }
+      "email": {
+        "type": "String",
+        "example": "as•••@example.com",
+        "description": "An email address, partly hidden with dots. Never translated."
+      }
     }
   },
   "sharing.proposal.agreeConsequence": "Once every journeyer has agreed and they join, they can read every moment this journey has shared, including moments shared long before they arrived. Moments you kept private stay private.",
@@ -2652,7 +3130,11 @@
   "@sharing.proposal.declineTitle": {
     "description": "Question before declining.",
     "placeholders": {
-      "email": { "type": "String", "example": "as•••@example.com", "description": "An email address, partly hidden with dots. Never translated." }
+      "email": {
+        "type": "String",
+        "example": "as•••@example.com",
+        "description": "An email address, partly hidden with dots. Never translated."
+      }
     }
   },
   "sharing.proposal.declineConsequence": "This settles it for everybody straight away, and nothing is ever sent to them. Your name and the time are kept with the decision, where the other journeyers can see them.",
