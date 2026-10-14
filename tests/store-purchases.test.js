@@ -11,7 +11,7 @@ import { PlatformService } from '../server/platform.js';
 import { AppleTransactionVerifier } from '../server/store-apple.js';
 import { GooglePlayError, GooglePushVerifier } from '../server/store-google.js';
 import { passEnd, storeProduct } from '../server/store-products.js';
-import { StorePurchaseService } from '../server/store-purchases.js';
+import { StorePurchaseService, createStorePurchaseService } from '../server/store-purchases.js';
 import { appleChain, signNotification, signTransaction, transactionPayload } from './support/apple-signing.js';
 import { PUSH_AUDIENCE, PUSH_EMAIL, googleKeys, pushBody, pushToken } from './support/google-push.js';
 
@@ -2161,4 +2161,39 @@ test('a Google refund retried while Google doesn’t list it counts once toward 
   assert.equal(h.logged.filter((line) => line.message === 'store refunds spiking').length, 0, 'four deliveries of one message are one refund');
   await h.play(voidedNote('tok-other'), { messageId: '9600000000000002' });
   assert.equal(h.logged.filter((line) => line.message === 'store refunds spiking').length, 1);
+});
+
+// --- Setup ---------------------------------------------------------------------------------------
+
+test('setup with no verifiers configures none', () => {
+  const config = { appleRootCertificates: [], googlePlayServiceAccount: null, googlePlayNotifications: {} };
+  const service = createStorePurchaseService({ pool: null, config, platform: null });
+  assert.equal(service.apple, null);
+  assert.equal(service.google, null);
+  assert.equal(service.googlePush, null);
+});
+
+test('setup configures GooglePushVerifier when config is provided', () => {
+  const config = { appleRootCertificates: [], googlePlayServiceAccount: null, googlePlayNotifications: { audience: PUSH_AUDIENCE, serviceAccountEmail: PUSH_EMAIL } };
+  const service = createStorePurchaseService({ pool: null, config, platform: null });
+  assert.ok(service.googlePush instanceof GooglePushVerifier);
+});
+
+test('setup configures AppleTransactionVerifier when config is provided', () => {
+  const config = { appleRootCertificates: appleChain().rootBase64, googlePlayServiceAccount: null, googlePlayNotifications: {} };
+  const service = createStorePurchaseService({ pool: null, config, platform: null });
+  assert.ok(service.apple instanceof AppleTransactionVerifier);
+});
+
+test('setup history writes events via the platform service', async () => {
+  const config = { appleRootCertificates: [], googlePlayServiceAccount: null, googlePlayNotifications: {} };
+  let calls = [];
+  const platform = {
+    appendEvent: (client, event) => { calls.push({ client, event }); return Promise.resolve(); }
+  };
+  const service = createStorePurchaseService({ pool: null, config, platform });
+  const mockClient = { name: 'mock' };
+  const mockEvent = { name: 'event' };
+  await service.history(mockClient, mockEvent);
+  assert.deepEqual(calls, [{ client: mockClient, event: mockEvent }]);
 });
