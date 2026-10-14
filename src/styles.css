@@ -346,9 +346,9 @@ h1 em { color: var(--on-accent); font-weight: 400; opacity: .82; }
 
 /* The journeys' row and New journey take the bar's whole width on a line of their own (#404). */
 .trip-bar { --trip-bar-inline: clamp(18px, 5vw, 72px); align-items: center; background: var(--card); border-bottom: 1px solid var(--line); display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr) auto; padding: 20px var(--trip-bar-inline); }
-.trip-bar small, .trip-bar strong, .trip-bar span { display: block; }
+.trip-bar small, .trip-bar strong, #trip-name, .trip-bar span { display: block; }
 .trip-bar small { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
-.trip-bar strong { font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 27px; }
+.trip-bar strong, #trip-name { font-family: Gelasio, Georgia, var(--serif-scripts), serif; font-size: 27px; font-weight: bold; letter-spacing: normal; line-height: inherit; max-width: none; margin: 0; }
 .trip-bar span { color: var(--muted); font-size: 14px; }
 .trip-record-links { --record-links-row-gap: 5px; --record-links-column-gap: 12px; align-items: center; display: flex; flex-wrap: wrap; gap: var(--record-links-row-gap) var(--record-links-column-gap); isolation: isolate; margin-top: 7px; }
 .trip-record-links button { background: transparent; border: 0; color: var(--spruce); font-size: 14px; font-weight: 900; padding: 0; position: relative; text-decoration: underline; text-underline-offset: 3px; z-index: -1; }

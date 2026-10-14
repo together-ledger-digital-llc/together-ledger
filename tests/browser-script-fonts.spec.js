@@ -95,10 +95,10 @@ test('English and Spanish fetch only Gelasio, never the Hindi or Bengali serif, 
   await page.evaluate(() => {
     document.documentElement.lang = 'es-419';
     document.querySelector('#moments-title').textContent = '¿Qué guardó cada uno? ¡Año de mañanas! Él, ÁÉÍÓÚÜÑ «sí»';
-    document.querySelector('.trip-bar strong').textContent = 'Nuestro viaje: añoranza, pingüino, corazón';
+    document.querySelector('#trip-name').textContent = 'Nuestro viaje: añoranza, pingüino, corazón';
   });
   await page.evaluate(() => document.fonts.ready);
-  for (const selector of ['#moments-title', '.trip-bar strong']) {
+  for (const selector of ['#moments-title', '#trip-name']) {
     expect(await drawnWith(page, selector), `${selector}: every letter in Gelasio, none in a fallback`).toEqual(['Gelasio']);
   }
   expect(tiro(fetched)).toEqual([]);
@@ -189,9 +189,9 @@ for (const lang of ['hi', 'bn']) {
       await beginWithAMoment(page);
 
       let english = await targets(page, 'main');
-      await inScript(page, lang, { '.trip-bar strong': 'journey', '#moment-timeline .moment-card > strong': 'momentTitle' });
+      await inScript(page, lang, { '#trip-name': 'journey', '#moment-timeline .moment-card > strong': 'momentTitle' });
       expect(await drawnWith(page, '#moment-timeline .moment-card > strong')).toContain(FACE[lang]);
-      expect(await drawnWith(page, '.trip-bar strong')).toContain(FACE[lang]);
+      expect(await drawnWith(page, '#trip-name')).toContain(FACE[lang]);
       await expectNoHorizontalOverflow(page, `${lang} home at ${width}px`);
       expectTargetsHeld(english, await targets(page, 'main'), `${lang} home at ${width}px`);
 
@@ -257,7 +257,7 @@ test('Gelasio draws every serif element in its own Regular, Italic or Bold, at 4
   await beginWithAMoment(page);
   await page.evaluate(() => document.fonts.ready);
   expect(await drawnAs('#moment-timeline .moment-card > strong')).toEqual(['Gelasio-Regular']);
-  expect(await drawnAs('.trip-bar strong')).toEqual(['Gelasio-Bold']);
+  expect(await drawnAs('#trip-name')).toEqual(['Gelasio-Bold']);
   seen.push(...await serifElements(page));
   await page.getByRole('button', { name: 'Journey settings' }).click();
   await expect(page.locator('#settings-dialog')).toBeVisible();
