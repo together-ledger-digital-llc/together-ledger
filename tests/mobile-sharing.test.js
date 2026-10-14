@@ -5,6 +5,8 @@ import test from 'node:test';
 import ts from 'typescript';
 import * as model from '../src/model.js';
 import * as momentThemes from '../src/moment-themes.js';
+import { setFormatter } from '../apps/mobile/src/i18n/sentences.js';
+import { createFormatter } from '../src/i18n/format.js';
 
 // TL-M-09 (#184): the phone's journey settings, compared with what the web actually runs.
 
@@ -198,6 +200,16 @@ test('the phone shows the grace banner on the ledger, and the payer can ask from
   assert.match(banner, /requestMoreGrace\(journeyId\)/);
   assert.match(await read('app/ledger.tsx'), /<GraceBanner /);
   assert.match(await read('src/api/client.ts'), /\/grace-requests`/);
+});
+
+test('amounts and times follow the active formatter', () => {
+  setFormatter(createFormatter({ locale: 'bn', numberingSystem: 'beng', regionalDates: true, device: 'en-US' }));
+  try {
+    assert.ok(view.valueLabel('budgetCents', 1250).includes('১২'));
+    assert.ok(view.dateTimeLabel('2026-10-01T13:33:11Z').includes('২০২৬'));
+  } finally {
+    setFormatter(null);
+  }
 });
 
 test('history is newest first, attributed, and lists only what changed, as the web does', () => {

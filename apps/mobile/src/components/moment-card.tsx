@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSession } from '../auth/session';
-import { locationContext, momentLabel, moneyContext, normalizeMomentTheme, visibilityCue, visibilityRole, dateLabel, type MomentImage, type ShownMoment } from '../journey/journey-view';
+import { locationContext, momentLabel, moneyContext, normalizeMomentTheme, visibilityCue, visibilityRole, shownDate, type MomentImage, type ShownMoment } from '../journey/journey-view';
 import { t } from '../i18n';
 import { fonts, getTheme, leading, scriptStyles, targetSize, tracking, useTheme, type ThemeColors } from '../theme';
 
@@ -27,7 +27,7 @@ export function MomentCard({ moment, actions }: { moment: ShownMoment; actions?:
     <View style={[styles.card, { backgroundColor: ownTheme ? colors.bg : colors.surface, borderColor: colors.border, borderLeftColor: cueColor, borderRadius: radius.l }]}>
       <View style={styles.meta}>
         <Chip colors={colors} radius={radius.pill} text={kind} />
-        <Text style={[styles.metaText, { color: colors.muted }]}>{dateLabel(moment.occurredOn)}</Text>
+        <Text style={[styles.metaText, { color: colors.muted }]}>{shownDate(moment.occurredOn)}</Text>
         <View accessible accessibilityLabel={t('common.moment.visibilitySpoken', { visibility: cue.label })} style={[styles.chip, { borderColor: colors.border, borderRadius: radius.pill, backgroundColor: ownTheme ? colors.bg : colors.surface }]}>
           <Text style={[styles.chipText, { color: cueColor }]}>
             <Text style={styles.glyph}>{cue.glyph} </Text>
