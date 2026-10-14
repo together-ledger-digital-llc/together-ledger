@@ -7,7 +7,7 @@
  */
 import { dateLabel, money, MOMENT_TYPES, RECENT_MOMENTS_SHOWN, seeAllShown } from '../../../../src/model.js';
 import { MOMENT_THEMES, momentThemeLabel, normalizeMomentTheme } from '../../../../src/moment-themes.js';
-import { t } from '../i18n/sentences.js';
+import { formatter, t } from '../i18n/sentences.js';
 import { momentThemeName, themeName } from '../i18n/theme-names.js';
 import type { MomentView } from '../storage/ledger-store';
 import type { Grace } from './sharing-view';
@@ -126,15 +126,19 @@ export function momentListHeading(compact: boolean) {
 
 /** What a screen reader hears for a compact row: its title, its date and its visibility. */
 export function compactRowLabel(moment: Moment) {
-  return `${moment.title}, ${dateLabel(moment.occurredOn)}, Visibility: ${visibilityCue(moment.visibility).label}`;
+  return `${moment.title}, ${dateLabel(moment.occurredOn, undefined, formatter())}, Visibility: ${visibilityCue(moment.visibility).label}`;
 }
 
 export function journeyPeriod(journey: Journey) {
   const pieces: string[] = [];
   if (journey.location) pieces.push(journey.location);
-  pieces.push(journey.startDateStatus === 'unknown' ? t('common.journey.beganUnknown') : t('common.journey.began', { date: dateLabel(journey.startDate) }));
-  pieces.push(journey.endDateStatus === 'forever' ? t('common.journey.noEnd') : journey.endDateStatus === 'unsure' ? t('common.journey.endUnsure') : t('common.journey.ends', { date: dateLabel(journey.endDate) }));
+  pieces.push(journey.startDateStatus === 'unknown' ? t('common.journey.beganUnknown') : t('common.journey.began', { date: dateLabel(journey.startDate, undefined, formatter()) }));
+  pieces.push(journey.endDateStatus === 'forever' ? t('common.journey.noEnd') : journey.endDateStatus === 'unsure' ? t('common.journey.endUnsure') : t('common.journey.ends', { date: dateLabel(journey.endDate, undefined, formatter()) }));
   return pieces.join(' · ');
+}
+
+export function shownDate(date: string) {
+  return dateLabel(date, undefined, formatter());
 }
 
 /** Newest first, by the day it happened and then by its last change, as the web sorts. */
@@ -180,7 +184,7 @@ export function openThreads(snapshot: Snapshot) {
 }
 
 export function moneyContext(moment: Moment) {
-  return moment.moneyCents == null ? null : t('common.moment.moneyContext', { amount: money(moment.moneyCents, moment.moneyCurrency) });
+  return moment.moneyCents == null ? null : t('common.moment.moneyContext', { amount: money(moment.moneyCents, moment.moneyCurrency, formatter()) });
 }
 
 export function locationContext(moment: Moment) {

@@ -5,6 +5,8 @@ import ts from 'typescript';
 import * as model from '../src/model.js';
 import * as momentThemes from '../src/moment-themes.js';
 import { t, webConstant, webFunction } from './fixtures/web-english.js';
+import { setFormatter } from '../apps/mobile/src/i18n/sentences.js';
+import { createFormatter } from '../src/i18n/format.js';
 
 const mobile = new URL('../apps/mobile/', import.meta.url);
 const read = (path) => readFile(new URL(path, mobile), 'utf8');
@@ -45,6 +47,13 @@ test('dates, money and moment types are the web\'s own functions, not copies', (
 
 test('a journey\'s period and a moment\'s label read exactly as the web writes them', () => {
   const journeyPeriod = webFunction('journeyPeriod', ['dateLabel', model.dateLabel], ['format', null]);
+  try {
+    setFormatter(createFormatter({ locale: 'bn', numberingSystem: 'beng', regionalDates: true, device: 'en-US' }));
+    assert.ok(view.journeyPeriod({ startDate: '2026-05-14', startDateStatus: 'exact', endDateStatus: 'forever' }).includes('১৪'), "the journey period uses the formatter");
+    assert.ok(!view.journeyPeriod({ startDate: '2026-05-14', startDateStatus: 'exact', endDateStatus: 'forever' }).includes('14'), "the journey period uses the formatter");
+  } finally {
+    setFormatter(null);
+  }
   const momentLabel = webFunction('momentLabel', ['momentKindName', momentKindName]);
   const journeys = [
     { location: 'Marlow', startDate: '2026-05-14', startDateStatus: 'exact', endDate: '2026-06-18', endDateStatus: 'date' },
