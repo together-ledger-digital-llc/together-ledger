@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { compactRowLabel, dateLabel, momentLabel, normalizeMomentTheme, visibilityCue, visibilityRole, type ShownMoment } from '../journey/journey-view';
+import { compactRowLabel, shownDate, momentLabel, normalizeMomentTheme, visibilityCue, visibilityRole, type ShownMoment } from '../journey/journey-view';
 import { fonts, getTheme, leading, scriptStyles, targetSize, tracking, useTheme } from '../theme';
 import { MomentCard } from './moment-card';
 
@@ -31,7 +31,7 @@ export function MomentRow({ moment, open, onToggle, actions }: { moment: ShownMo
       >
         <View style={styles.copy}>
           <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.title, fonts.serif, { color: colors.fg }]}>{moment.title}</Text>
-          <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.meta, { color: colors.muted }]}>{dateLabel(moment.occurredOn)} · {momentLabel(moment.kind, moment.kindLabel)}</Text>
+          <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.meta, { color: colors.muted }]}>{shownDate(moment.occurredOn)} · {momentLabel(moment.kind, moment.kindLabel)}</Text>
         </View>
         <View style={[styles.chip, { borderColor: colors.border, borderRadius: radius.pill, backgroundColor: background }]}>
           <Text style={[styles.chipText, { color: cueColor }]}>
