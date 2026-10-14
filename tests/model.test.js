@@ -7,6 +7,7 @@ import {
   appendJourneyEvent,
   conversationPrompts,
   countOf,
+  dateLabel,
   dateRange,
   demoState,
   groupDayByCategory,
@@ -14,6 +15,7 @@ import {
   isValidState,
   localDay,
   migrateState,
+  money,
   MOMENT_NAME_MISSING,
   normalizeConcern,
   normalizeEntry,
@@ -289,4 +291,28 @@ test('a browser journey can begin on a date still to come, and still cannot end 
   assert.equal(trip.startDate, '2099-06-01');
   assert.equal(normalizeTrip({ ...planned, endDateStatus: 'date', endDate: '2099-06-14' }).endDate, '2099-06-14');
   assert.throws(() => normalizeTrip({ ...planned, endDateStatus: 'date', endDate: '2099-05-31' }), /The end date must be on or after the start date\./);
+});
+
+test('dateLabel and money respect the active language via the format argument', async () => {
+  const { createFormatter } = await import('../src/i18n/format.js');
+  const en = createFormatter({ locale: 'en-US', regionalDates: true, numberingSystem: 'latn', device: 'en-US' });
+  const hi = createFormatter({ locale: 'hi-IN', regionalDates: true, numberingSystem: 'latn', device: 'en-US' });
+  const bn = createFormatter({ locale: 'bn', regionalDates: true, numberingSystem: 'beng', device: 'en-US' });
+  const es = createFormatter({ locale: 'es-419', regionalDates: true, numberingSystem: 'latn', device: 'en-US' });
+  const hiLatn = createFormatter({ locale: 'en-IN', regionalDates: true, numberingSystem: 'latn', device: 'en-US' });
+
+  // dateLabel tests
+  assert.equal(dateLabel('2026-10-11', undefined, en), 'Oct 11');
+  assert.equal(dateLabel('2026-10-11', undefined, hi), '11 अक्टू॰');
+  assert.equal(dateLabel('2026-10-11', undefined, bn), '১১ অক্টো');
+  assert.equal(dateLabel('2026-10-11', undefined, es), '11 oct');
+  assert.match(dateLabel('2026-10-11', undefined, hiLatn), /11 Oct|Oct 11/);
+
+  // money tests
+  assert.equal(money(1250, 'USD', en), '$12.50');
+  assert.equal(money(1250, 'USD', hi), '$12.50');
+  assert.match(money(1250, 'USD', bn), /১২\.৫০/);
+  // Different browsers may output es-419 slightly differently so we just check it doesn't throw and looks formatted.
+  assert.match(money(1250, 'USD', es), /12\.50|12,50/);
+  assert.equal(money(1250, 'USD', hiLatn), '$12.50');
 });

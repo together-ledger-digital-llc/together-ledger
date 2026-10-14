@@ -39,12 +39,12 @@ test('dates, money and moment types are the web\'s own functions, not copies', (
   assert.equal(view.normalizeMomentTheme, momentThemes.normalizeMomentTheme);
   assert.equal(unmarked(view.moneyContext({ moneyCents: 1250, moneyCurrency: 'USD' })), `${model.money(1250, 'USD')} is held here as context, not a score.`);
   assert.equal(english['common.moment.moneyContext'], '{amount} is held here as context, not a score.');
-  assert.ok(web.includes("<p>${sentenceMarkup('common.moment.moneyContext', { amount: money(moment.moneyCents, moment.moneyCurrency) })}</p>"));
+  assert.ok(web.includes("<p>${sentenceMarkup('common.moment.moneyContext', { amount: money(moment.moneyCents, moment.moneyCurrency, format) })}</p>"));
   assert.equal(view.moneyContext({ moneyCents: null }), null);
 });
 
 test('a journey\'s period and a moment\'s label read exactly as the web writes them', () => {
-  const journeyPeriod = webFunction('journeyPeriod', ['dateLabel', model.dateLabel]);
+  const journeyPeriod = webFunction('journeyPeriod', ['dateLabel', model.dateLabel], ['format', null]);
   const momentLabel = webFunction('momentLabel', ['momentKindName', momentKindName]);
   const journeys = [
     { location: 'Marlow', startDate: '2026-05-14', startDateStatus: 'exact', endDate: '2026-06-18', endDateStatus: 'date' },
