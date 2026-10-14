@@ -3,6 +3,9 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import ts from 'typescript';
 
+import { setFormatter } from '../apps/mobile/src/i18n/sentences.js';
+import { createFormatter } from '../src/i18n/format.js';
+
 // An invitation on the phone (TL-M-14, #266): reading the code from a tapped or pasted link in
 // every shape it has been sent in, keeping it through signing in and registering, and what the
 // phone says about each kind of invitation. What the server answers is proven through this same
@@ -252,4 +255,14 @@ test('the words keep the product\'s voice: no seats or slots, nobody removed, an
   assert.equal(words.INVITATION_WORDS.notNowDone(null), 'Nothing was sent. The link in your email still works if you change your mind.');
   assert.match(words.INVITATION_WORDS.notNowDone('Oct 24, 2026'), /^Nothing was sent\. The invitation stays open until Oct 24, 2026,/);
   assert.equal(words.invitationDate('not a date'), null);
+});
+
+test('invitationDate follows the chosen language when a formatter is set', () => {
+  try {
+    setFormatter(createFormatter({ locale: 'bn', numberingSystem: 'beng', regionalDates: true, device: 'en-US' }));
+    assert.match(words.invitationDate('2026-10-01T13:33:11Z'), /২০২৬/);
+    assert.equal(words.invitationDate(''), null);
+  } finally {
+    setFormatter(null);
+  }
 });
