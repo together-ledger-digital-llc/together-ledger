@@ -392,6 +392,14 @@
   "@common.account.identifier": {
     "description": "Label of the sign-in field that takes either the email or the username."
   },
+  "common.password.hide": "Hide password",
+  "@common.password.hide": {
+    "description": "Accessible name for the button that hides the typed password again."
+  },
+  "common.password.show": "Show password",
+  "@common.password.show": {
+    "description": "Accessible name for the button that makes the typed password visible."
+  },
   "common.account.password": "Password",
   "@common.account.password": {
     "description": "Label of the password field, on sign-in and on creating an account."
@@ -576,6 +584,10 @@
     "description": "Under a journey's name, when it has no end."
   },
   "common.journey.endUnsure": "Ending not decided yet",
+  "common.date.notSet": "Date not set",
+  "@common.date.notSet": {
+    "description": "In place of a moment's date when it has none. Short: it sits beside the moment's kind."
+  },
   "@common.journey.endUnsure": {
     "description": "Under a journey's name, when its end is not decided."
   },
