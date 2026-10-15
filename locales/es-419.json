@@ -90,6 +90,8 @@
   "common.account.changePassword": "Cambiar contraseña",
   "common.account.signInTitle": "Iniciar sesión",
   "common.account.identifier": "Correo electrónico o nombre de usuario",
+  "common.password.hide": "Ocultar contraseña",
+  "common.password.show": "Mostrar contraseña",
   "common.account.password": "Contraseña",
   "common.account.signIn": "Iniciar sesión",
   "common.account.signingIn": "Iniciando sesión…",

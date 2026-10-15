@@ -6,12 +6,14 @@ test('each view has exactly one h1 and no skipped levels, and dialogs start at h
 
   // Just checking that there's one h1 per view using locator assertions on ids since it accurately verifies the presence.
   await expect(page.locator('#welcome:not([hidden]) #welcome-title')).toHaveCount(1);
+  await expect(page.locator('h1:visible')).toHaveCount(1);
 
   await page.locator('[data-begin-ledger]').first().click();
   await page.locator('[data-close-moment]').first().click();
 
   await expect(page.locator('#ledger-app:not([hidden]) #trip-name')).toHaveCount(1);
   await expect(page.locator('#trip-name')).toHaveText('A shared space');
+  await expect(page.locator('h1:visible')).toHaveCount(1);
 
   await page.getByRole('button', { name: 'Journey settings' }).click();
   await expect(page.locator('#settings-dialog')).toBeVisible();
