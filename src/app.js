@@ -1055,6 +1055,8 @@ function render() {
   const accountNeedsJourney = Boolean(accountUser && !isCloudJourney(trip));
   renderJourneyControls(trip);
   $('.trip-bar').hidden = isEmptyStart;
+  $('#start-name').hidden = !isEmptyStart;
+  $('#start-name').textContent = trip.name;
   // The ＋ is drawn beside the words rather than written in them: it is the same in every language.
   $$('[data-open-moment]').forEach((button) => { button.textContent = accountNeedsJourney ? t('home.journey.create') : isEmptyStart ? t('home.moment.begin') : `＋ ${t('home.moment.hold')}`; });
   $('#trip-name').textContent = trip.name;
