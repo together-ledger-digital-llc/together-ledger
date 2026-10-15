@@ -90,6 +90,8 @@
   "common.account.changePassword": "পাসওয়ার্ড চেঞ্জ করুন",
   "common.account.signInTitle": "সাইন ইন",
   "common.account.identifier": "ইমেইল বা ইউজারনেম",
+  "common.password.hide": "পাসওয়ার্ড লুকান",
+  "common.password.show": "পাসওয়ার্ড দেখান",
   "common.account.password": "পাসওয়ার্ড",
   "common.account.signIn": "সাইন ইন",
   "common.account.signingIn": "সাইন ইন হচ্ছে…",
