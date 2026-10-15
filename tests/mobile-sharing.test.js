@@ -56,7 +56,7 @@ test('countdowns are the web\'s own function, and statuses read as the web label
   for (const status of ['open', 'agreed', 'declined', 'withdrawn', 'lapsed', 'something-new']) assert.equal(view.proposalStatusLabel(status), proposalStatus(status));
   for (const value of ['agree', 'decline', 'pending', 'unknown']) assert.equal(view.proposalDecisionLabel(value), decision(value));
   for (const status of ['accepted', 'expired', 'pending', 'revoked', 'other']) assert.equal(view.invitationStatusLabel(status), invitation(status));
-  const dateTimeLabel = webFunction('dateTimeLabel');
+  const dateTimeLabel = webFunction('dateTimeLabel', ['format', null]);
   for (const value of ['2026-10-01T13:33:11Z', '', null, 'not a date']) assert.equal(view.dateTimeLabel(value), dateTimeLabel(value));
 });
 
@@ -364,7 +364,7 @@ test('a place held for someone invited reads as reserved, the same on the phone 
   const reservedInvitations = webFunction('reservedInvitations');
   const sharingCopy = webFunction('sharingCopy', ['invitedPerson', invitedPerson]);
   const splitProposals = webFunction('splitProposals');
-  const dateTimeLabel = webFunction('dateTimeLabel');
+  const dateTimeLabel = webFunction('dateTimeLabel', ['format', null]);
   const waiting = { id: 'i1', email: 's••d@gmail.com', status: 'pending', invitedByDisplayName: 'Alex', sentAt: '2026-10-08T10:00:00Z', expiresAt: '2026-10-22T10:00:00Z' };
   const another = { ...waiting, id: 'i2', email: 'a••@gmail.com' };
   const joined = { ...waiting, id: 'i3', status: 'accepted', joinedDisplayName: 'Sam' };
