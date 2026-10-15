@@ -12,19 +12,19 @@ test.describe('show password', () => {
 
     const toggleButton = page.locator('#login-form .show-password-button');
     await expect(toggleButton).toBeVisible();
-    await expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
+    await expect(toggleButton).not.toHaveAttribute('aria-pressed');
     await expect(toggleButton).toHaveAttribute('aria-label', 'Show password');
     await expect(toggleButton).toHaveAttribute('data-i18n-aria-label', 'common.password.show');
 
     await toggleButton.click();
     await expect(passwordInput).toHaveAttribute('type', 'text');
-    await expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
+    await expect(toggleButton).not.toHaveAttribute('aria-pressed');
     await expect(toggleButton).toHaveAttribute('aria-label', 'Hide password');
     await expect(toggleButton).toHaveAttribute('data-i18n-aria-label', 'common.password.hide');
 
     await toggleButton.click();
     await expect(passwordInput).toHaveAttribute('type', 'password');
-    await expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
+    await expect(toggleButton).not.toHaveAttribute('aria-pressed');
     await expect(toggleButton).toHaveAttribute('aria-label', 'Show password');
     await expect(toggleButton).toHaveAttribute('data-i18n-aria-label', 'common.password.show');
   });

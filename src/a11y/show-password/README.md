@@ -6,7 +6,7 @@ A portable kit for adding a "show password" button to password inputs.
 
 It exports a function that attaches an accessible "show password" toggle button to a password field.
 The toggle lets a person read the password they are typing to verify it. Hidden is always the default.
-The field is returned to hidden when its form is submitted, and when the page is left.
+The field is returned to hidden when its form is submitted, and when the page is left. Note that the button does not report an `aria-pressed` state because its label changes from "Show password" to "Hide password".
 
 ## How to use it
 

@@ -7,7 +7,6 @@ export function showPassword(input, t) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'show-password-button';
-  button.setAttribute('aria-pressed', 'false');
   button.setAttribute('data-i18n-aria-label', 'common.password.show');
   button.setAttribute('aria-label', t('common.password.show'));
 
@@ -20,7 +19,6 @@ export function showPassword(input, t) {
 
   function hide() {
     input.type = 'password';
-    button.setAttribute('aria-pressed', 'false');
     button.setAttribute('data-i18n-aria-label', 'common.password.show');
     button.setAttribute('aria-label', t('common.password.show'));
     button.innerHTML = eyeIcon;
@@ -29,7 +27,6 @@ export function showPassword(input, t) {
   function toggle() {
     if (input.type === 'password') {
       input.type = 'text';
-      button.setAttribute('aria-pressed', 'true');
       button.setAttribute('data-i18n-aria-label', 'common.password.hide');
       button.setAttribute('aria-label', t('common.password.hide'));
       button.innerHTML = eyeSlashIcon;

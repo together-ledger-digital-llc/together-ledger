@@ -64,21 +64,21 @@ test('showPassword toggle type and accessible name', () => {
   showPassword(input, t);
 
   assert.equal(input.type, 'password');
-  assert.equal(button.getAttribute('aria-pressed'), 'false');
+  assert.equal(button.getAttribute('aria-pressed'), undefined);
   assert.equal(button.getAttribute('aria-label'), 'Show password');
   assert.equal(button.getAttribute('data-i18n-aria-label'), 'common.password.show');
 
   // Toggle to text
   button.click();
   assert.equal(input.type, 'text');
-  assert.equal(button.getAttribute('aria-pressed'), 'true');
+  assert.equal(button.getAttribute('aria-pressed'), undefined);
   assert.equal(button.getAttribute('aria-label'), 'Hide password');
   assert.equal(button.getAttribute('data-i18n-aria-label'), 'common.password.hide');
 
   // Toggle back to password
   button.click();
   assert.equal(input.type, 'password');
-  assert.equal(button.getAttribute('aria-pressed'), 'false');
+  assert.equal(button.getAttribute('aria-pressed'), undefined);
   assert.equal(button.getAttribute('aria-label'), 'Show password');
   assert.equal(button.getAttribute('data-i18n-aria-label'), 'common.password.show');
 });
