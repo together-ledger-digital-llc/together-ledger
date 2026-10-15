@@ -138,6 +138,7 @@
   "common.journey.began": "Comenzó el {date}",
   "common.journey.noEnd": "Sin fecha de finalización planeada",
   "common.journey.endUnsure": "Final aún no decidido",
+  "common.date.notSet": "Fecha sin definir",
   "common.journey.ends": "Termina el {date}",
   "common.ledger.seeAll": "{count, plural, one {Ver {count, number, ::group-off} momento} other {Ver todos los {count, number, ::group-off} momentos}}",
   "common.moment.moneyContext": "{amount} se guarda aquí como contexto, no como un puntaje.",

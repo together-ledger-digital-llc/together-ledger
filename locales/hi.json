@@ -138,6 +138,7 @@
   "common.journey.began": "{date} को शुरू हुई",
   "common.journey.noEnd": "कोई एंड डेट तय नहीं है",
   "common.journey.endUnsure": "एंड अभी तय नहीं हुआ",
+  "common.date.notSet": "तारीख तय नहीं हुई",
   "common.journey.ends": "{date} को खत्म होगी",
   "common.ledger.seeAll": "{count, plural, one {{count, number, ::group-off} मोमेंट देखें} other {सभी {count, number, ::group-off} मोमेंट्स देखें}}",
   "common.moment.moneyContext": "{amount} को यहाँ कॉन्टेक्स्ट की तरह रखा गया है, स्कोर की तरह नहीं।",

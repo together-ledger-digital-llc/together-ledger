@@ -629,6 +629,7 @@ function memberRowMarkup(trip, member) {
 function dateTimeLabel(value) {
   const date = new Date(value);
   if (!value || Number.isNaN(date.getTime())) return t('common.time.notRecorded');
+  if (format) return format.dateTime(date, { dateStyle: 'medium', timeStyle: 'short' });
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 }
 

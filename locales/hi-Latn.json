@@ -138,6 +138,7 @@
   "common.journey.began": "{date} ko shuru hui",
   "common.journey.noEnd": "Koi end date tay nahi hai",
   "common.journey.endUnsure": "End abhi tay nahi hua",
+  "common.date.notSet": "Date tay nahi hui",
   "common.journey.ends": "{date} ko khatam hogi",
   "common.ledger.seeAll": "{count, plural, one {{count, number, ::group-off} moment dekhein} other {Sabhi {count, number, ::group-off} moments dekhein}}",
   "common.moment.moneyContext": "{amount} ko yahan context ki tarah rakha gaya hai, score ki tarah nahi.",

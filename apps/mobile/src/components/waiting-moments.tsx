@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useSession } from '../auth/session';
-import { dateLabel, momentLabel } from '../journey/journey-view';
+import { shownDate, momentLabel } from '../journey/journey-view';
 import { useWaitingMoments } from '../journey/use-waiting-moments';
 import { DISCARD_LABEL, discardConsequence, inJourney, onceSent, SEND_NOW_LABEL, TRY_AGAIN_LABEL, WAITING_CUE, WAITING_HELP, WAITING_TITLE, type WaitingMoment } from '../journey/waiting-moments';
 import { useShell } from '../shell/shell-provider';
@@ -47,7 +47,7 @@ function WaitingCard({ entry, elsewhere }: { entry: WaitingMoment; elsewhere: bo
         <View style={[styles.chip, { borderColor: colors.border, borderRadius: theme.radius.pill }]}>
           <Text style={[styles.chipText, { color: colors.fg }]}>{momentLabel(entry.moment.kind, entry.moment.kindLabel)}</Text>
         </View>
-        <Text style={[styles.metaText, { color: colors.muted }]}>{dateLabel(entry.moment.occurredOn)}</Text>
+        <Text style={[styles.metaText, { color: colors.muted }]}>{shownDate(entry.moment.occurredOn)}</Text>
         <View accessible accessibilityLabel={cue} style={[styles.chip, { borderColor: colors.caution, borderRadius: theme.radius.pill }]}>
           <Text style={[styles.chipText, { color: colors.caution }]}>
             <Text style={styles.glyph}>{WAITING_CUE.glyph} </Text>
