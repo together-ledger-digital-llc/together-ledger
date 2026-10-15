@@ -126,7 +126,7 @@ export function momentListHeading(compact: boolean) {
 
 /** What a screen reader hears for a compact row: its title, its date and its visibility. */
 export function compactRowLabel(moment: Moment) {
-  return `${moment.title}, ${dateLabel(moment.occurredOn, undefined, formatter())}, Visibility: ${visibilityCue(moment.visibility).label}`;
+  return `${moment.title}, ${shownDate(moment.occurredOn)}, Visibility: ${visibilityCue(moment.visibility).label}`;
 }
 
 export function journeyPeriod(journey: Journey) {
@@ -138,6 +138,7 @@ export function journeyPeriod(journey: Journey) {
 }
 
 export function shownDate(date: string) {
+  if (!date) return t('common.date.notSet');
   return dateLabel(date, undefined, formatter());
 }
 

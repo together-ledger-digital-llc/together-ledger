@@ -34,6 +34,7 @@ import {
 } from './history-guide.js';
 import { activeLanguage, applyTranslations, chooseLanguage, format, languageChoice, languageOptions, t } from './i18n/web.js';
 import { errorKey, errorMessage } from './i18n/translator.js';
+import { showPassword } from './a11y/show-password/show-password.js';
 
 // The sentences index.html names by key but data-i18n can't fill on its own: a heading with
 // words in italics, and the example ledger's days, written for the active language.
@@ -80,6 +81,9 @@ function renderEmphasis(element) {
 
 // Every sentence index.html names by key (data-i18n) is filled in before anything else draws.
 translatePage();
+
+const loginPassword = document.querySelector('#login-form input[name="password"]');
+if (loginPassword) showPassword(loginPassword, t);
 
 // A sentence as markup for a row built as an HTML string: the words escaped, a person's own text
 // in a <bdi>, and a value given as { html } (a <time>) put in as it is.
@@ -625,6 +629,7 @@ function memberRowMarkup(trip, member) {
 function dateTimeLabel(value) {
   const date = new Date(value);
   if (!value || Number.isNaN(date.getTime())) return t('common.time.notRecorded');
+  if (format) return format.dateTime(date, { dateStyle: 'medium', timeStyle: 'short' });
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 }
 
