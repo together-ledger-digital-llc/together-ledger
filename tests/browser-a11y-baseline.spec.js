@@ -95,6 +95,7 @@ test('accessibility checks against baseline for the ledger in other themes', asy
     await page.locator('#workspace-theme-select').selectOption(theme);
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
 
+    await expect(page.locator('#toast')).toBeHidden();
     const { newFindings, staleBaselineEntries } = await checkAxeBaseline(page, `ledger-${theme}`);
 
     if (staleBaselineEntries.length > 0) {

@@ -141,11 +141,11 @@ test('an area\'s allow list lets through words that are never translated', () =>
 });
 
 test('a sentence not moved yet is listed as pending, with the prompt that moves it, and a stale one fails', () => {
-  const ledger = movedAreas().find((area) => area.file === 'apps/mobile/app/ledger.tsx');
-  assert.ok(ledger.pending.every((entry) => entry.text && entry.until), 'each names what moves it');
-  const without = { ...ledger, pending: [] };
-  assert.deepEqual(texts(hardcodedSentences([without])).sort(), ledger.pending.map((entry) => `apps/mobile/app/ledger.tsx:${entry.text}`).sort(), 'without the list they are found');
-  const stale = { ...ledger, pending: [...ledger.pending, { text: 'A sentence that is not there', until: 'never' }] };
+  const view = movedAreas().find((area) => area.file === 'apps/mobile/src/journey/journey-view.ts');
+  assert.ok(view.pending.every((entry) => entry.text && entry.until), 'each names what moves it');
+  const without = { ...view, pending: [] };
+  assert.deepEqual(texts(hardcodedSentences([without])).sort(), view.pending.map((entry) => `apps/mobile/src/journey/journey-view.ts:${entry.text}`).sort(), 'without the list they are found');
+  const stale = { ...view, pending: [...view.pending, { text: 'A sentence that is not there', until: 'never' }] };
   assert.match(texts(hardcodedSentences([stale])).join('\n'), /"A sentence that is not there" is listed as pending but is no longer written/);
 });
 
