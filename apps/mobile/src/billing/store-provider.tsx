@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import { AppState } from 'react-native';
 import { accountMessage } from '../auth/account-messages';
 import { useSession } from '../auth/session';
-import { formatter } from '../i18n/sentences.js';
+import { formatter, t } from '../i18n/sentences.js';
 import { useJourney } from '../journey/use-journey';
 import { useShell } from '../shell/shell-provider';
 import { asStoreKit, loadStoreKit, storePlatform, type ExpoIap } from './store-kit';
@@ -75,13 +75,13 @@ function dateLabel(value: string | null | undefined) {
 
 /** What the person is told once our server has honoured a purchase. */
 export function grantedMessage(result: GrantedPurchase, now = Date.now()) {
-  if (result.extra) return result.extra.kind === 'photo' ? 'An extra photo is ready on this moment. It stays with the moment for good.' : 'An extra place is ready on this moment. It stays with the moment for good.';
+  if (result.extra) return result.extra.kind === 'photo' ? t('mobile.store.extraPhotoReady') : t('mobile.store.extraPlaceReady');
   const people = result.room?.people;
   const from = result.room?.from ? Date.parse(result.room.from) : NaN;
-  if (Number.isFinite(from) && from > now) return `Room for ${people} people is paid for. It starts on ${dateLabel(result.room?.from)}, when the room already running ends.`;
-  if (result.kind === 'subscription') return `Room for ${people} people is ready in this journey, and renews every month.`;
+  if (Number.isFinite(from) && from > now) return t('mobile.store.roomPaidFor', { people, date: dateLabel(result.room?.from) || '' });
+  if (result.kind === 'subscription') return t('mobile.store.roomReadyRenewing', { people });
   const until = dateLabel(result.room?.until);
-  return `Room for ${people} people is ready in this journey${until ? ` until ${until}` : ''}.`;
+  return until ? t('mobile.store.roomReadyUntil', { people, date: until }) : t('mobile.store.roomReady', { people });
 }
 
 function heldFrom(purchases: StoreTransaction[], platform: StorePlatform): HeldSubscription[] {
@@ -229,7 +229,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             live.current.showStatus(WAITING_MESSAGE, { tone: 'caution', source: 'store' });
             return;
           }
-          live.current.showStatus('The store didn’t complete the purchase, so nothing was charged.', { source: 'store' });
+          live.current.showStatus(t('mobile.store.purchaseIncomplete'), { source: 'store' });
         }),
       ];
       try {
