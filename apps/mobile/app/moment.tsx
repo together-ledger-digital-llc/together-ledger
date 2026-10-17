@@ -125,7 +125,7 @@ export default function MomentScreen() {
       <Section title={t('common.moment.kind')} help={t('mobile.moment.kindHelp')}>
         <Choices label={t('common.moment.kind')} options={momentKinds()} selected={draft.kind} onSelect={(value) => set({ kind: value })} />
       </Section>
-      {draft.kind === 'other' ? <Field label="Name this kind of moment" value={draft.kindLabel} onChangeText={(value) => set({ kindLabel: value })} limit={60} placeholder={t('common.moment.kindNameExample')} /> : null}
+      {draft.kind === 'other' ? <Field label={t('moment.form.kindName')} value={draft.kindLabel} onChangeText={(value) => set({ kindLabel: value })} limit={60} placeholder={t('common.moment.kindNameExample')} /> : null}
       <DateField label={t('common.moment.when')} hint={t('mobile.moment.whenHint')} value={draft.occurredOn} onChange={(value) => set({ occurredOn: value })} />
       <View onLayout={(event) => { titleTop.current = event.nativeEvent.layout.y; }}>
         <Field
