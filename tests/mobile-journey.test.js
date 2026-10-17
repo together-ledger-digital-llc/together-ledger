@@ -188,7 +188,7 @@ test('the phone asks for journeys, snapshots and photos as the signed-in app', a
 test('pull to refresh re-reads the snapshot, and the list only draws what is on screen', async () => {
   const ledger = await read('app/ledger.tsx');
   assert.match(ledger, /<FlatList/, 'a virtualised list, so photos load as their moments scroll in');
-  assert.match(ledger, /\{listing\.seeAll \? <Button kind="quiet" label=\{expanded \? 'Show recent' : seeAllLabel\(recent\.length\)\}/, '"See all" only when there is more to see (#337)');
+  assert.match(ledger, /\{listing\.seeAll \? <Button kind="quiet" label=\{expanded \? t\('home\.moments\.showRecent'\) : seeAllLabel\(recent\.length\)\}/, '"See all" only when there is more to see (#337)');
   assert.match(await read('src/journey/journey-view.ts'), /seeAll: !compact && seeAllShown\(recent\.length, expanded\)/, 'still the web\'s own rule, in the full view');
   assert.match(ledger, /<RefreshControl refreshing=\{journey\.refreshing\} onRefresh=\{journey\.refresh\}/);
   assert.match(ledger, /<EmptyState title=\{t\('common\.ledger\.emptyTitle'\)\} body=\{t\('common\.ledger\.emptyBody'\)\} \/>/);
