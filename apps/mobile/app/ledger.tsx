@@ -13,7 +13,7 @@ import { MomentRow } from '../src/components/moment-row';
 import { ScreenStatusRegion } from '../src/components/status-region';
 import { Body, Button, Screen } from '../src/components/ui';
 import { INVITATION_WORDS } from '../src/invitations/invitation-words';
-import { journeyPeriod, momentKinds, momentListHeading, momentListing, MOMENT_VIEW_LABEL, MOMENT_VIEWS, openThreads, recentMoments, seeAllLabel, type Concern } from '../src/journey/journey-view';
+import { journeyPeriod, momentKinds, momentListHeading, momentListing, momentViewLabel, momentViews, openThreads, recentMoments, seeAllLabel, type Concern } from '../src/journey/journey-view';
 import { useMomentActions } from '../src/journey/moment-actions';
 import type { EditableMoment } from '../src/journey/moment-draft';
 import { journeysNotLoaded, nextJourneyWords } from '../src/journey/journey-state';
@@ -123,8 +123,8 @@ export default function LedgerScreen() {
             {/* Only In full and Compact here, no filter (#405): "＋ Hold a moment" above is the way in for any kind. */}
             {recent.length ? (
               <View style={styles.viewChoice}>
-                <Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.small, { color: colors.muted }]}>{MOMENT_VIEW_LABEL}</Text>
-                <Choices label={MOMENT_VIEW_LABEL} options={MOMENT_VIEWS} selected={momentView.view} onSelect={(value) => momentView.setView(value as MomentView)} />
+                <Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.small, { color: colors.muted }]}>{momentViewLabel()}</Text>
+                <Choices label={momentViewLabel()} options={momentViews()} selected={momentView.view} onSelect={(value) => momentView.setView(value as MomentView)} />
               </View>
             ) : null}
             {listing.seeAll ? <Button kind="quiet" label={expanded ? t('home.moments.showRecent') : seeAllLabel(recent.length)} onPress={() => setExpanded(!expanded)} /> : null}

@@ -36,16 +36,16 @@ function phoneStorage(seed = {}, { failReads = false, failWrites = false } = {})
 const moment = (overrides = {}) => ({ id: 'm1', journeyId: 'j', kind: 'repair', occurredOn: '2026-10-09', updatedAt: '2026-10-09T00:00:00.000Z', title: 'We talked it through on the long walk home', visibility: 'share-later', images: [], removedImages: [], ...overrides });
 
 test('the choice above the list, in the words for the owner to approve, opens on Compact', async () => {
-  assert.equal(view.MOMENT_VIEW_LABEL, 'Show moments');
-  assert.deepEqual(view.MOMENT_VIEWS, [['full', 'In full'], ['compact', 'Compact']], 'the order stays In full, then Compact');
+  assert.equal(view.momentViewLabel(), 'Show moments');
+  assert.deepEqual(view.momentViews(), [['full', 'In full'], ['compact', 'Compact']], 'the order stays In full, then Compact');
   assert.equal(DEFAULT_MOMENT_VIEW, 'compact', 'a phone that has never chosen shows one short row each (Oct 12)');
-  assert.equal(view.MOMENT_VIEWS[1][0], DEFAULT_MOMENT_VIEW, 'only which one starts selected changed: the default is the second button');
+  assert.equal(view.momentViews()[1][0], DEFAULT_MOMENT_VIEW, 'only which one starts selected changed: the default is the second button');
 
   const ledger = await read('app/ledger.tsx');
-  assert.match(ledger, /<Choices label=\{MOMENT_VIEW_LABEL\} options=\{MOMENT_VIEWS\} selected=\{momentView\.view\} onSelect=/, 'the existing Choices, so the chosen one is marked by shape as well as colour');
+  assert.match(ledger, /<Choices label=\{momentViewLabel\(\)\} options=\{momentViews\(\)\} selected=\{momentView\.view\} onSelect=/, 'the existing Choices, so the chosen one is marked by shape as well as colour');
   const header = ledger.slice(ledger.indexOf('ListHeaderComponent'), ledger.indexOf('ListEmptyComponent'));
-  assert.ok(header.lastIndexOf('MOMENT_VIEW_LABEL') < header.indexOf('listing.seeAll'), 'above "See all" and the filter, so Compact bringing the filter in never moves it under the thumb');
-  assert.ok(header.indexOf('MOMENT_VIEW_LABEL') > header.indexOf('<WaitingMoments'), 'and below the moments waiting to send, right above the list');
+  assert.ok(header.lastIndexOf('momentViewLabel()') < header.indexOf('listing.seeAll'), 'above "See all" and the filter, so Compact bringing the filter in never moves it under the thumb');
+  assert.ok(header.indexOf('momentViewLabel()') > header.indexOf('<WaitingMoments'), 'and below the moments waiting to send, right above the list');
   assert.match(ledger, /\{recent\.length \? \(\s*<View style=\{styles\.viewChoice\}>/, 'and only once there is a moment to show either way');
 
   const provider = await read('src/journey/use-moment-view.tsx');
@@ -76,9 +76,9 @@ test('a compact row is the date, the title on one line, the kind and the visibil
 
 test('a row is a button that says its title, date, visibility and whether it is open', async () => {
   // The date as the card writes it, the same function, so the two never disagree.
-  assert.equal(view.compactRowLabel(moment()), 'We talked it through on the long walk home, Oct 9, Visibility: Share later');
-  assert.equal(view.compactRowLabel(moment({ visibility: 'shared-now', title: 'Tea' })), 'Tea, Oct 9, Visibility: Shared now');
-  assert.equal(view.compactRowLabel(moment({ visibility: 'private', occurredOn: '' })), 'We talked it through on the long walk home, Date not set, Visibility: Private');
+  assert.equal(view.compactRowLabel(moment()), 'We talked it through on the long walk home, Oct 9, Visibility: \u2068Share later\u2069');
+  assert.equal(view.compactRowLabel(moment({ visibility: 'shared-now', title: 'Tea' })), 'Tea, Oct 9, Visibility: \u2068Shared now\u2069');
+  assert.equal(view.compactRowLabel(moment({ visibility: 'private', occurredOn: '' })), 'We talked it through on the long walk home, Date not set, Visibility: \u2068Private\u2069');
 
   const row = await read('src/components/moment-row.tsx');
   assert.match(row, /accessibilityRole="button"\s*accessibilityLabel=\{compactRowLabel\(moment\)\}\s*accessibilityState=\{\{ expanded: open \}\}/);
