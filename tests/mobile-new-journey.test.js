@@ -80,7 +80,7 @@ test('a draft the server would refuse is stopped first, in the server\'s own wor
   assert.equal(draft.NAME_LIMIT, 80);
   assert.equal(draft.LOCATION_LIMIT, 80);
   // Counted in characters a person sees on both, never by maxlength, which counts UTF-16 units.
-  assert.ok(html.includes('<input name="name" required data-character-limit="80"') && html.includes('<input name="location" data-character-limit="80"'));
+  assert.ok(html.includes('<input name="name" required data-character-limit="80"') && html.includes('<input name="location" aria-describedby="journey-location-hint" data-character-limit="80"'));
   assert.ok(screen.includes('limit={NAME_LIMIT}') && screen.includes('limit={LOCATION_LIMIT}') && !screen.includes('maxLength={NAME_LIMIT}'));
 });
 

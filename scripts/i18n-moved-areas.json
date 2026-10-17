@@ -120,7 +120,7 @@
       "element": "<dialog id=\"moment-dialog\">",
       "except": [
         {
-          "element": "<select name=\"moneyCurrency\">",
+          "element": "<select name=\"moneyCurrency\" aria-describedby=\"moment-money-hint\">",
           "until": "a later prompt: currency names should come from Intl.DisplayNames, not from translators"
         }
       ]
