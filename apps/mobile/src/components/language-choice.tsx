@@ -1,8 +1,6 @@
 import { useRef, useState } from 'react';
 import { AccessibilityInfo, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { modalAnimation } from '../a11y/motion';
-import { useReduceMotion } from '../a11y/reduce-motion';
 import { accountMessage } from '../auth/account-messages';
 import { t } from '../i18n';
 import { useLanguage } from '../i18n/language-provider';
@@ -40,7 +38,6 @@ export function LanguageControl() {
   const insets = useSafeAreaInsets();
   const { choose, choice, listed, active } = useLanguage();
   const pick = useChoose(choose);
-  const reduceMotion = useReduceMotion();
   const [open, setOpen] = useState(false);
   const chosenRow = useRef<View>(null);
   const options = languageOptions(listed);
@@ -60,7 +57,7 @@ export function LanguageControl() {
       <Modal
         visible={open}
         transparent
-        animationType={modalAnimation(reduceMotion)}
+        animationType="fade"
         statusBarTranslucent
         onRequestClose={() => setOpen(false)}
         onShow={() => { if (chosenRow.current) AccessibilityInfo.sendAccessibilityEvent(chosenRow.current, 'focus'); }}

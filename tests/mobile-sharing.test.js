@@ -210,8 +210,6 @@ test('amounts and times follow the active formatter', () => {
   } finally {
     setFormatter(null);
   }
-
-  assert.equal(view.dateTimeLabel(null), english['common.time.notRecorded']);
 });
 
 test('history is newest first, attributed, and lists only what changed, as the web does', () => {

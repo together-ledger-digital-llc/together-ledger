@@ -1,15 +1,13 @@
-import { useEffect, useRef, useState, type ReactNode, type Ref, type RefObject } from 'react';
-import { ActivityIndicator, AppState, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { useEffect, useRef, type ReactNode, type Ref, type RefObject } from 'react';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { fitTyping } from '../../../../src/display-text.js';
-import { t } from '../i18n';
 import { useLanguage } from '../i18n/language-provider';
 import { workingLabel } from '../shell/defaults';
 import { STATUS_TONES } from '../shell/status';
 import { useShell } from '../shell/shell-provider';
 import { ScreenStatusRegion } from './status-region';
 import { fonts, leading, scriptStyles, targetSize, useTheme } from '../theme';
-import { showPasswordButton } from '../a11y/show-password';
 
 /**
  * The small set of pieces every screen is built from. Each screen carries the status region
@@ -67,46 +65,19 @@ export function Screen({ title, lead, children, edges = ['bottom', 'left', 'righ
 export function Field({ label, hint, problem, style, ref, limit, ...input }: { label: string; hint?: string; problem?: string | null; ref?: Ref<TextInput>; limit?: number } & TextInputProps) {
   const { theme } = useTheme();
   const { onChangeText, value } = input;
-  const [shown, setShown] = useState(false);
-
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state !== 'active') setShown(false);
-    });
-    return () => {
-      setShown(false);
-      subscription.remove();
-    };
-  }, []);
-
   const changeText = limit && onChangeText ? (next: string) => onChangeText(fitTyping(value ?? '', next, limit).value) : onChangeText;
-  const { secure, label: a11yLabel } = input.secureTextEntry ? showPasswordButton(shown, t) : { secure: undefined, label: undefined };
-
   return (
     <View style={styles.field}>
       <Text style={[styles.label, { color: theme.colors.fg }]}>{label}</Text>
-      <View style={styles.inputRow}>
-        <TextInput
-          ref={ref}
-          accessibilityLabel={label}
-          accessibilityHint={problem || undefined}
-          placeholderTextColor={theme.colors.muted}
-          style={[styles.input, targetSize, { flex: 1, color: theme.colors.fg, borderColor: problem ? theme.colors.caution : theme.colors.border, borderWidth: problem ? 2 : 1, backgroundColor: theme.colors.surfaceElevated, borderRadius: theme.radius.m }, style]}
-          {...input}
-          secureTextEntry={secure ?? input.secureTextEntry}
-          onChangeText={changeText}
-        />
-        {input.secureTextEntry ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={a11yLabel}
-            onPress={() => setShown(!shown)}
-            style={[targetSize, styles.passwordToggle]}
-          >
-            <Text style={[styles.passwordToggleText, { color: theme.colors.accent }]}>{a11yLabel}</Text>
-          </Pressable>
-        ) : null}
-      </View>
+      <TextInput
+        ref={ref}
+        accessibilityLabel={label}
+        accessibilityHint={problem || undefined}
+        placeholderTextColor={theme.colors.muted}
+        style={[styles.input, targetSize, { color: theme.colors.fg, borderColor: problem ? theme.colors.caution : theme.colors.border, borderWidth: problem ? 2 : 1, backgroundColor: theme.colors.surfaceElevated, borderRadius: theme.radius.m }, style]}
+        {...input}
+        onChangeText={changeText}
+      />
       {problem ? (
         <View accessibilityLiveRegion="polite" style={styles.problem}>
           <Text accessibilityElementsHidden importantForAccessibility="no" style={[styles.problemGlyph, { color: theme.colors.caution }]}>{STATUS_TONES.caution.glyph}</Text>
@@ -186,9 +157,6 @@ const styles = scriptStyles(() => StyleSheet.create({
   problemGlyph: { fontSize: 13 },
   problemText: { flex: 1, fontSize: 15, lineHeight: 21, fontWeight: '600' },
   input: { borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, fontSize: 16 },
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  passwordToggle: { justifyContent: 'center', paddingHorizontal: 14 },
-  passwordToggleText: { fontSize: 16, fontWeight: '600' },
   // 10 above and below, the web's .button: one line stays at the 44-point minimum, and a label that
   // wraps (Start a return-to conversation at 320 points, or a longer language) has room (101C).
   button: { flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 10, borderWidth: 1 },

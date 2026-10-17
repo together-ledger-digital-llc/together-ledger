@@ -114,7 +114,7 @@ export type SharingSnapshot = {
 
 export function dateTimeLabel(value: string | null | undefined) {
   const date = new Date(value || '');
-  if (!value || Number.isNaN(date.getTime())) return t('common.time.notRecorded');
+  if (!value || Number.isNaN(date.getTime())) return 'Time not recorded';
   const format = formatter();
   if (format) return format.dateTime(date, { dateStyle: 'medium', timeStyle: 'short' });
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
