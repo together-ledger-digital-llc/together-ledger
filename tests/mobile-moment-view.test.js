@@ -76,9 +76,9 @@ test('a compact row is the date, the title on one line, the kind and the visibil
 
 test('a row is a button that says its title, date, visibility and whether it is open', async () => {
   // The date as the card writes it, the same function, so the two never disagree.
-  assert.equal(view.compactRowLabel(moment()), "We talked it through on the long walk home, Oct 9, t('common.moment.visibilitySpoken', {\"visibility\":\"Share later\"})");
-  assert.equal(view.compactRowLabel(moment({ visibility: 'shared-now', title: 'Tea' })), "Tea, Oct 9, t('common.moment.visibilitySpoken', {\"visibility\":\"Shared now\"})");
-  assert.equal(view.compactRowLabel(moment({ visibility: 'private', occurredOn: '' })), "We talked it through on the long walk home, Date not set, t('common.moment.visibilitySpoken', {\"visibility\":\"Private\"})");
+  assert.equal(view.compactRowLabel(moment()), 'We talked it through on the long walk home, Oct 9, Visibility: \u2068Share later\u2069');
+  assert.equal(view.compactRowLabel(moment({ visibility: 'shared-now', title: 'Tea' })), 'Tea, Oct 9, Visibility: \u2068Shared now\u2069');
+  assert.equal(view.compactRowLabel(moment({ visibility: 'private', occurredOn: '' })), 'We talked it through on the long walk home, Date not set, Visibility: \u2068Private\u2069');
 
   const row = await read('src/components/moment-row.tsx');
   assert.match(row, /accessibilityRole="button"\s*accessibilityLabel=\{compactRowLabel\(moment\)\}\s*accessibilityState=\{\{ expanded: open \}\}/);

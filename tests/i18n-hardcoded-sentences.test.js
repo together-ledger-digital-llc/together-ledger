@@ -140,6 +140,16 @@ test('an area\'s allow list lets through words that are never translated', () =>
   assert.deepEqual(found, []);
 });
 
+test('a sentence not moved yet is listed as pending, with the prompt that moves it, and a stale one fails', () => {
+  const viewFile = movedAreas().find((area) => area.file === 'apps/mobile/src/journey/journey-view.ts');
+  const view = { ...viewFile, pending: [{ text: 'All moments', until: 'after 45' }] };
+  const viewPlanted = planted({ 'apps/mobile/src/journey/journey-view.ts': [["t('mobile.moment.allMoments')", "'All moments'"]] });
+  assert.ok(view.pending.every((entry) => entry.text && entry.until), 'each names what moves it');
+  const without = { ...view, pending: [] };
+  assert.deepEqual(texts(hardcodedSentences([without], viewPlanted)).sort(), view.pending.map((entry) => `apps/mobile/src/journey/journey-view.ts:${entry.text}`).sort(), 'without the list they are found');
+  const stale = { ...view, pending: [...view.pending, { text: 'A sentence that is not there', until: 'never' }] };
+  assert.match(texts(hardcodedSentences([stale], viewPlanted)).join('\n'), /"A sentence that is not there" is listed as pending but is no longer written/);
+});
 
 test('a function a statement list names ends at its own closing brace, not at the next semicolon', () => {
   const area = movedAreas().find((entry) => entry.file === 'apps/mobile/src/journey/waiting-moments.ts');

@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "page": "ledger-flexoki",
+    "rule": "color-contrast",
+    "selector": "#moments-eyebrow"
+  },
+  {
+    "page": "ledger-flexoki",
+    "rule": "color-contrast",
+    "selector": "#moments-copy"
+  },
+  {
+    "page": "ledger-flexoki",
+    "rule": "color-contrast",
+    "selector": ".log-types > p"
+  }
+]
