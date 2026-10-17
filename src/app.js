@@ -35,6 +35,7 @@ import {
 import { activeLanguage, applyTranslations, chooseLanguage, format, languageChoice, languageOptions, t } from './i18n/web.js';
 import { errorKey, errorMessage } from './i18n/translator.js';
 import { showPassword } from './a11y/show-password/show-password.js';
+import { prefersReducedMotion } from './a11y/device-settings/device-settings.js';
 
 // The sentences index.html names by key but data-i18n can't fill on its own: a heading with
 // words in italics, and the example ledger's days, written for the active language.
@@ -1121,7 +1122,7 @@ function revealOpenJourney() {
   const style = getComputedStyle(row);
   const inset = Math.max(parseFloat(style.paddingLeft) || 0, parseFloat(style.getPropertyValue('--journey-row-fade')) || 0);
   const left = scrollToShow({ start: chosen.offsetLeft, end: chosen.offsetLeft + chosen.offsetWidth, scrolled: row.scrollLeft, visible: row.clientWidth, total: row.scrollWidth, inset });
-  const smooth = journeyRowShown !== null && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const smooth = journeyRowShown !== null && !prefersReducedMotion();
   if (left !== null) row.scrollTo({ left, behavior: smooth ? 'smooth' : 'instant' });
   journeyRowShown = chosen.firstElementChild.value;
 }
@@ -1253,7 +1254,7 @@ function momentCardMarkup(trip, moment) {
   const locations = Array.isArray(moment.locations) ? moment.locations : [];
   const locationContext = locations.length ? `<div class="location-context">${escapeHtml(locations.map((location) => location.label).join(' · '))}</div>` : '';
   const moneyContext = moment.moneyCents != null ? `<details class="money-context"><summary>${escapeHtml(t('common.moment.money'))}</summary><p>${sentenceMarkup('common.moment.moneyContext', { amount: money(moment.moneyCents, moment.moneyCurrency, format) })}</p></details>` : '';
-  return `<article class="moment-card ${moment.visibility}"${momentThemeAttribute(moment.theme)}><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${dateLabel(moment.occurredOn, undefined, format)}</span><span class="visibility-chip ${moment.visibility}"><span class="visibility-glyph" aria-hidden="true">${visibilityCue(moment.visibility).glyph}</span>${escapeHtml(visibilityCue(moment.visibility).label)}</span></div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${locationContext}${attachments}${removed}${moneyContext}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">${escapeHtml(t('common.action.edit'))}</button></div></article>`;
+  return `<article class="moment-card ${moment.visibility}"${momentThemeAttribute(moment.theme)}><div class="moment-meta"><span class="moment-kind">${escapeHtml(momentLabel(moment.kind, moment.kindLabel))}</span><span>${moment.occurredOn ? dateLabel(moment.occurredOn, undefined, format) : t('common.date.notSet')}</span><span class="visibility-chip ${moment.visibility}"><span class="visibility-glyph" aria-hidden="true">${visibilityCue(moment.visibility).glyph}</span>${escapeHtml(visibilityCue(moment.visibility).label)}</span></div><strong>${escapeHtml(moment.title)}</strong>${moment.detail ? `<p>${escapeHtml(moment.detail)}</p>` : ''}${locationContext}${attachments}${removed}${moneyContext}<div class="moment-actions"><small class="moment-author">${attribution}</small>${shareAction}<button data-edit-moment="${escapeHtml(moment.id)}">${escapeHtml(t('common.action.edit'))}</button></div></article>`;
 }
 
 async function imageUrlForMoment(trip, moment, image) {
@@ -1502,7 +1503,7 @@ function renderLedger(entries) {
   }
   $('#ledger').innerHTML = list.map((entry) => `<article class="entry">
     <span class="entry-icon" aria-hidden="true">${CATEGORY_ICONS[entry.category] || '·'}</span>
-    <div class="entry-main"><strong>${escapeHtml(entry.merchant)}</strong><div class="entry-meta"><span>${escapeHtml(entry.category)}</span><span>${dateLabel(entry.occurredOn, undefined, format)}</span><span>Paid by ${escapeHtml(entry.paidBy)}</span>${entry.account ? `<span>From ${escapeHtml(entry.account)}</span>` : ''}${entry.reference ? `<span>Ref ${escapeHtml(entry.reference)}</span>` : ''}</div></div>
+    <div class="entry-main"><strong>${escapeHtml(entry.merchant)}</strong><div class="entry-meta"><span>${escapeHtml(entry.category)}</span><span>${entry.occurredOn ? dateLabel(entry.occurredOn, undefined, format) : t('common.date.notSet')}</span><span>Paid by ${escapeHtml(entry.paidBy)}</span>${entry.account ? `<span>From ${escapeHtml(entry.account)}</span>` : ''}${entry.reference ? `<span>Ref ${escapeHtml(entry.reference)}</span>` : ''}</div></div>
     <div class="entry-amount"><strong>${money(entry.amountCents, undefined, format)}</strong><small>${entry.status === 'due' ? 'Still due' : 'Paid'}</small></div>
     <div class="entry-actions"><button data-edit="${escapeHtml(entry.id)}">Edit</button><button data-remove="${escapeHtml(entry.id)}">Remove</button></div>
   </article>`).join('');
