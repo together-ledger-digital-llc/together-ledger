@@ -539,6 +539,15 @@
       "movedIn": "103A",
       "file": "apps/mobile/src/i18n/theme-names.js",
       "kind": "script"
+    },
+    {
+      "name": "The phone's purchase messages",
+      "movedIn": "129c",
+      "file": "apps/mobile/src/billing/store-provider.tsx",
+      "kind": "script",
+      "allow": [
+        "deferred:"
+      ]
     }
   ]
 }
