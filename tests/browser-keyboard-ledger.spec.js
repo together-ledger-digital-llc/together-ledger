@@ -10,6 +10,8 @@ test('Walk the ledger by keyboard alone', async ({ page }) => {
 
   // Reset focus from any interactions that brought us to the ledger
   await page.locator("a[href=\"#moments-title\"]").first().focus();
+  await expect(page.locator("#moment-dialog")).toBeHidden();
+  await page.waitForTimeout(200);
   await page.evaluate(() => {
     if (document.activeElement) {
       document.activeElement.blur();
