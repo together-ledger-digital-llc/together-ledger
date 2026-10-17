@@ -120,7 +120,7 @@
       "element": "<dialog id=\"moment-dialog\">",
       "except": [
         {
-          "element": "<select name=\"moneyCurrency\">",
+          "element": "<select name=\"moneyCurrency\" aria-describedby=\"moment-money-hint\">",
           "until": "a later prompt: currency names should come from Intl.DisplayNames, not from translators"
         }
       ]
@@ -394,29 +394,7 @@
       "name": "The phone's ledger words",
       "movedIn": "103A",
       "file": "apps/mobile/src/journey/journey-view.ts",
-      "kind": "script",
-      "pending": [
-        {
-          "text": "Show moments",
-          "until": "after 45, which changes the moment view these name: tests/mobile-moment-view.test.js pins them as written"
-        },
-        {
-          "text": "In full",
-          "until": "after 45, which changes the moment view these name: tests/mobile-moment-view.test.js pins them as written"
-        },
-        {
-          "text": "All moments",
-          "until": "after 45, which changes the moment view these name: tests/mobile-moment-view.test.js pins them as written"
-        },
-        {
-          "text": "Recent moments",
-          "until": "after 45, which changes the moment view these name: tests/mobile-moment-view.test.js pins them as written"
-        },
-        {
-          "text": ", Visibility: ",
-          "until": "after 45, which changes the moment view these name: tests/mobile-moment-view.test.js pins them as written"
-        }
-      ]
+      "kind": "script"
     },
     {
       "name": "The phone's moment form rules",

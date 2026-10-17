@@ -35,6 +35,7 @@ import {
 import { activeLanguage, applyTranslations, chooseLanguage, format, languageChoice, languageOptions, t } from './i18n/web.js';
 import { errorKey, errorMessage } from './i18n/translator.js';
 import { showPassword } from './a11y/show-password/show-password.js';
+import { prefersReducedMotion } from './a11y/device-settings/device-settings.js';
 
 // The sentences index.html names by key but data-i18n can't fill on its own: a heading with
 // words in italics, and the example ledger's days, written for the active language.
@@ -1108,7 +1109,7 @@ function revealOpenJourney() {
   const style = getComputedStyle(row);
   const inset = Math.max(parseFloat(style.paddingLeft) || 0, parseFloat(style.getPropertyValue('--journey-row-fade')) || 0);
   const left = scrollToShow({ start: chosen.offsetLeft, end: chosen.offsetLeft + chosen.offsetWidth, scrolled: row.scrollLeft, visible: row.clientWidth, total: row.scrollWidth, inset });
-  const smooth = journeyRowShown !== null && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const smooth = journeyRowShown !== null && !prefersReducedMotion();
   if (left !== null) row.scrollTo({ left, behavior: smooth ? 'smooth' : 'instant' });
   journeyRowShown = chosen.firstElementChild.value;
 }

@@ -1080,6 +1080,22 @@
   "@mobile.moment.gone": {
     "description": "When the moment being edited no longer exists."
   },
+  "mobile.moment.viewLabel": "Show moments",
+  "@mobile.moment.viewLabel": {
+    "description": "label above the In full / Compact choice on the phone's ledger"
+  },
+  "mobile.moment.viewFull": "In full",
+  "@mobile.moment.viewFull": {
+    "description": "choice that shows each moment as a full card"
+  },
+  "mobile.moment.viewCompact": "Compact",
+  "@mobile.moment.viewCompact": {
+    "description": "choice that shows each moment as one short row"
+  },
+  "mobile.moment.allMoments": "All moments",
+  "@mobile.moment.allMoments": {
+    "description": "heading over the list when Compact shows every moment"
+  },
   "mobile.moment.noJourney": "Open a journey first, then hold a moment in it.",
   "@mobile.moment.noJourney": {
     "description": "When the form to hold a moment is opened with no journey open."

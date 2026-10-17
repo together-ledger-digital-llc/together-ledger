@@ -13,6 +13,7 @@ const releaseRevision = (process.env.TOGETHER_LEDGER_RELEASE_REVISION || 'local-
 const publicFiles = [
   'index.html',
   'src/a11y/show-password/show-password.js',
+  'src/a11y/device-settings/device-settings.js',
   'src/api.js',
   'src/app.js',
   'src/display-text.js',

@@ -113,20 +113,20 @@ export function momentLabel(kind: string, kindLabel?: string | null) {
 
 
 /** The choice above the moment list (Oct 9), in the words the owner approves. */
-export const MOMENT_VIEW_LABEL = 'Show moments';
-export const MOMENT_VIEWS: [MomentView, string][] = [['full', 'In full'], ['compact', 'Compact']];
+export function momentViewLabel() { return t('mobile.moment.viewLabel'); }
+export function momentViews(): [MomentView, string][] { return [['full', t('mobile.moment.viewFull')], ['compact', t('mobile.moment.viewCompact')]]; }
 
 /**
  * The heading over the moment list (Oct 10). In full shows the recent three first, as the web
  * does, so it keeps "Recent moments"; Compact holds every moment, so it says so.
  */
 export function momentListHeading(compact: boolean) {
-  return compact ? 'All moments' : 'Recent moments';
+  return compact ? t('mobile.moment.allMoments') : t('home.moments.title');
 }
 
 /** What a screen reader hears for a compact row: its title, its date and its visibility. */
 export function compactRowLabel(moment: Moment) {
-  return `${moment.title}, ${shownDate(moment.occurredOn)}, Visibility: ${visibilityCue(moment.visibility).label}`;
+  return `${moment.title}, ${shownDate(moment.occurredOn)}, ` + t('common.moment.visibilitySpoken', { visibility: visibilityCue(moment.visibility).label });
 }
 
 export function journeyPeriod(journey: Journey) {
