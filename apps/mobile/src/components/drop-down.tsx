@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import { AccessibilityInfo, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { modalAnimation } from '../a11y/motion';
+import { useReduceMotion } from '../a11y/reduce-motion';
 import { keepThingsLabel } from '../shell/defaults';
 import { fonts, leading, scriptStyles, targetSize, useTheme } from '../theme';
 import { Button } from './ui';
@@ -22,6 +24,7 @@ export function DropDown({ label, options, selected, onSelect }: {
   const { theme } = useTheme();
   const colors = theme.colors;
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReduceMotion();
   const [open, setOpen] = useState(false);
   const chosenOption = useRef<View>(null);
   const chosen = options.find(([value]) => value === selected) ?? options[0];
@@ -48,7 +51,7 @@ export function DropDown({ label, options, selected, onSelect }: {
       <Modal
         visible={open}
         transparent
-        animationType="fade"
+        animationType={modalAnimation(reduceMotion)}
         statusBarTranslucent
         onRequestClose={() => setOpen(false)}
         onShow={() => { if (chosenOption.current) AccessibilityInfo.sendAccessibilityEvent(chosenOption.current, 'focus'); }}
