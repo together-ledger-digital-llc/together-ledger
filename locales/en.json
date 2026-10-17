@@ -392,6 +392,14 @@
   "@common.account.identifier": {
     "description": "Label of the sign-in field that takes either the email or the username."
   },
+  "common.password.hide": "Hide password",
+  "@common.password.hide": {
+    "description": "Accessible name for the button that hides the typed password again."
+  },
+  "common.password.show": "Show password",
+  "@common.password.show": {
+    "description": "Accessible name for the button that makes the typed password visible."
+  },
   "common.account.password": "Password",
   "@common.account.password": {
     "description": "Label of the password field, on sign-in and on creating an account."
@@ -1380,6 +1388,48 @@
   "mobile.store.restoring": "Checking with the store…",
   "@mobile.store.restoring": {
     "description": "What Restore purchases says while it asks the App Store or Google Play."
+  },
+  "mobile.store.extraPhotoReady": "An extra photo is ready on this moment. It stays with the moment for good.",
+  "@mobile.store.extraPhotoReady": {
+    "description": "What the person is told once our server has honoured a purchase of an extra photo."
+  },
+  "mobile.store.extraPlaceReady": "An extra place is ready on this moment. It stays with the moment for good.",
+  "@mobile.store.extraPlaceReady": {
+    "description": "What the person is told once our server has honoured a purchase of an extra place."
+  },
+  "mobile.store.roomPaidFor": "Room for {people} people is paid for. It starts on {date}, when the room already running ends.",
+  "@mobile.store.roomPaidFor": {
+    "description": "What the person is told once our server has honoured a purchase of room for people that starts later.",
+    "placeholders": {
+      "people": { "type": "int", "example": "4", "description": "How many people the room is for." },
+      "date": { "type": "String", "example": "Oct 12, 2026", "description": "The date the room starts, already formatted." }
+    }
+  },
+  "mobile.store.roomReadyRenewing": "Room for {people} people is ready in this journey, and renews every month.",
+  "@mobile.store.roomReadyRenewing": {
+    "description": "What the person is told once our server has honoured a purchase of room for people that renews monthly.",
+    "placeholders": {
+      "people": { "type": "int", "example": "4", "description": "How many people the room is for." }
+    }
+  },
+  "mobile.store.roomReady": "Room for {people} people is ready in this journey.",
+  "@mobile.store.roomReady": {
+    "description": "What the person is told once our server has honoured a purchase of room for people with no specific end.",
+    "placeholders": {
+      "people": { "type": "int", "example": "4", "description": "How many people the room is for." }
+    }
+  },
+  "mobile.store.roomReadyUntil": "Room for {people} people is ready in this journey until {date}.",
+  "@mobile.store.roomReadyUntil": {
+    "description": "What the person is told once our server has honoured a purchase of room for people until a specific date.",
+    "placeholders": {
+      "people": { "type": "int", "example": "4", "description": "How many people the room is for." },
+      "date": { "type": "String", "example": "Oct 12, 2026", "description": "The date the room ends, already formatted." }
+    }
+  },
+  "mobile.store.purchaseIncomplete": "The store didn’t complete the purchase, so nothing was charged.",
+  "@mobile.store.purchaseIncomplete": {
+    "description": "Message shown when a store purchase is not completed."
   },
   "mobile.theme.followPhone": "Match this phone",
   "@mobile.theme.followPhone": {
