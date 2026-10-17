@@ -85,6 +85,19 @@ translatePage();
 
 const loginPassword = document.querySelector('#login-form input[name="password"]');
 if (loginPassword) showPassword(loginPassword, t);
+[
+  '#link-identity-form input[name="password"]',
+  '#register-form input[name="password"]',
+  '#change-password-form input[name="currentPassword"]',
+  '#change-password-form input[name="newPassword"]',
+  '#change-password-form input[name="confirmPassword"]',
+  '#delete-account-form input[name="password"]',
+  '#recovery-confirm-form input[name="password"]',
+  '#recovery-confirm-form input[name="confirmPassword"]'
+].forEach((selector) => {
+  const input = document.querySelector(selector);
+  if (input) showPassword(input, t);
+});
 
 // A sentence as markup for a row built as an HTML string: the words escaped, a person's own text
 // in a <bdi>, and a value given as { html } (a <time>) put in as it is.
