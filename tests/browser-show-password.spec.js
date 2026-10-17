@@ -50,4 +50,31 @@ test.describe('show password', () => {
     // The form submission resets the password field to hidden
     await expect(passwordInput).toHaveAttribute('type', 'password');
   });
+
+  test('password fields have toggles and hide when their dialog closes', async ({ page }) => {
+    await page.goto('/');
+
+    const passwordInputs = page.locator('input[type="password"]');
+    await expect(passwordInputs).toHaveCount(9);
+
+    for (let i = 0; i < 9; i++) {
+      const input = passwordInputs.nth(i);
+      const button = input.locator('xpath=following-sibling::button[contains(@class, "show-password-button")]');
+      await expect(button).toHaveCount(1);
+    }
+
+    await page.locator('[data-open-account]').first().click();
+
+    const currentPasswordInput = page.locator('#login-form input[name="password"]');
+    const toggleButton = page.locator('#login-form input[name="password"] + .show-password-button');
+
+    await toggleButton.click();
+    await expect(currentPasswordInput).toHaveAttribute('type', 'text');
+
+    await page.keyboard.press('Escape');
+    const accountDialog = page.locator('#account-dialog');
+    await expect(accountDialog).not.toBeVisible();
+
+    await expect(currentPasswordInput).toHaveAttribute('type', 'password');
+  });
 });

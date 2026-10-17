@@ -35,7 +35,8 @@ function createMockDOM() {
     form: form,
     parentNode: {
       insertBefore: () => {}
-    }
+    },
+    closest: () => null
   };
 
   const document = {

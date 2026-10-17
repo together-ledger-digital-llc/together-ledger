@@ -41,5 +41,7 @@ export function showPassword(input, t) {
     input.form.addEventListener('submit', hide);
   }
 
+  input.closest('dialog')?.addEventListener('close', hide);
+
   window.addEventListener('pagehide', hide);
 }
