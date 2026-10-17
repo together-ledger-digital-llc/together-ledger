@@ -13,6 +13,11 @@ test('Walk the ledger by keyboard alone', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Journey settings' })).toBeVisible();
   await expect(page.locator("#moment-dialog")).toBeHidden();
 
+  // Start the walk from the top of the ledger: blurring keeps the browser's place, so put it on the skip link first
+  const skipLink = page.locator("a[href=\"#moments-title\"]").first();
+  await skipLink.focus();
+  await expect(skipLink).toBeFocused();
+
   // Reset focus from any interactions that brought us to the ledger
   await page.evaluate(() => {
     if (document.activeElement) {
