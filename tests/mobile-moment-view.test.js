@@ -173,7 +173,7 @@ test('pull to refresh and the moments waiting to send are the same in both views
   assert.equal((ledger.match(/<FlatList/g) || []).length, 1, 'one list, whichever view');
   assert.match(ledger, /const listing = momentListing\(recent, \{ compact, expanded \}\);\s*const shown = listing\.shown;/);
   assert.match(ledger, /data=\{shown\}/);
-  assert.match(ledger, /\{listing\.seeAll \? <Button kind="quiet" label=\{expanded \? t\('home\.moments\.showRecent'\) : seeAllLabel\(recent\.length\)\} onPress=\{\(\) => setExpanded\(!expanded\)\} \/> : null\}/);
+  assert.match(ledger, /\{listing\.seeAll \? <Button kind="quiet" label=\{expanded \? 'Show recent' : seeAllLabel\(recent\.length\)\} onPress=\{\(\) => setExpanded\(!expanded\)\} \/> : null\}/);
   assert.match(ledger, /<RefreshControl refreshing=\{journey\.refreshing\} onRefresh=\{journey\.refresh\}/);
   assert.match(ledger, /<WaitingMoments activeJourneyId=\{activeId\} \/>/);
   assert.match(ledger, /onSelect=\{\(value\) => momentView\.setView\(value as MomentView\)\}/, 'changing view leaves "See all" alone');
@@ -223,10 +223,10 @@ test('the view is In full or Compact and nothing else: no filter, and an old one
   const ledger = await read('app/ledger.tsx');
   assert.doesNotMatch(ledger, /Moment types|setFilter|momentFilters|All moments'|Add your own moment/, 'no filter row and no "＋ Add your own moment" on the ledger');
   assert.equal((ledger.match(/<Choices /g) || []).length, 1, 'one set of choices: In full / Compact');
-  assert.match(ledger, /<Button label=\{`＋ \$\{t\('home\.moment\.hold'\)\}`\} onPress=\{\(\) => router\.push\('\/moment'\)\} \/>/, '"＋ Hold a moment" stays the way in');
+  assert.match(ledger, /<Button label="＋ Hold a moment" onPress=\{\(\) => router\.push\('\/moment'\)\} \/>/, '"＋ Hold a moment" stays the way in');
   // ... including for a kind the person names: the moment screen still offers "other" with its own name.
   const momentScreen = await read('app/moment.tsx');
-  assert.match(momentScreen, /draft\.kind === 'other' \? <Field label=\{t\('moment\.form\.kindName'\)\}/, 'a moment of a kind the person names is still held from "＋ Hold a moment"');
+  assert.match(momentScreen, /draft\.kind === 'other' \? <Field label="Name this kind of moment"/, 'a moment of a kind the person names is still held from "＋ Hold a moment"');
   // Nothing about the filter is kept on the phone, so nothing from before can come back filtered.
   const store = await read('src/storage/ledger-store.ts');
   assert.doesNotMatch(store, /filter/i);

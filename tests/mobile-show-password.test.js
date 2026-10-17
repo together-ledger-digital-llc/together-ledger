@@ -17,14 +17,14 @@ async function importMobile(path) {
 const { showPasswordButton } = await importMobile('src/a11y/show-password.ts');
 
 test('showPasswordButton returns secure true with Show password when not shown', () => {
-  const result = showPasswordButton(false, key => english[key]);
+  const result = showPasswordButton(false);
   assert.equal(result.secure, true);
   assert.equal(result.labelKey, 'common.password.show');
   assert.equal(result.label, english['common.password.show']);
 });
 
 test('showPasswordButton returns secure false with Hide password when shown', () => {
-  const result = showPasswordButton(true, key => english[key]);
+  const result = showPasswordButton(true);
   assert.equal(result.secure, false);
   assert.equal(result.labelKey, 'common.password.hide');
   assert.equal(result.label, english['common.password.hide']);

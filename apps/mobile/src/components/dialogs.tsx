@@ -1,8 +1,6 @@
 import { useRef } from 'react';
 import { AccessibilityInfo, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { modalAnimation } from '../a11y/motion';
-import { useReduceMotion } from '../a11y/reduce-motion';
 import { useShell, type DialogRequest } from '../shell/shell-provider';
 import { t } from '../i18n';
 import { useLanguage } from '../i18n/language-provider';
@@ -20,14 +18,13 @@ export function ShellDialog({ request, onClose }: { request: DialogRequest | nul
   const { theme } = useTheme();
   // Drawn above every screen, so it reads the language itself.
   useLanguage();
-  const reduceMotion = useReduceMotion();
   const insets = useSafeAreaInsets();
   const keep = useRef<View>(null);
   const focusKeep = () => {
     if (keep.current) AccessibilityInfo.sendAccessibilityEvent(keep.current, 'focus');
   };
   return (
-    <Modal visible={request !== null} transparent animationType={modalAnimation(reduceMotion)} statusBarTranslucent onRequestClose={() => onClose(false)} onShow={focusKeep}>
+    <Modal visible={request !== null} transparent animationType="fade" statusBarTranslucent onRequestClose={() => onClose(false)} onShow={focusKeep}>
       <View style={[styles.frame, { paddingTop: insets.top + 14, paddingBottom: insets.bottom + 14, paddingLeft: insets.left + 14, paddingRight: insets.right + 14 }]}>
         {/* The web's backdrop: the text colour at 72%, so it darkens a light theme and lightens a dark one. */}
         <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.fg, opacity: 0.72 }]} />

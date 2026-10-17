@@ -1,6 +1,4 @@
 import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { modalAnimation } from '../a11y/motion';
-import { useReduceMotion } from '../a11y/reduce-motion';
 import { t } from '../i18n';
 import { fonts, leading, scriptStyles, targetSize, useTheme } from '../theme';
 
@@ -16,13 +14,12 @@ export function PhotoViewer({
   name: string;
 }) {
   const { colors, radius } = useTheme().theme;
-  const reduceMotion = useReduceMotion();
 
   return (
     <Modal
       visible={visible}
       onRequestClose={onClose}
-      animationType={modalAnimation(reduceMotion)}
+      animationType="fade"
       accessibilityViewIsModal
     >
       <View style={[styles.container, { backgroundColor: colors.bg }]}>
