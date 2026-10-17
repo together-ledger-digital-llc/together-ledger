@@ -8,10 +8,17 @@ test('Walk the ledger by keyboard alone', async ({ page }) => {
   await page.locator('[data-begin-ledger]').first().click();
   await page.locator('[data-close-moment]').first().click();
 
-  // Reset focus from any interactions that brought us to the ledger
-  await page.locator("a[href=\"#moments-title\"]").first().focus();
+  // Wait for the ledger to render before blurring
+  await expect(page.locator('#moments-title')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Journey settings' })).toBeVisible();
   await expect(page.locator("#moment-dialog")).toBeHidden();
-  await page.waitForTimeout(200);
+
+  // Start the walk from the top of the ledger: blurring keeps the browser's place, so put it on the skip link first
+  const skipLink = page.locator("a[href=\"#moments-title\"]").first();
+  await skipLink.focus();
+  await expect(skipLink).toBeFocused();
+
+  // Reset focus from any interactions that brought us to the ledger
   await page.evaluate(() => {
     if (document.activeElement) {
       document.activeElement.blur();
