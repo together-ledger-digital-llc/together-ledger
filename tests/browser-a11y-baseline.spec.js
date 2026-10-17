@@ -80,3 +80,27 @@ test('accessibility checks against baseline for three dialogs (Light theme)', as
   }
   expect(newFindings, 'New accessibility violations found on the account-dialog').toEqual([]);
 });
+
+test('accessibility checks against baseline for the ledger in other themes', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForSelector('#welcome-title');
+  await page.locator('[data-begin-ledger]').first().click();
+  await page.locator('[data-close-moment]').first().click();
+
+  await expect(page.locator('#ledger-app:not([hidden]) #trip-name')).toHaveCount(1);
+  await expect(page.locator('#trip-name')).toHaveText('A shared space');
+
+  const themes = ['dark', 'green', 'flexoki'];
+  for (const theme of themes) {
+    await page.locator('#workspace-theme-select').selectOption(theme);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+
+    const { newFindings, staleBaselineEntries } = await checkAxeBaseline(page, `ledger-${theme}`);
+
+    if (staleBaselineEntries.length > 0) {
+      console.log(`\nStale baseline entries for ledger-${theme} (can be removed from baseline.json):`, JSON.stringify(staleBaselineEntries, null, 2));
+    }
+
+    expect(newFindings, `New accessibility violations found on the ledger page (${theme} theme)`).toEqual([]);
+  }
+});
