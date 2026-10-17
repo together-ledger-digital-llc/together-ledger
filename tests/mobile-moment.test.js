@@ -131,8 +131,8 @@ test('the currency is one compact drop-down, and "No currency" reads as nothing 
   assert.equal(draft.currencyLabel(), 'Currency (optional)');
   assert.deepEqual(draft.currencies().map(([value]) => value), ['', 'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'INR'], 'the same values as before, in the same order');
   assert.deepEqual(draft.currencies()[0], ['', 'No currency'], 'the empty choice is worded as no currency, not as the field\'s name');
-  assert.ok(html.includes('<select name="moneyCurrency"><option value="">No currency</option>'), 'and the web\'s empty option says the same (the owner, on #351)');
-  assert.ok(html.includes('<span class="sr-only" data-i18n="moment.form.currency"></span><select name="moneyCurrency">') && english['moment.form.currency'] === 'Currency', 'the web\'s field keeps its own name for a screen reader');
+  assert.ok(html.includes('<select name="moneyCurrency" aria-describedby="moment-money-hint"><option value="">No currency</option>'), 'and the web\'s empty option says the same (the owner, on #351)');
+  assert.ok(html.includes('<span class="sr-only" data-i18n="moment.form.currency"></span><select name="moneyCurrency" aria-describedby="moment-money-hint">') && english['moment.form.currency'] === 'Currency', 'the web\'s field keeps its own name for a screen reader');
   for (const currency of ['', 'INR']) assert.equal(draft.payloadFrom({ ...draft.draftFrom(null), title: 'x', moneyCurrency: currency }, null).moneyCurrency, currency, 'what is saved is unchanged');
 
   const dropDown = await read('src/components/drop-down.tsx');
