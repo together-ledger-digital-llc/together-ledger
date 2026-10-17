@@ -291,17 +291,7 @@
       "name": "The phone's ledger",
       "movedIn": "103A",
       "file": "apps/mobile/app/ledger.tsx",
-      "kind": "script",
-      "pending": [
-        {
-          "text": "Show recent",
-          "until": "after 45: tests/mobile-moment-view.test.js pins the line as written"
-        },
-        {
-          "text": "＋ Hold a moment",
-          "until": "after 45: tests/mobile-moment-view.test.js pins the line as written"
-        }
-      ]
+      "kind": "script"
     },
     {
       "name": "The phone's Settings",
@@ -325,13 +315,7 @@
       "name": "The phone's Hold a moment",
       "movedIn": "103A",
       "file": "apps/mobile/app/moment.tsx",
-      "kind": "script",
-      "pending": [
-        {
-          "text": "Name this kind of moment",
-          "until": "after 45: tests/mobile-moment-view.test.js pins the line as written"
-        }
-      ]
+      "kind": "script"
     },
     {
       "name": "The phone's screen titles, Settings button and back button",

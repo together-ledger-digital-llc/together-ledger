@@ -1,6 +1,4 @@
-import { t } from '../i18n/sentences.js';
-
-export function showPasswordButton(shown: boolean) {
+export function showPasswordButton(shown: boolean, t: (key: string) => string) {
   const labelKey = shown ? 'common.password.hide' : 'common.password.show';
   return {
     secure: !shown,
