@@ -811,7 +811,8 @@ test('Apple\'s answer on Android signs in: posted to the Return URL, collected o
 test('the browser tab is sent back to the app whatever happened, and is told nothing', async () => {
   const { app, pool } = await setup({ ...ANDROID, ACCOUNT_ORIGIN: 'https://app.together-ledger.com' });
   const secrets = phoneSecrets();
-  for (const form of [appleForm(secrets, 'and-2'), { state: 'not-a-state', code: 'c', id_token: 'x' }, { error: 'user_cancelled_authorize', state: digest(phoneSecrets().verifier) }, {}]) {
+  const real = appleForm(secrets, 'and-2');
+  for (const form of [real, { state: 'not-a-state', code: 'c', id_token: 'x' }, { error: 'user_cancelled_authorize', state: digest(phoneSecrets().verifier) }, {}]) {
     const response = await appleAnswers(app, form);
     assert.equal(response.statusCode, 303);
     assert.equal(response.headers.location, 'https://app.together-ledger.com/apple-sign-in');
@@ -823,7 +824,7 @@ test('the browser tab is sent back to the app whatever happened, and is told not
   const rows = (await pool.query('SELECT * FROM apple_returns')).rows;
   assert.equal(rows.length, 1);
   assert.match(rows[0].answer, /^v1\./);
-  assert.ok(!rows[0].answer.includes('eyJ'));
+  assert.ok(!rows[0].answer.includes(real.id_token), 'the sealed answer never holds Apple\'s token as written');
   // A form is read at Apple's Return URL alone. Anywhere else it is refused before the route runs,
   // as before: a password login read from it would answer invalid_credentials.
   await registerWithPassword(app, 'form@example.com');
