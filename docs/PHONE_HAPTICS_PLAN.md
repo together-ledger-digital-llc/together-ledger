@@ -2,7 +2,7 @@
 
 A light vibration can help people who don't notice a visual change, but haptics will never be used as the only cue (decision 198C).
 
-Haptics will be added in three places. Currently, `expo-haptics` is **not** a dependency. The haptics should follow the reduce motion setting, which will be available in `apps/mobile/src/a11y/reduce-motion.ts` once PR 130b-1 merges (instead of reading it directly as currently done in `apps/mobile/src/components/journey-row.tsx`).
+Haptics will be added in three places. Currently, `expo-haptics` is **not** a dependency. The haptics should follow the reduce motion setting, read with `useReduceMotion()` from `apps/mobile/src/a11y/reduce-motion.ts` (#461), instead of reading it directly as `apps/mobile/src/components/journey-row.tsx` does.
 
 ### 1. A moment saved (success)
 - **File:** `apps/mobile/src/journey/moment-actions.ts`
