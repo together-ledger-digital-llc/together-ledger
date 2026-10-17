@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type ReactNode, type Ref, type RefObject }
 import { ActivityIndicator, AppState, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { fitTyping } from '../../../../src/display-text.js';
-import { t } from '../i18n';
 import { useLanguage } from '../i18n/language-provider';
 import { workingLabel } from '../shell/defaults';
 import { STATUS_TONES } from '../shell/status';
@@ -80,7 +79,7 @@ export function Field({ label, hint, problem, style, ref, limit, ...input }: { l
   }, []);
 
   const changeText = limit && onChangeText ? (next: string) => onChangeText(fitTyping(value ?? '', next, limit).value) : onChangeText;
-  const { secure, label: a11yLabel } = input.secureTextEntry ? showPasswordButton(shown, t) : { secure: undefined, label: undefined };
+  const { secure, label: a11yLabel } = input.secureTextEntry ? showPasswordButton(shown) : { secure: undefined, label: undefined };
 
   return (
     <View style={styles.field}>

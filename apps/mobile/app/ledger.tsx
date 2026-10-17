@@ -118,7 +118,7 @@ export default function LedgerScreen() {
               <Text accessibilityRole="header" style={[styles.sectionTitle, fonts.serif, { color: colors.fg }]}>{momentListHeading(compact)}</Text>
               <Text style={[styles.body, { color: colors.muted }]}>{t('common.ledger.lead')}</Text>
             </View>
-            <Button label={`＋ ${t('home.moment.hold')}`} onPress={() => router.push('/moment')} />
+            <Button label="＋ Hold a moment" onPress={() => router.push('/moment')} />
             <WaitingMoments activeJourneyId={activeId} />
             {/* Only In full and Compact here, no filter (#405): "＋ Hold a moment" above is the way in for any kind. */}
             {recent.length ? (
@@ -127,7 +127,7 @@ export default function LedgerScreen() {
                 <Choices label={MOMENT_VIEW_LABEL} options={MOMENT_VIEWS} selected={momentView.view} onSelect={(value) => momentView.setView(value as MomentView)} />
               </View>
             ) : null}
-            {listing.seeAll ? <Button kind="quiet" label={expanded ? t('home.moments.showRecent') : seeAllLabel(recent.length)} onPress={() => setExpanded(!expanded)} /> : null}
+            {listing.seeAll ? <Button kind="quiet" label={expanded ? 'Show recent' : seeAllLabel(recent.length)} onPress={() => setExpanded(!expanded)} /> : null}
           </View>
         }
         ListEmptyComponent={<EmptyState title={t('common.ledger.emptyTitle')} body={t('common.ledger.emptyBody')} />}
